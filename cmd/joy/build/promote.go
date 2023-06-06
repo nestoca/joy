@@ -1,8 +1,11 @@
 package build
 
 import (
+	"fmt"
 	internalBuild "github.com/nestoca/joy-cli/internal/build"
+	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // promoteCmd represents the promote command
@@ -18,10 +21,16 @@ Usage: joy build promote --env <env> <project> <version>`,
 		project := args[0]
 		version := args[1]
 
+		catalogDir, err := utils.ResolvePath(viper.GetString("catalogDir"))
+		if err != nil {
+			return fmt.Errorf("failed to resolve catalog directory path: %w", err)
+		}
+
 		return internalBuild.Promote(internalBuild.PromoteArgs{
 			Environment: env,
 			Project:     project,
 			Version:     version,
+			CatalogDir:  catalogDir,
 		})
 	},
 }

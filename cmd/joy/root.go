@@ -15,12 +15,6 @@ var rootCmd = &cobra.Command{
 	Use:   "joy",
 	Short: "CLI for managing Joy resources",
 	// TODO: Long description
-	// 	Long: `A longer description that spans multiple lines and likely contains
-	// examples and usage of using your application. For example:
-
-	// Cobra is a CLI library for Go that empowers applications.
-	// This application is a tool to generate the needed files
-	// to quickly create a Cobra application.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		configFile, err := utils.ResolvePath(cmd.Flag("config").Value.String())
 		if err != nil {
