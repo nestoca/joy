@@ -9,7 +9,7 @@ import (
 
 func ResolvePath(path string) (string, error) {
 	usr, err := user.Current()
-	if (err != nil) {
+	if err != nil {
 		return "", fmt.Errorf("could not resolve path: %w", err)
 	}
 

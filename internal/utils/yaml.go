@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// Traverse the YAML data using the provided path and return the value
+// TraverseYAML Traverse the YAML data using the provided path and return the value
 func TraverseYAML(data interface{}, path string) (interface{}, error) {
 	segments := explodePath(path)
-	
+
 	current := data
 	for _, key := range segments {
 		if m, ok := current.(map[string]interface{}); ok {
@@ -20,7 +20,7 @@ func TraverseYAML(data interface{}, path string) (interface{}, error) {
 	return current, nil
 }
 
-// Set the value at the provided path in the YAML data
+// SetYAMLValue Set the value at the provided path in the YAML data
 func SetYAMLValue(data interface{}, path string, value interface{}) error {
 	segments := explodePath(path)
 
@@ -44,7 +44,7 @@ func SetYAMLValue(data interface{}, path string, value interface{}) error {
 
 func explodePath(path string) []string {
 	segments := strings.Split(path, ".")
-	if (len(segments) > 0 && segments[0] == "") {
+	if len(segments) > 0 && segments[0] == "" {
 		segments = segments[1:]
 	}
 

@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package main
 
 import (
@@ -18,18 +15,18 @@ var rootCmd = &cobra.Command{
 	Use:   "joy",
 	Short: "CLI for managing Joy resources",
 	// TODO: Long description
-// 	Long: `A longer description that spans multiple lines and likely contains
-// examples and usage of using your application. For example:
+	// 	Long: `A longer description that spans multiple lines and likely contains
+	// examples and usage of using your application. For example:
 
-// Cobra is a CLI library for Go that empowers applications.
-// This application is a tool to generate the needed files
-// to quickly create a Cobra application.`,
+	// Cobra is a CLI library for Go that empowers applications.
+	// This application is a tool to generate the needed files
+	// to quickly create a Cobra application.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		configFile, err := utils.ResolvePath(cmd.Flag("config").Value.String())
 		if err != nil {
 			return fmt.Errorf("failed resolve config file path: %w", err)
 		}
-		
+
 		viper.SetConfigType("yaml")
 		viper.SetConfigFile(configFile)
 
@@ -47,7 +44,7 @@ var rootCmd = &cobra.Command{
 
 func createCLI() *cobra.Command {
 	// Add subcommands here
-	rootCmd.AddCommand(build.BuildCmd)
+	rootCmd.AddCommand(build.Cmd)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -68,4 +65,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-

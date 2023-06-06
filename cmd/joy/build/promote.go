@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package build
 
 import (
@@ -23,8 +20,8 @@ Usage: joy build promote --env <env> <project> <version>`,
 
 		return internalBuild.Promote(internalBuild.PromoteArgs{
 			Environment: env,
-			Project: project,
-			Version: version,
+			Project:     project,
+			Version:     version,
 		})
 	},
 }
@@ -39,5 +36,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	promoteCmd.Flags().StringP("env", "e", "", "Environment in which to promote this build")
-	promoteCmd.MarkFlagRequired("env")
+	_ = promoteCmd.MarkFlagRequired("env")
 }
