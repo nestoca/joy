@@ -22,7 +22,7 @@ type PromoteArgs struct {
 type promoteTarget struct {
 	File    os.FileInfo
 	Path    string
-	Release interface{}
+	Release *yaml.Node
 }
 
 func Promote(args PromoteArgs) error {
@@ -44,18 +44,18 @@ func Promote(args PromoteArgs) error {
 			return fmt.Errorf("reading release file: %w", err)
 		}
 
-		var release interface{}
-		err = yaml.Unmarshal(file, &release)
+		release := &yaml.Node{}
+		err = yaml.Unmarshal(file, release)
 		if err != nil {
 			return fmt.Errorf("parsing release file: %w", err)
 		}
 
-		releaseProject, err := utils.TraverseYAML(release, ".spec.project")
+		releaseProject, err := utils.FindNode(release, ".spec.project")
 		if err != nil {
 			return fmt.Errorf("reading release's project: %w", err)
 		}
 
-		if releaseProject != nil && args.Project == releaseProject.(string) {
+		if releaseProject != nil && args.Project == releaseProject.Value {
 			targets = append(targets, &promoteTarget{
 				File:    info,
 				Release: release,
@@ -69,10 +69,11 @@ func Promote(args PromoteArgs) error {
 	}
 
 	for _, target := range targets {
-		err := utils.SetYAMLValue(target.Release, ".spec.version", args.Version)
+		versionNode, err := utils.FindNode(target.Release, ".spec.version")
 		if err != nil {
 			return fmt.Errorf("updating release version: %w", err)
 		}
+		versionNode.Value = args.Version
 
 		result, err := yaml.Marshal(target.Release)
 		if err != nil {
@@ -83,12 +84,12 @@ func Promote(args PromoteArgs) error {
 			return fmt.Errorf("writing to release file: %w", err)
 		}
 
-		releaseName, err := utils.TraverseYAML(target.Release, ".metadata.name")
+		releaseName, err := utils.FindNode(target.Release, ".metadata.name")
 		if err != nil {
 			return fmt.Errorf("reading release's name: %w", err)
 		}
 
-		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.(string)), color.GreenString(args.Version))
+		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(args.Version))
 	}
 
 	if len(targets) > 0 {
