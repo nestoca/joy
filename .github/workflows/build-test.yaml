@@ -1,0 +1,44 @@
+name: Build and Test
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get build info
+        id: info
+        uses: nestoca/actions/get-build-info@v1
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3.3.1
+        with:
+          go-version-file: go.mod
+          # Used to specify whether caching is needed. Set to true, if you'd like to enable caching.
+          cache: true
+          # Used to specify the path to a dependency file - go.sum
+          cache-dependency-path: go.sum
+
+      - name: Setup dependencies
+        run: make setup
+
+      - name: Run tests w/ Coverage
+        run: make test-cov
+
+      - name: Build cli binary
+        run: make build
+
+      - name: Tag commit
+        # Only tag commit if on master branch, since this triggers the publishing workflow
+        if: github.ref == 'refs/heads/master'
+        uses: silphid/actions/tag-commit@v1
+        with:
+          tag: ${{ steps.info.outputs.git-tag }}
