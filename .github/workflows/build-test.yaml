@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build, Test and Publish
 
 on:
   push:
@@ -36,9 +36,36 @@ jobs:
       - name: Build cli binary
         run: make build
 
-      - name: Tag commit
-        # Only tag commit if on master branch, since this triggers the publishing workflow
-        if: github.ref == 'refs/heads/master'
-        uses: silphid/actions/tag-commit@v1
+  publish:
+    needs:
+      - test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
         with:
-          tag: ${{ steps.info.outputs.git-tag }}
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3.3.1
+        with:
+          go-version-file: go.mod
+          # Used to specify whether caching is needed. Set to true, if you'd like to enable caching.
+          cache: true
+          # Used to specify the path to a dependency file - go.sum
+          cache-dependency-path: go.sum
+
+      - name: Get tag name
+        id: tag
+        run: echo "tag_name=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUTS
+
+      - name: Release new CLI version
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          version: ${{ steps.tag.outputs.tag_name }}
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
