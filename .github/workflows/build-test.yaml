@@ -11,12 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Get build info
-        id: info
-        uses: nestoca/actions/get-build-info@v1
 
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
@@ -49,6 +43,10 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
+      - name: Get build info
+        id: info
+        uses: nestoca/actions/get-build-info@v1
+
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
         with:
@@ -58,14 +56,15 @@ jobs:
           # Used to specify the path to a dependency file - go.sum
           cache-dependency-path: go.sum
 
-      - name: Get tag name
-        id: tag
-        run: echo "tag_name=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUTS
+      - name: Tag commit
+        uses: silphid/actions/tag-commit@v1
+        with:
+          tag: ${{ steps.info.outputs.git-tag }}
 
       - name: Release new CLI version
         uses: goreleaser/goreleaser-action@v4
         with:
-          version: ${{ steps.tag.outputs.tag_name }}
+          version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
