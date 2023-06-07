@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-project_name: yey
+project_name: joy
 builds:
   - dir: src
     env:
@@ -27,5 +27,5 @@ brews:
       owner: nestoca
       name: homebrew-tap
     homepage: "https://github.com/nestoca/joy-cli"
-    description: "A CLI for managing and deploying applications"
+    description: "A CLI for happily managing and deploying applications"
     license: "MIT"
