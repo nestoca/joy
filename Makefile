@@ -1,3 +1,5 @@
+.PHONY: run setup build vet test test-cov clean
+
 run:
 	@echo "Run the cli using 'go run' to pass arguments: 'go run ./cmd/joy <args>'"
 	@echo "Ex: 'go run ./cmd/joy help'"

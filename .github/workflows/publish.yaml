@@ -30,7 +30,7 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "::set-output name=tag_name::${GITHUB_REF#refs/tags/}"
+        run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUTS
 
       - name: Release new CLI version
         uses: goreleaser/goreleaser-action@v4
