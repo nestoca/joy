@@ -19,15 +19,14 @@ type PromoteArgs struct {
 	CatalogDir  string
 }
 
-type promoteTarget struct {
-	File    os.FileInfo
-	Path    string
-	Release *yaml.Node
-}
-
 func Promote(args PromoteArgs) error {
 	envReleasesDir := filepath.Join(args.CatalogDir, "environments", args.Environment, "releases")
 
+	type promoteTarget struct {
+		File    os.FileInfo
+		Path    string
+		Release *yaml.Node
+	}
 	var targets []*promoteTarget
 
 	err := filepath.Walk(envReleasesDir, func(path string, info os.FileInfo, err error) error {

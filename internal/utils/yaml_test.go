@@ -61,7 +61,7 @@ func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, node)
 
-	assert.EqualError(t, err, "node not found for path 'spec.chart.name.foobar'; key 'foobar' does not exist in 'name'")
+	assert.EqualError(t, err, "node not found for path 'spec.chart.name.foobar': key 'name' does not exist")
 }
 
 func TestModifyingNodePreservesDocumentStructureAndOrdering(t *testing.T) {

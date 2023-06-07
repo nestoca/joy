@@ -10,23 +10,23 @@ import (
 // relative to the given yaml.Node.
 func FindNode(node *yaml.Node, path string) (resultNode *yaml.Node, err error) {
 
-	var leftoverSegments []string
+	var findNodeErr error
 
 	// If node is a DocumentNode, we need to retrieve the MappingNode from its Content and traverse it.
 	if node.Kind == yaml.DocumentNode && len(node.Content) == 1 {
-		resultNode, leftoverSegments = findNode(node.Content[0], segmentPath(path))
+		resultNode, findNodeErr = findNode(node.Content[0], segmentPath(path))
 	} else {
-		resultNode, leftoverSegments = findNode(node, segmentPath(path))
+		resultNode, findNodeErr = findNode(node, segmentPath(path))
 	}
 
-	if leftoverSegments != nil {
-		return nil, fmt.Errorf("node not found for path '%s'; key '%s' does not exist in '%s'", path, leftoverSegments[1], leftoverSegments[0])
+	if findNodeErr != nil {
+		return nil, fmt.Errorf("node not found for path '%s': %w", path, findNodeErr)
 	}
 
 	return resultNode, nil
 }
 
-func findNode(node *yaml.Node, pathSegments []string) (*yaml.Node, []string) {
+func findNode(node *yaml.Node, pathSegments []string) (*yaml.Node, error) {
 	// Condition is i+1 < len(node.Content) as there always need to be at least 2 entries left in the node.Content for
 	// traversal to work, because each key and its associated value are stored in two consecutive nodes in the slice.
 	for i := 0; i+1 < len(node.Content); i += 2 {
@@ -48,10 +48,7 @@ func findNode(node *yaml.Node, pathSegments []string) (*yaml.Node, []string) {
 		}
 	}
 
-	// If we made it here, it means the key at pathSegments[1] was not found on the node at pathSegments[0].
-	// To preserve a cleaner recursive signature for this function, an error will be returned by the helper method
-	// FindNode
-	return nil, pathSegments
+	return nil, fmt.Errorf("key '%s' does not exist", pathSegments[0])
 }
 
 func segmentPath(path string) []string {
