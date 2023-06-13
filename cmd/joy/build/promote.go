@@ -21,7 +21,7 @@ Usage: joy build promote --env <env> <project> <version>`,
 		project := args[0]
 		version := args[1]
 
-		catalogDir, err := utils.ResolvePath(viper.GetString("catalogDir"))
+		catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
 		if err != nil {
 			return fmt.Errorf("failed to resolve catalog directory path: %w", err)
 		}

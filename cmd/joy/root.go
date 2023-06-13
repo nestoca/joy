@@ -5,6 +5,7 @@ import (
 	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/viper"
 	"os"
+	"strings"
 
 	"github.com/nestoca/joy-cli/cmd/joy/build"
 	"github.com/spf13/cobra"
@@ -53,7 +54,14 @@ func initConfig(path string) error {
 	viper.SetConfigType("yaml")
 	viper.SetConfigFile(configFile)
 
-	viper.SetDefault("catalogDir", "~/.joy/catalog")
+	// Overrides can be set using env vars and take precedence over the config file. Useful for CI
+	// Will look for env vars prefixed with `JOY_` followed by the config name.
+	// Ex: `catalog-dir`'s value would be set to the value of JOY_CATALOG_DIR
+	viper.SetEnvPrefix("joy")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+
+	viper.SetDefault("catalog-dir", "~/.joy/catalog")
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
