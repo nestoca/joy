@@ -40,7 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GH_HOMEBREW_PUBLISHER }}
           fetch-depth: 0
 
       - name: Get build info
@@ -67,4 +66,4 @@ jobs:
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLISHER }}
