@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,9 +75,9 @@ func Promote(args PromoteArgs) error {
 		}
 		versionNode.Value = args.Version
 
-		result, err := yaml.Marshal(target.Release)
+		result, err := utils.EncodeYaml(target.Release)
 		if err != nil {
-			return fmt.Errorf("marshalling updated release: %w", err)
+			return fmt.Errorf("encoding updated release: %w", err)
 		}
 		err = os.WriteFile(target.Path, result, target.File.Mode())
 		if err != nil {
@@ -91,11 +92,11 @@ func Promote(args PromoteArgs) error {
 		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(args.Version))
 	}
 
-	if len(targets) > 0 {
-		_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(args.Project), color.HiCyanString(args.Environment), color.GreenString(args.Version))
-	} else {
-		_, _ = emoji.Printf(":warning:Did not find any releases for project %s\n", color.HiYellowString(args.Project))
+	if len(targets) == 0 {
+		return errors.New(emoji.Sprintf(":warning:Did not find any releases for project %s\n", color.HiYellowString(args.Project)))
 	}
+
+	_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(args.Project), color.HiCyanString(args.Environment), color.GreenString(args.Version))
 
 	return nil
 }
