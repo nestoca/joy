@@ -36,7 +36,7 @@ func createCLI() *cobra.Command {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "config file (default is ~/.joy/config.yaml)")
+	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy-cli containing overrides for the default settings")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

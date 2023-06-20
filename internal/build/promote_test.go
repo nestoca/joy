@@ -14,17 +14,17 @@ apiVersion: joy.nesto.ca/v1alpha1
 kind: Release
 # another random comment
 metadata:
-    annotations: {}
-    name: %s
+  annotations: {}
+  name: %s
 spec:
-    chart:
-        name: echo
-        # a nested comment
-        repoUrl: https://repo.echo-chart.example
-        version: 1.2.3
-    project: %s
-    version: %s # This is an line comment
-    versionKey: image.tag
+  chart:
+    name: echo
+    # a nested comment
+    repoUrl: https://repo.echo-chart.example
+    version: 1.2.3
+  project: %s
+  version: %s # This is an line comment
+  versionKey: image.tag
 `
 
 func TestPromote(t *testing.T) {
@@ -70,7 +70,7 @@ func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = build.Promote(testArgs)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 
 	result, err := os.ReadFile(testReleaseFile)
 	assert.Nil(t, err)
