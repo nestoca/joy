@@ -253,7 +253,45 @@ e:
 	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
 }
 
-// TODO: Add tests for merging arrays
+func TestMergeArrays(t *testing.T) {
+	aContent := `
+a: b
+c: d
+e:
+  f:
+    - f
+    - g
+    - h
+    - i
+    - j
+`
+	bContent := `
+m: n
+o: p
+e:
+  ## lock
+  f:
+    - q
+    - r
+    - s
+    - t
+    - u
+`
+	expectedContent := `
+a: b
+c: d
+e:
+  ## lock
+  f:
+    - q
+    - r
+    - s
+    - t
+    - u
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
 
 func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string) {
 	// Parse a.yaml
