@@ -219,6 +219,42 @@ func TestMergeWhenBothYAMLsAreEmpty(t *testing.T) {
 	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
 }
 
+func TestMergeSanitizeLockedDestinationScalarsAsTodo(t *testing.T) {
+	aContent := `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j:
+    k: l
+`
+	bContent := `
+m: n
+o: p
+e:
+  ## lock
+  f: q
+  r: s
+`
+	expectedContent := `
+a: b
+c: d
+e:
+  ## lock
+  f: q
+  h: i
+  ## lock
+  j:
+    k: TODO
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
+
+// TODO: Add tests for merging arrays
+
 func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string) {
 	// Parse a.yaml
 	var aMap yaml.Node

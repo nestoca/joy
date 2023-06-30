@@ -13,6 +13,8 @@ func Merge(dest *yaml.Node, src *yaml.Node) {
 		return
 	}
 
+	setLockedScalarValuesAsTodo(dest.Content[0], false)
+
 	result := mergeSubTrees(dest.Content[0], src.Content[0])
 	if result != nil {
 		dest.Content[0] = result
@@ -53,12 +55,7 @@ func mergeSubTrees(dest, src *yaml.Node) *yaml.Node {
 		}
 
 		var subtree *yaml.Node
-		isKeyNodeMarkedAsLocked :=
-			lockMarkerRegex.MatchString(keyNode.HeadComment) ||
-				lockMarkerRegex.MatchString(keyNode.LineComment)
-		isValueNodeMarkedAsLocked :=
-			valueNode.Kind == yaml.ScalarNode && lockMarkerRegex.MatchString(valueNode.LineComment)
-		if isKeyNodeMarkedAsLocked || isValueNodeMarkedAsLocked {
+		if isLockedSubtree(keyNode, valueNode) {
 			lockMarkerFound = true
 			subtree = valueNode
 		} else {
@@ -84,6 +81,44 @@ func mergeSubTrees(dest, src *yaml.Node) *yaml.Node {
 		return dest
 	}
 	return nil
+}
+
+func setLockedScalarValuesAsTodo(node *yaml.Node, locked bool) {
+	if node == nil {
+		return
+	}
+
+	switch node.Kind {
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			keyNode := node.Content[i]
+			valueNode := node.Content[i+1]
+
+			if locked {
+				if valueNode.Kind == yaml.ScalarNode {
+					valueNode.Value = "TODO"
+				} else {
+					setLockedScalarValuesAsTodo(valueNode, true)
+				}
+			} else {
+				setLockedScalarValuesAsTodo(valueNode, isLockedSubtree(keyNode, valueNode))
+			}
+		}
+	case yaml.SequenceNode:
+		for _, item := range node.Content {
+			setLockedScalarValuesAsTodo(item, locked)
+		}
+	}
+}
+
+func isLockedSubtree(keyNode, valueNode *yaml.Node) bool {
+	isKeyNodeMarkedAsLocked :=
+		keyNode != nil && (lockMarkerRegex.MatchString(keyNode.HeadComment) ||
+			lockMarkerRegex.MatchString(keyNode.LineComment))
+	isValueNodeMarkedAsLocked :=
+		valueNode != nil &&
+			(valueNode.Kind == yaml.ScalarNode && lockMarkerRegex.MatchString(valueNode.LineComment))
+	return isKeyNodeMarkedAsLocked || isValueNodeMarkedAsLocked
 }
 
 func findKey(node *yaml.Node, key string) int {
