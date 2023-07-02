@@ -3,6 +3,7 @@ module github.com/nestoca/joy-cli
 go 1.19
 
 require (
+	github.com/TwiN/go-color v1.4.0
 	github.com/fatih/color v1.15.0
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/olekukonko/tablewriter v0.0.5

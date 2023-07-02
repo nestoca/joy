@@ -1,6 +1,7 @@
 package cross
 
 import (
+	"github.com/TwiN/go-color"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"sort"
@@ -32,16 +33,33 @@ func (r *ReleaseList) Print() {
 
 	for _, releaseName := range sortedReleaseNames {
 		release := r.Releases[releaseName]
-		row := []string{release.Name}
+
+		// Check if releases and their values are synced across all environments
+		releasesSynced := release.AreReleasesSynced()
+		valuesSynced := release.AreValuesSynced()
+
+		row := []string{colorize(release.Name, releasesSynced, valuesSynced)}
 		for _, rel := range release.Releases {
+			text := "-"
 			if rel != nil {
-				row = append(row, rel.Spec.Version)
-			} else {
-				row = append(row, "-")
+				text = rel.Spec.Version
 			}
+			text = colorize(text, releasesSynced, valuesSynced)
+			row = append(row, text)
 		}
 		table.Append(row)
 	}
 
 	table.Render()
+}
+
+func colorize(text string, releasesSynced, valuesSynced bool) string {
+	if !releasesSynced || !valuesSynced {
+		if !releasesSynced {
+			return color.InRed(text)
+		} else {
+			return color.InYellow(text)
+		}
+	}
+	return color.InGreen(text)
 }

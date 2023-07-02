@@ -26,12 +26,11 @@ func NewYamlFile(filePath string, content []byte) (*YamlFile, error) {
 	if err := yaml.Unmarshal(content, &node); err != nil {
 		return nil, fmt.Errorf("unmarshalling release file %s in yaml node form: %w", filePath, err)
 	}
-
-
-
+	hash := GetHash(&node)
 	return &YamlFile{
 		FilePath: filePath,
 		Yaml:     content,
 		Node:     &node,
+		Hash:     hash,
 	}, nil
 }
