@@ -10,7 +10,7 @@ import (
 
 type Metadata struct {
 	// Name is the name of the release.
-	Name string
+	Name string `yaml:"name,omitempty"`
 }
 
 type Chart struct {
@@ -37,7 +37,7 @@ type Release struct {
 	Kind string `yaml:"kind,omitempty"`
 
 	// Metadata is the metadata of the release.
-	Metadata Metadata `yaml:"metadata,omitempty"`
+	Metadata `yaml:"metadata,omitempty"`
 
 	// Spec is the spec of the release.
 	Spec Spec `yaml:"spec,omitempty"`
@@ -51,6 +51,13 @@ type Release struct {
 
 // LoadAllInDir loads all releases in the given directory.
 func LoadAllInDir(dir string) ([]*Release, error) {
+	dir = filepath.Join(dir, "releases")
+
+	// Ensure dir exists
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("directory %s does not exist", dir)
+	}
+
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("reading directory %s: %w", dir, err)
