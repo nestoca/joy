@@ -6,7 +6,7 @@ import (
 
 type Promotion struct {
 	Release release.Release
-	Values  release.Values
+	Values  release.ValuesFile
 
 	// Is the release version being promoted?
 	IsVersionPromoted bool

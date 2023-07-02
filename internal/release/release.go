@@ -42,11 +42,11 @@ type Release struct {
 	// Spec is the spec of the release.
 	Spec Spec `yaml:"spec,omitempty"`
 
-	// FilePath is the path to the release file.
-	FilePath string `yaml:"-"`
+	// ReleaseFile represents the in-memory yaml file of the release.
+	ReleaseFile YamlFile `yaml:"-"`
 
-	// Yaml is the raw yaml of the release.
-	Yaml string `yaml:"-"`
+	// ValuesFile represents the in-memory yaml file of the values associated with the release.
+	ValuesFile YamlFile `yaml:"-"`
 }
 
 // LoadAllInDir loads all releases in the given directory.
@@ -80,18 +80,36 @@ func LoadAllInDir(dir string) ([]*Release, error) {
 }
 
 // Load loads a release from the given release file.
-func Load(releaseFile string) (*Release, error) {
-	content, err := os.ReadFile(releaseFile)
+func Load(filePath string) (*Release, error) {
+	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("reading release file %s: %w", releaseFile, err)
+		return nil, fmt.Errorf("reading release file %s: %w", filePath, err)
 	}
 
+	// Load in structured form
 	var release Release
 	if err := yaml.Unmarshal(content, &release); err != nil {
-		return nil, fmt.Errorf("unmarshalling release file %s: %w", releaseFile, err)
+		return nil, fmt.Errorf("unmarshalling release file %s in structured form: %w", filePath, err)
 	}
-	release.FilePath = releaseFile
-	release.Yaml = string(content)
+
+	// Load in yaml file form
+	yamlFile, err := NewYamlFile(filePath, content)
+	if err != nil {
+		return nil, fmt.Errorf("creating yaml file for release file %s: %w", filePath, err)
+	}
+	release.ReleaseFile = *yamlFile
+
+	// Load values file
+	valuesFilePath := strings.TrimSuffix(filePath, ".release.yaml") + ".values.yaml"
+	valuesContent, err := os.ReadFile(valuesFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("reading values file %s: %w", valuesFilePath, err)
+	}
+	valuesYamlFile, err := NewYamlFile(valuesFilePath, valuesContent)
+	if err != nil {
+		return nil, fmt.Errorf("creating yaml file for values file %s: %w", valuesFilePath, err)
+	}
+	release.ValuesFile = *valuesYamlFile
 
 	return &release, nil
 }

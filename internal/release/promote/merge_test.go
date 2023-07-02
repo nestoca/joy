@@ -1,4 +1,4 @@
-package merge
+package promote
 
 import (
 	"bytes"
@@ -309,14 +309,14 @@ func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string
 	bMap.Style = 0
 
 	// Merge YAML nodes
-	Merge(&aMap, &bMap)
+	result := Merge(&aMap, &bMap)
 
 	// Marshal the result with custom indentation
 	var buf bytes.Buffer
 	encoder := yaml.NewEncoder(&buf)
 	encoder.SetIndent(2)
 
-	if err := encoder.Encode(&aMap); err != nil {
+	if err := encoder.Encode(result); err != nil {
 		t.Fatalf("Failed to marshal the result: %v", err)
 	}
 

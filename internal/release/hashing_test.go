@@ -1,4 +1,4 @@
-package merge
+package release
 
 import (
 	"gopkg.in/yaml.v3"

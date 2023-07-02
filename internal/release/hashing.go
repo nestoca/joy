@@ -1,4 +1,4 @@
-package merge
+package release
 
 import (
 	"gopkg.in/yaml.v3"
@@ -8,33 +8,33 @@ import (
 
 func GetHash(node *yaml.Node) uint64 {
 	hsh := fnv.New64a()
-	traverse(node, hsh)
+	getHashRecursively(node, hsh)
 	return hsh.Sum64()
 }
 
-func traverse(node *yaml.Node, hsh hash.Hash64) {
+func getHashRecursively(node *yaml.Node, hsh hash.Hash64) {
 	if node == nil {
 		return
 	}
 
 	switch node.Kind {
 	case yaml.DocumentNode:
-		traverse(node.Content[0], hsh)
+		getHashRecursively(node.Content[0], hsh)
 	case yaml.MappingNode:
 		_, _ = hsh.Write([]byte("mapping"))
 		for i := 0; i < len(node.Content); i += 2 {
 			key := node.Content[i]
 			value := node.Content[i+1]
-			if isLockedSubtree(key, value) {
+			if IsLocked(key, value) {
 				continue
 			}
-			traverse(key, hsh)
-			traverse(value, hsh)
+			getHashRecursively(key, hsh)
+			getHashRecursively(value, hsh)
 		}
 	case yaml.SequenceNode:
 		_, _ = hsh.Write([]byte("sequence"))
 		for _, item := range node.Content {
-			traverse(item, hsh)
+			getHashRecursively(item, hsh)
 		}
 	case yaml.ScalarNode:
 		_, _ = hsh.Write([]byte(node.Value))
