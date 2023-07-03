@@ -7,34 +7,41 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nestoca/joy-cli/cmd/joy/build"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	err := createCLI().Execute()
+	rootCmd := NewRootCmd()
+	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-// RootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "joy",
-	Short: "CLI for managing Joy resources",
-	// TODO: Long description
-	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-		return initConfig(cmd.Flag("config").Value.String())
-	},
-}
+func NewRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "joy",
+		Short:        "Manages project, environment and release resources as code",
+		SilenceUsage: true,
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return initConfig(cmd.Flag("config").Value.String())
+		},
+	}
+	cmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy-cli containing overrides for the default settings")
 
-func createCLI() *cobra.Command {
-	rootCmd.AddCommand(build.Cmd)
-	rootCmd.AddCommand(NewReleaseCmd())
+	// Core commands
+	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})
+	cmd.AddCommand(NewReleaseCmd())
+	cmd.AddCommand(NewBuildCmd())
 
-	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy-cli containing overrides for the default settings")
+	// Git-oriented commands
+	cmd.AddGroup(&cobra.Group{ID: "git", Title: "Git-oriented commands"})
+	cmd.AddCommand(NewGitCmd())
+	cmd.AddCommand(NewPullCmd())
+	cmd.AddCommand(NewPushCmd())
+	cmd.AddCommand(NewResetCmd())
 
-	return rootCmd
+	return cmd
 }
 
 func initConfig(path string) error {

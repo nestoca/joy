@@ -34,7 +34,7 @@ foo:
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Parse the YAML data into a Node
+			// Parse the YAML data into a Tree
 			var node yaml.Node
 			err := yaml.Unmarshal([]byte(test.yamlData), &node)
 			if err != nil {

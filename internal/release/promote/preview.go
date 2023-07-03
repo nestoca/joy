@@ -11,44 +11,61 @@ import (
 	"strings"
 )
 
+var MajorSeparator = strings.Repeat("—", 80)
+var MinorSeparator = ""
+
 func Preview(list *cross.ReleaseList) error {
-	releaseSeparator := strings.Repeat("—", 80)
-	sectionSeparator := strings.Repeat("—", 3)
 	releases := list.SortedReleases()
 	env := list.Environments[1]
+	anyUnsynced := false
+
 	for _, rel := range releases {
-		fmt.Println(releaseSeparator)
+		// Check if releases and values are synced across all environments
+		allReleasesSynced := rel.AllReleasesSynced()
+		allValuesSynced := rel.AllValuesSynced()
+		if allReleasesSynced && allValuesSynced {
+			continue
+		}
+		anyUnsynced = true
+
+		// Print header
+		fmt.Println(MajorSeparator)
 		fmt.Printf("🚀%s %s/%s\n",
 			color.InWhite("Release"),
 			color.Colorize(darkYellow, env.Name),
 			color.InBold(color.InYellow(rel.Name)))
-		fmt.Println(releaseSeparator)
+		fmt.Println(MinorSeparator)
 		source := rel.Releases[0]
 		target := rel.Releases[1]
 
+		// Print release diff
 		sections := 0
-		if !rel.AllReleasesSynced() {
+		if !allReleasesSynced {
 			fmt.Printf("%s %s\n", color.InWhite("🕹Release file"), color.Colorize(darkGrey, target.ReleaseFile.FilePath))
-			err := printDiff(source.ReleaseFile.Node, target.ReleaseFile.Node)
+			err := printDiff(source.ReleaseFile.Tree, target.ReleaseFile.Tree)
 			if err != nil {
 				return fmt.Errorf("printing release diff: %w", err)
 			}
 			sections++
 		}
 
-		if !rel.AllValuesSynced() {
+		// Print values diff
+		if !allValuesSynced {
 			if sections > 0 {
-				fmt.Println(sectionSeparator)
+				fmt.Println(MinorSeparator)
 			}
 			fmt.Printf("%s %s\n", color.InWhite("🎛Values file"), color.Colorize(darkGrey, target.ValuesFile.FilePath))
-			err := printDiff(source.ValuesFile.Node, target.ValuesFile.Node)
+			err := printDiff(source.ValuesFile.Tree, target.ValuesFile.Tree)
 			if err != nil {
 				return fmt.Errorf("printing values diff: %w", err)
 			}
 		}
 	}
 
-	fmt.Println(releaseSeparator)
+	if !anyUnsynced {
+		fmt.Println("🎉All releases are in sync!")
+	}
+	fmt.Println(MajorSeparator)
 	return nil
 }
 

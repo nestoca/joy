@@ -43,10 +43,10 @@ type Release struct {
 	Spec Spec `yaml:"spec,omitempty"`
 
 	// ReleaseFile represents the in-memory yaml file of the release.
-	ReleaseFile YamlFile `yaml:"-"`
+	ReleaseFile *YamlFile `yaml:"-"`
 
 	// ValuesFile represents the in-memory yaml file of the values associated with the release.
-	ValuesFile YamlFile `yaml:"-"`
+	ValuesFile *YamlFile `yaml:"-"`
 }
 
 // LoadAllInDir loads all releases in the given directory.
@@ -100,7 +100,7 @@ func Load(filePath string) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for release file %s: %w", filePath, err)
 	}
-	release.ReleaseFile = *yamlFile
+	release.ReleaseFile = yamlFile
 
 	// Load values file
 	valuesFilePath := strings.TrimSuffix(filePath, ".release.yaml") + ".values.yaml"
@@ -112,7 +112,7 @@ func Load(filePath string) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for values file %s: %w", valuesFilePath, err)
 	}
-	release.ValuesFile = *valuesYamlFile
+	release.ValuesFile = valuesYamlFile
 
 	return &release, nil
 }

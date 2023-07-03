@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// FindNode traverses a given yaml.Node to locate the value Node of the provided path. The path is interpreted as being
+// FindNode traverses a given yaml.Node to locate the value Tree of the provided path. The path is interpreted as being
 // relative to the given yaml.Node.
 func FindNode(node *yaml.Node, path string) (resultNode *yaml.Node, err error) {
 

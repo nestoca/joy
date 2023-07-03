@@ -1,4 +1,4 @@
-package build
+package promote
 
 import (
 	"errors"
@@ -13,15 +13,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type PromoteArgs struct {
+type Opts struct {
 	Environment string
 	Project     string
 	Version     string
 	CatalogDir  string
 }
 
-func Promote(args PromoteArgs) error {
-	envReleasesDir := filepath.Join(args.CatalogDir, "environments", args.Environment, "releases")
+func Promote(opts Opts) error {
+	envReleasesDir := filepath.Join(opts.CatalogDir, "environments", opts.Environment, "releases")
 
 	type promoteTarget struct {
 		File    os.FileInfo
@@ -55,7 +55,7 @@ func Promote(args PromoteArgs) error {
 			return fmt.Errorf("reading release's project: %w", err)
 		}
 
-		if releaseProject != nil && args.Project == releaseProject.Value {
+		if releaseProject != nil && opts.Project == releaseProject.Value {
 			targets = append(targets, &promoteTarget{
 				File:    info,
 				Release: release,
@@ -73,7 +73,7 @@ func Promote(args PromoteArgs) error {
 		if err != nil {
 			return fmt.Errorf("updating release version: %w", err)
 		}
-		versionNode.Value = args.Version
+		versionNode.Value = opts.Version
 
 		result, err := utils.EncodeYaml(target.Release)
 		if err != nil {
@@ -89,14 +89,14 @@ func Promote(args PromoteArgs) error {
 			return fmt.Errorf("reading release's name: %w", err)
 		}
 
-		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(args.Version))
+		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(opts.Version))
 	}
 
 	if len(targets) == 0 {
-		return errors.New(emoji.Sprintf(":warning:Did not find any releases for project %s\n", color.HiYellowString(args.Project)))
+		return errors.New(emoji.Sprintf(":warning:Did not find any releases for project %s\n", color.HiYellowString(opts.Project)))
 	}
 
-	_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(args.Project), color.HiCyanString(args.Environment), color.GreenString(args.Version))
+	_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(opts.Project), color.HiCyanString(opts.Environment), color.GreenString(opts.Version))
 
 	return nil
 }
