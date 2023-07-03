@@ -21,8 +21,8 @@ func NewRelease(name string, environments []*environment.Environment) *Release {
 	}
 }
 
-// AreReleasesSynced returns true if all releases are synced across all environments.
-func (r *Release) AreReleasesSynced() bool {
+// AllReleasesSynced returns true if all releases are synced across all environments.
+func (r *Release) AllReleasesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
 		if rel == nil {
@@ -37,8 +37,8 @@ func (r *Release) AreReleasesSynced() bool {
 	return true
 }
 
-// AreValuesSynced returns true if all values are synced across all environments.
-func (r *Release) AreValuesSynced() bool {
+// AllValuesSynced returns true if all values are synced across all environments.
+func (r *Release) AllValuesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
 		if rel == nil {

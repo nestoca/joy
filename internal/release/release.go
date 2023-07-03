@@ -50,7 +50,7 @@ type Release struct {
 }
 
 // LoadAllInDir loads all releases in the given directory.
-func LoadAllInDir(dir string) ([]*Release, error) {
+func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 	dir = filepath.Join(dir, "releases")
 
 	// Ensure dir exists
@@ -72,7 +72,10 @@ func LoadAllInDir(dir string) ([]*Release, error) {
 			if err != nil {
 				return nil, fmt.Errorf("loading release %s: %w", filePath, err)
 			}
-			releases = append(releases, release)
+
+			if releaseFilter == nil || releaseFilter.Match(release) {
+				releases = append(releases, release)
+			}
 		}
 	}
 

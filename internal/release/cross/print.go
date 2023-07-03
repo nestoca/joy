@@ -4,7 +4,6 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/olekukonko/tablewriter"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -24,19 +23,10 @@ func (r *ReleaseList) Print() {
 	}
 	table.SetHeader(headers)
 
-	// Sort releases by name
-	sortedReleaseNames := make([]string, 0, len(r.Releases))
-	for releaseName := range r.Releases {
-		sortedReleaseNames = append(sortedReleaseNames, releaseName)
-	}
-	sort.Strings(sortedReleaseNames)
-
-	for _, releaseName := range sortedReleaseNames {
-		release := r.Releases[releaseName]
-
+	for _, release := range r.SortedReleases() {
 		// Check if releases and their values are synced across all environments
-		releasesSynced := release.AreReleasesSynced()
-		valuesSynced := release.AreValuesSynced()
+		releasesSynced := release.AllReleasesSynced()
+		valuesSynced := release.AllValuesSynced()
 
 		row := []string{colorize(release.Name, releasesSynced, valuesSynced)}
 		for _, rel := range release.Releases {

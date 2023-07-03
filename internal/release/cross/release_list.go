@@ -5,6 +5,7 @@ import (
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/release"
 	"path/filepath"
+	"sort"
 )
 
 type ReleaseList struct {
@@ -21,11 +22,11 @@ func NewReleaseList(environments []*environment.Environment) *ReleaseList {
 }
 
 // Load loads all releases for given environments underneath the given base directory.
-func Load(baseDir string, environments []*environment.Environment) (*ReleaseList, error) {
+func Load(baseDir string, environments []*environment.Environment, releaseFilter release.Filter) (*ReleaseList, error) {
 	releases := NewReleaseList(environments)
 	for _, env := range environments {
 		envDir := filepath.Join(baseDir, env.Name)
-		envReleases, err := release.LoadAllInDir(envDir)
+		envReleases, err := release.LoadAllInDir(envDir, releaseFilter)
 		if err != nil {
 			return nil, fmt.Errorf("loading releases in %s: %w", envDir, err)
 		}
@@ -63,4 +64,23 @@ func (r *ReleaseList) AddRelease(release *release.Release, environment *environm
 	}
 	rel.Releases[index] = release
 	return nil
+}
+
+func (r *ReleaseList) SortedReleases() []*Release {
+	var releases []*Release
+	for _, rel := range r.Releases {
+		releases = append(releases, rel)
+	}
+	sort.Slice(releases, func(i, j int) bool {
+		return releases[i].Name < releases[j].Name
+	})
+	return releases
+}
+
+func (r *ReleaseList) Subset(releases []string) *ReleaseList {
+	subset := NewReleaseList(r.Environments)
+	for _, rel := range releases {
+		subset.Releases[rel] = r.Releases[rel]
+	}
+	return subset
 }
