@@ -8,7 +8,6 @@ import (
 	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 func NewReleaseCmd() *cobra.Command {
@@ -76,13 +75,8 @@ func NewReleasePromoteCmd() *cobra.Command {
 			}
 
 			// Catalog
-			catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
-			if err != nil {
-				return fmt.Errorf("failed to resolve catalog directory path: %w", err)
-			}
-			err = os.Chdir(catalogDir)
-			if err != nil {
-				return fmt.Errorf("changing to catalog directory: %w", err)
+			if err := changeToCatalogDir(); err != nil {
+				return err
 			}
 
 			return promotion.Prompt(opts)

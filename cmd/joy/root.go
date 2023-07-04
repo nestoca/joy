@@ -70,3 +70,15 @@ func initConfig(path string) error {
 
 	return nil
 }
+
+func changeToCatalogDir() error {
+	catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
+	if err != nil {
+		return fmt.Errorf("failed to resolve catalog directory path: %w", err)
+	}
+	err = os.Chdir(catalogDir)
+	if err != nil {
+		return fmt.Errorf("changing to catalog directory: %w", err)
+	}
+	return nil
+}
