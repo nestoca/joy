@@ -10,7 +10,17 @@ import (
 // left unchanged and a new release node tree is returned.
 func Merge(src *yaml.Node, dest *yaml.Node) *yaml.Node {
 	result := releasing.DeepCopyNode(src)
-	dest = releasing.DeepCopyNode(dest)
+
+	if dest == nil {
+		dest = &yaml.Node{
+			Kind: yaml.DocumentNode,
+			Content: []*yaml.Node{{
+				Kind: yaml.MappingNode,
+			}},
+		}
+	} else {
+		dest = releasing.DeepCopyNode(dest)
+	}
 
 	if src.Kind != yaml.DocumentNode || dest.Kind != yaml.DocumentNode {
 		return nil
@@ -105,6 +115,7 @@ func setLockedScalarValuesAsTodo(node *yaml.Node, locked bool) {
 			if locked {
 				if valueNode.Kind == yaml.ScalarNode {
 					valueNode.Value = "TODO"
+					valueNode.Style = 0
 				} else {
 					setLockedScalarValuesAsTodo(valueNode, true)
 				}

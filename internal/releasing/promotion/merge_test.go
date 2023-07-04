@@ -2,6 +2,7 @@ package promotion
 
 import (
 	"bytes"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v3"
 	"strings"
 	"testing"
@@ -328,5 +329,54 @@ func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string
 	expected := strings.TrimSpace(expectedContent)
 	if actual != expected {
 		t.Errorf("Merged YAML files do not match the expected result.\nActual:\n%s\nExpected:\n%s", actual, expected)
+	}
+}
+
+// Test that merge function copies everything from source to destination when destination is nil and that locked subtrees have their values replaced with TODO
+func TestMergeWhenDestinationIsNil(t *testing.T) {
+	// Source yaml
+	source := `
+a: b
+c: d
+e:	
+  f: g
+  h: i
+  ## lock
+  j:
+    k: l
+`
+	var sourceNode yaml.Node
+	if err := yaml.Unmarshal([]byte(source), &sourceNode); err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	// Expected result
+	expected := `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j:
+    k: TODO
+`
+	// Merge YAML nodes
+	mergedNode := Merge(&sourceNode, nil)
+
+	// Marshal the merged result
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(mergedNode); err != nil {
+		t.Fatalf("Failed to marshal the result: %v", err)
+	}
+	mergedBytes := buf.Bytes()
+
+	// Compare the result with the expected result
+	actual := strings.TrimSpace(string(mergedBytes))
+	expected = strings.TrimSpace(expected)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Mismatch (-expected +actual):\n%s", diff)
 	}
 }

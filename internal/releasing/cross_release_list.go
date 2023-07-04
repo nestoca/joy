@@ -125,7 +125,7 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 		row := []string{colorize(release.Name, releasesSynced, valuesSynced, dimmed)}
 		for _, rel := range release.Releases {
 			text := "-"
-			if rel != nil {
+			if rel != nil && !rel.Missing {
 				text = rel.Spec.Version
 			}
 			text = colorize(text, releasesSynced, valuesSynced, dimmed)

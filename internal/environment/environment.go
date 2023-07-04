@@ -10,7 +10,7 @@ type Environment struct {
 	// Name is the name identifier of the environment (eg: dev, staging, prod).
 	Name string
 
-	// Dir is the path to the environment file.
+	// Dir is the path to the environment directory.
 	Dir string
 
 	// Order controls the display order of the environment.
@@ -24,15 +24,7 @@ func New(name string) *Environment {
 	}
 }
 
-func NewList(names []string) []*Environment {
-	var environments []*Environment
-	for _, name := range names {
-		environments = append(environments, New(name))
-	}
-	return environments
-}
-
-func LoadAll(baseDir string) ([]*Environment, error) {
+func LoadAll(baseDir string, names ...string) ([]*Environment, error) {
 	// Ensure dir exists
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory %s does not exist", baseDir)
@@ -46,7 +38,23 @@ func LoadAll(baseDir string) ([]*Environment, error) {
 	var environments []*Environment
 	for _, entry := range entries {
 		if entry.IsDir() {
-			dir := filepath.Join(baseDir, entry.Name())
+			// Skip if not in names
+			envName := entry.Name()
+			if len(names) > 0 {
+				found := false
+				for _, name := range names {
+					if name == envName {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+
+			// Load environment
+			dir := filepath.Join(baseDir, envName)
 			environment, err := Load(dir)
 			if err != nil {
 				return nil, fmt.Errorf("loading environment from %q: %w", dir, err)

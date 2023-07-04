@@ -62,3 +62,18 @@ func (y *YamlFile) CopyWithNewTree(newTree *yaml.Node) (*YamlFile, error) {
 func (y *YamlFile) Write() error {
 	return os.WriteFile(y.FilePath, y.Yaml, 0644)
 }
+
+func (y *YamlFile) ToYaml() (string, error) {
+	return TreeToYaml(y.Tree, y.Indent)
+}
+
+func TreeToYaml(tree *yaml.Node, indent int) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := yaml.NewEncoder(buf)
+	encoder.SetIndent(indent)
+	err := encoder.Encode(tree)
+	if err != nil {
+		return "", fmt.Errorf("encoding node tree to yaml: %w", err)
+	}
+	return buf.String(), nil
+}

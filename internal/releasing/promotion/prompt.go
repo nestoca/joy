@@ -48,10 +48,19 @@ func Prompt(opts Opts) error {
 
 	// Load matching releases from given environments.
 	environmentsDir := "environments"
-	environments := environment.NewList([]string{opts.SourceEnv, opts.TargetEnv})
+	environments, err := environment.LoadAll(environmentsDir, opts.SourceEnv, opts.TargetEnv)
+	if err != nil {
+		return fmt.Errorf("loading environments: %w", err)
+	}
 	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
+	}
+
+	// Create missing releases.
+	err = CreateMissingReleases(list)
+	if err != nil {
+		return fmt.Errorf("creating missing releases: %w", err)
 	}
 
 	// Count matching releases.

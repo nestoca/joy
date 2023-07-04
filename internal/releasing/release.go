@@ -47,6 +47,10 @@ type Release struct {
 
 	// ValuesFile represents the in-memory yaml file of the values associated with the release.
 	ValuesFile *YamlFile `yaml:"-"`
+
+	// Missing indicates whether the release is missing in the target environment. During a promotion,
+	// this allows to know whether the release will be created or updated.
+	Missing bool `yaml:"-"`
 }
 
 // LoadAllInDir loads all releases in the given directory.

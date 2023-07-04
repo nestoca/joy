@@ -34,9 +34,16 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 		source := crossRelease.Releases[0]
 		target := crossRelease.Releases[1]
 
+		// Determine operation
+		operation := "Updating"
+		if target.Missing {
+			operation = color.InBold("Creating new")
+		}
+		operation = color.InYellow(operation)
+
 		// Promote release
 		if !allReleasesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🕹Promoting release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
+			fmt.Printf("🕹%s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
 			err := promoteFile(source.ReleaseFile, target.ReleaseFile)
 			if err != nil {
 				return fmt.Errorf("promoting release file %q: %w", target.ReleaseFile.FilePath, err)
@@ -46,7 +53,7 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 
 		// Promote values
 		if !allValuesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🎛Promoting values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
+			fmt.Printf("🎛%s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
 			err := promoteFile(source.ValuesFile, target.ValuesFile)
 			if err != nil {
 				return fmt.Errorf("promoting values file %q: %w", target.ValuesFile.FilePath, err)
@@ -55,7 +62,7 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 		}
 
 		// Determine release-specific message
-		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version)
+		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version, target.Missing)
 		messages = append(messages, message)
 	}
 
@@ -96,9 +103,11 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 }
 
 // getPromotionMessage computes the message for a specific release promotion
-func getPromotionMessage(releaseName, sourceVersion, targetVersion string) string {
+func getPromotionMessage(releaseName, sourceVersion, targetVersion string, missing bool) string {
 	versionChanged := ""
-	if sourceVersion != targetVersion {
+	if missing {
+		versionChanged = fmt.Sprintf(" (missing) -> %s", targetVersion)
+	} else if sourceVersion != targetVersion {
 		versionChanged = fmt.Sprintf(" %s -> %s", targetVersion, sourceVersion)
 	}
 	return fmt.Sprintf("Promote %s%s", releaseName, versionChanged)

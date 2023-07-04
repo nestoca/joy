@@ -8,7 +8,6 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/releasing"
-	"gopkg.in/yaml.v3"
 	"strings"
 )
 
@@ -44,11 +43,18 @@ func preview(list *releasing.CrossReleaseList) error {
 		source := rel.Releases[0]
 		target := rel.Releases[1]
 
+		// Determine operation
+		operation := "Update"
+		if target.Missing {
+			operation = color.InBold("Create new")
+		}
+		operation = color.InYellow(operation)
+
 		// Print release diff
 		sections := 0
 		if !allReleasesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🕹Release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
-			err := printDiff(source.ReleaseFile.Tree, target.ReleaseFile.Tree)
+			fmt.Printf("🕹%s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
+			err := printDiff(source.ReleaseFile, target.ReleaseFile, target.Missing)
 			if err != nil {
 				return fmt.Errorf("printing release diff: %w", err)
 			}
@@ -60,8 +66,8 @@ func preview(list *releasing.CrossReleaseList) error {
 			if sections > 0 {
 				fmt.Println(MinorSeparator)
 			}
-			fmt.Printf("%s %s\n", color.InWhite("🎛Values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
-			err := printDiff(source.ValuesFile.Tree, target.ValuesFile.Tree)
+			fmt.Printf("🎛%s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
+			err := printDiff(source.ValuesFile, target.ValuesFile, target.Missing)
 			if err != nil {
 				return fmt.Errorf("printing values diff: %w", err)
 			}
@@ -75,20 +81,25 @@ func preview(list *releasing.CrossReleaseList) error {
 	return nil
 }
 
-func printDiff(source, target *yaml.Node) error {
-	merged := Merge(source, target)
+func printDiff(source, target *releasing.YamlFile, targetMissing bool) error {
+	merged := Merge(source.Tree, target.Tree)
 
-	beforeYaml, err := yaml.Marshal(target)
+	beforeYaml, err := target.ToYaml()
 	if err != nil {
 		return fmt.Errorf("marshalling before: %w", err)
 	}
 
-	afterYaml, err := yaml.Marshal(merged)
+	afterYaml, err := releasing.TreeToYaml(merged, target.Indent)
 	if err != nil {
 		return fmt.Errorf("marshalling after: %w", err)
 	}
 
-	edits := myers.ComputeEdits(span.URIFromPath(""), string(beforeYaml), string(afterYaml))
+	// If target is missing, we want to show the whole file as added
+	if targetMissing {
+		beforeYaml = ""
+	}
+
+	edits := myers.ComputeEdits(span.URIFromPath(""), beforeYaml, afterYaml)
 	unified := fmt.Sprintf("%s", gotextdiff.ToUnified("before", "after", string(beforeYaml), edits))
 	unified = strings.ReplaceAll(unified, "\\ No newline at end of file\n", "")
 	unified = formatDiff(unified)

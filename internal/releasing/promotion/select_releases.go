@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/releasing"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -31,7 +32,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	transform := func(ans interface{}) interface{} {
 		answers := ans.([]core.OptionAnswer)
 		for i := range answers {
-			answers[i].Value = sortedCrossReleases[i].Name
+			answers[i].Value = sortedCrossReleases[answers[i].Index].Name
 		}
 		return answers
 	}
@@ -63,7 +64,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 }
 
 func GetReleaseVersion(rel *releasing.Release) string {
-	if rel == nil {
+	if rel == nil || rel.Missing {
 		return "-"
 	}
 	return rel.Spec.Version
@@ -80,7 +81,7 @@ func AlignColumns(lines []string) []string {
 	formattedOutput := buf.String()
 
 	// Convert the bytes to strings
-	formattedLines := bytes.Split([]byte(formattedOutput), []byte("\n"))
+	formattedLines := strings.Split(strings.TrimSpace(formattedOutput), "\n")
 	result := make([]string, len(formattedLines))
 	for i, line := range formattedLines {
 		result[i] = string(line)

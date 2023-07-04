@@ -24,7 +24,7 @@ func NewCrossRelease(name string, environments []*environment.Environment) *Cros
 func (r *CrossRelease) AllReleasesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
-		if rel == nil {
+		if rel == nil || rel.Missing {
 			return false
 		}
 		if hash == 0 {
@@ -40,7 +40,7 @@ func (r *CrossRelease) AllReleasesSynced() bool {
 func (r *CrossRelease) AllValuesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
-		if rel == nil {
+		if rel == nil || rel.Missing {
 			return false
 		}
 		if hash == 0 {
