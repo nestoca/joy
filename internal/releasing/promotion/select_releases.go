@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/releasing"
@@ -25,20 +26,35 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	}
 	choices = AlignColumns(choices)
 
+	// Transform allows to show only release name identifiers after user confirms selection,
+	// instead of the full colorized, tabbed release name and versions string.
+	transform := func(ans interface{}) interface{} {
+		answers := ans.([]core.OptionAnswer)
+		for i := range answers {
+			answers[i].Value = sortedCrossReleases[i].Name
+		}
+		return answers
+	}
+
 	// Prompt user to select releases to promote.
-	selectQuestion := &survey.MultiSelect{
+	prompt := &survey.MultiSelect{
 		Message: fmt.Sprintf("Select releases to promote from %s %s %s",
 			color.InBold(color.InWhite(sourceEnv)),
 			color.InBold("to"),
 			color.InBold(color.InWhite(targetEnv))),
 		Options: choices,
 	}
+	questions := []*survey.Question{{
+		Prompt:    prompt,
+		Transform: transform,
+	}}
 	var selectedIndices []int
-	err := survey.AskOne(selectQuestion, &selectedIndices, survey.WithPageSize(5), survey.WithKeepFilter(true))
+	err := survey.Ask(questions, &selectedIndices, survey.WithPageSize(5), survey.WithKeepFilter(true))
 	if err != nil {
 		return nil, fmt.Errorf("prompting for releases to promote: %w", err)
 	}
 
+	// Create new cross-release list with only the selected releases.
 	var selectedReleaseNames []string
 	for _, index := range selectedIndices {
 		selectedReleaseNames = append(selectedReleaseNames, sortedCrossReleases[index].Name)
