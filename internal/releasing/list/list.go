@@ -3,8 +3,7 @@ package list
 import (
 	"fmt"
 	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/cross"
+	"github.com/nestoca/joy-cli/internal/releasing"
 	"path/filepath"
 )
 
@@ -14,7 +13,7 @@ type Opts struct {
 
 	// Filter specifies releases to list.
 	// Optional, defaults to listing all releases.
-	Filter release.Filter
+	Filter releasing.Filter
 }
 
 func List(opts Opts) error {
@@ -24,7 +23,7 @@ func List(opts Opts) error {
 		return fmt.Errorf("loading environments: %w", err)
 	}
 
-	list, err := cross.Load(environmentsDir, environments, opts.Filter)
+	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}

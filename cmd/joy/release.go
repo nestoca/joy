@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/list"
-	"github.com/nestoca/joy-cli/internal/release/promote"
+	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/releasing/list"
+	"github.com/nestoca/joy-cli/internal/releasing/promotion"
 	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -56,7 +56,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Options
-			opts := promote.Opts{
+			opts := promotion.Opts{
 				BaseDir:   "",
 				SourceEnv: args[0],
 				TargetEnv: args[1],
@@ -65,14 +65,14 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 			// Action
 			if doPreview {
-				opts.Action = promote.ActionPreview
+				opts.Action = promotion.ActionPreview
 			} else if doPromote {
-				opts.Action = promote.ActionPromote
+				opts.Action = promotion.ActionPromote
 			}
 
 			// Filter
 			if releases != "" {
-				opts.Filter = release.NewNamePatternFilter(releases)
+				opts.Filter = releasing.NewNamePatternFilter(releases)
 			}
 
 			// Catalog
@@ -85,7 +85,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 
-			return promote.Run(opts)
+			return promotion.Promote(opts)
 		},
 	}
 

@@ -1,37 +1,36 @@
-package promote
+package promotion
 
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/git"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/cross"
+	"github.com/nestoca/joy-cli/internal/releasing"
 	"strings"
 )
 
-func Promote(list *cross.ReleaseList, push bool) error {
+func promoteList(list *releasing.CrossReleaseList, push bool) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
 
-	releases := list.SortedReleases()
+	crossReleases := list.SortedCrossReleases()
 	var promotedFiles []string
 	var messages []string
 	promotedReleaseCount := 0
 	sourceEnv := list.Environments[0]
 	targetEnv := list.Environments[1]
 
-	for _, rel := range releases {
+	for _, crossRelease := range crossReleases {
 		// Check if releases and values are synced across all environments
-		allReleasesSynced := rel.AllReleasesSynced()
-		allValuesSynced := rel.AllValuesSynced()
+		allReleasesSynced := crossRelease.AllReleasesSynced()
+		allValuesSynced := crossRelease.AllValuesSynced()
 		if allReleasesSynced && allValuesSynced {
 			continue
 		}
 		promotedReleaseCount++
 
-		source := rel.Releases[0]
-		target := rel.Releases[1]
+		source := crossRelease.Releases[0]
+		target := crossRelease.Releases[1]
 
 		// Promote release
 		if !allReleasesSynced {
@@ -54,11 +53,13 @@ func Promote(list *cross.ReleaseList, push bool) error {
 		}
 
 		// Determine release-specific message
-		message := getReleaseMessage(rel.Name, source.Spec.Version, target.Spec.Version, allReleasesSynced, allValuesSynced)
+		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version)
 		messages = append(messages, message)
 	}
 
+	// Any files promoted?
 	if len(promotedFiles) > 0 {
+		// Commit changes
 		fmt.Println(MajorSeparator)
 		err := git.Add(promotedFiles)
 		if err != nil {
@@ -72,7 +73,7 @@ func Promote(list *cross.ReleaseList, push bool) error {
 		fmt.Println("✅Committed with message:")
 		fmt.Println(message)
 
-		// Commit and push
+		// Push changes
 		if push {
 			err = git.Push()
 			if err != nil {
@@ -92,7 +93,8 @@ func Promote(list *cross.ReleaseList, push bool) error {
 	return nil
 }
 
-func getReleaseMessage(releaseName, sourceVersion, targetVersion string, allReleasesSynced, allValuesSynced bool) string {
+// getPromotionMessage computes the message for a specific release promotion
+func getPromotionMessage(releaseName, sourceVersion, targetVersion string) string {
 	versionChanged := ""
 	if sourceVersion != targetVersion {
 		versionChanged = fmt.Sprintf(" %s -> %s", targetVersion, sourceVersion)
@@ -100,6 +102,7 @@ func getReleaseMessage(releaseName, sourceVersion, targetVersion string, allRele
 	return fmt.Sprintf("Promote %s%s", releaseName, versionChanged)
 }
 
+// getCommitMessage computes the commit message for the whole promotion operation including all releases
 func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, messages []string) string {
 	if len(messages) == 1 {
 		// Put details of single promotion on first and only line
@@ -110,11 +113,12 @@ func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, mes
 	return fmt.Sprintf("Promote %d releases (%s -> %s)\n%s", promotedReleaseCount, sourceEnv, targetEnv, strings.Join(messages, "\n"))
 }
 
-func promoteFile(source, target *release.YamlFile) error {
+// promoteFile merges a specific source yaml release or values file onto an equivalent target file
+func promoteFile(source, target *releasing.YamlFile) error {
 	mergedTree := Merge(source.Tree, target.Tree)
 	merged, err := target.CopyWithNewTree(mergedTree)
 	if err != nil {
-		return fmt.Errorf("copying target file to merged file: %w", err)
+		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
 	}
 	err = merged.Write()
 	if err != nil {

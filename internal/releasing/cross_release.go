@@ -1,28 +1,27 @@
-package cross
+package releasing
 
 import (
 	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/release"
 )
 
-// Release describes a given release across multiple environments
-type Release struct {
+// CrossRelease describes a given release across multiple environments
+type CrossRelease struct {
 	// Name is the name of the release.
 	Name string
 
 	// Releases is the list of releases for a given release name across multiple environments.
-	Releases []*release.Release
+	Releases []*Release
 }
 
-func NewRelease(name string, environments []*environment.Environment) *Release {
-	return &Release{
+func NewCrossRelease(name string, environments []*environment.Environment) *CrossRelease {
+	return &CrossRelease{
 		Name:     name,
-		Releases: make([]*release.Release, len(environments)),
+		Releases: make([]*Release, len(environments)),
 	}
 }
 
 // AllReleasesSynced returns true if all releases are synced across all environments.
-func (r *Release) AllReleasesSynced() bool {
+func (r *CrossRelease) AllReleasesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
 		if rel == nil {
@@ -38,7 +37,7 @@ func (r *Release) AllReleasesSynced() bool {
 }
 
 // AllValuesSynced returns true if all values are synced across all environments.
-func (r *Release) AllValuesSynced() bool {
+func (r *CrossRelease) AllValuesSynced() bool {
 	var hash uint64
 	for _, rel := range r.Releases {
 		if rel == nil {

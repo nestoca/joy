@@ -1,21 +1,20 @@
-package promote
+package promotion
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/cross"
+	"github.com/nestoca/joy-cli/internal/releasing"
 	"text/tabwriter"
 )
 
-func SelectReleases(sourceEnv, targetEnv string, list *cross.ReleaseList) (*cross.ReleaseList, error) {
+func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseList) (*releasing.CrossReleaseList, error) {
 	// Format releases for user selection.
 	var choices []string
-	sortedReleases := list.SortedReleases()
+	sortedCrossReleases := list.SortedCrossReleases()
 	env := list.Environments[1]
-	for _, rel := range sortedReleases {
+	for _, rel := range sortedCrossReleases {
 		rel := fmt.Sprintf("%s/%s\t%s\t>\t%s",
 			color.Colorize(darkYellow, env.Name),
 			color.InBold(color.InYellow(rel.Name)),
@@ -41,12 +40,12 @@ func SelectReleases(sourceEnv, targetEnv string, list *cross.ReleaseList) (*cros
 
 	var selectedReleaseNames []string
 	for _, index := range selectedIndices {
-		selectedReleaseNames = append(selectedReleaseNames, sortedReleases[index].Name)
+		selectedReleaseNames = append(selectedReleaseNames, sortedCrossReleases[index].Name)
 	}
-	return list.Subset(selectedReleaseNames), nil
+	return list.FilteredSpecificReleases(selectedReleaseNames), nil
 }
 
-func GetReleaseVersion(rel *release.Release) string {
+func GetReleaseVersion(rel *releasing.Release) string {
 	if rel == nil {
 		return "-"
 	}

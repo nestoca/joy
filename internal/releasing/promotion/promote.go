@@ -1,4 +1,4 @@
-package promote
+package promotion
 
 import (
 	"fmt"
@@ -6,8 +6,7 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/git"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/cross"
+	"github.com/nestoca/joy-cli/internal/releasing"
 )
 
 const darkGrey = "\033[38;2;90;90;90m"
@@ -32,7 +31,7 @@ type Opts struct {
 
 	// Filter specifies releases to promote.
 	// Optional, defaults to prompting user.
-	Filter release.Filter
+	Filter releasing.Filter
 }
 
 const (
@@ -41,7 +40,7 @@ const (
 	ActionCancel  = "Cancel"
 )
 
-func Run(opts Opts) error {
+func Promote(opts Opts) error {
 	err := git.EnsureNoUncommittedChanges()
 	if err != nil {
 		return err
@@ -50,7 +49,7 @@ func Run(opts Opts) error {
 	// Load matching releases from given environments.
 	environmentsDir := "environments"
 	environments := environment.NewList([]string{opts.SourceEnv, opts.TargetEnv})
-	list, err := cross.Load(environmentsDir, environments, opts.Filter)
+	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}
@@ -97,7 +96,7 @@ func Run(opts Opts) error {
 		interactive := false
 		if opts.Action == "" {
 			interactive = true
-			action, err = SelectAction()
+			action, err = selectAction()
 			if err != nil {
 				return fmt.Errorf("selecting action: %w", err)
 			}
@@ -105,7 +104,7 @@ func Run(opts Opts) error {
 
 		switch action {
 		case ActionPreview:
-			err := Preview(list)
+			err := preview(list)
 			if err != nil {
 				return fmt.Errorf("previewing: %w", err)
 			}
@@ -113,7 +112,7 @@ func Run(opts Opts) error {
 				return nil
 			}
 		case ActionPromote:
-			err = Promote(list, opts.Push)
+			err = promoteList(list, opts.Push)
 			if err != nil {
 				return fmt.Errorf("applying: %w", err)
 			}
@@ -124,8 +123,8 @@ func Run(opts Opts) error {
 	}
 }
 
-// SelectAction prompts user for action to perform.
-func SelectAction() (string, error) {
+// selectAction prompts user for action to perform.
+func selectAction() (string, error) {
 	actions := []string{ActionPreview, ActionPromote, ActionCancel}
 	prompt := &survey.Select{
 		Message: "What do you want to do?",

@@ -1,4 +1,4 @@
-package promote
+package promotion
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
-	"github.com/nestoca/joy-cli/internal/release/cross"
+	"github.com/nestoca/joy-cli/internal/releasing"
 	"gopkg.in/yaml.v3"
 	"strings"
 )
@@ -14,8 +14,8 @@ import (
 var MajorSeparator = strings.Repeat("—", 80)
 var MinorSeparator = ""
 
-func Preview(list *cross.ReleaseList) error {
-	releases := list.SortedReleases()
+func preview(list *releasing.CrossReleaseList) error {
+	releases := list.SortedCrossReleases()
 	env := list.Environments[1]
 	anyUnsynced := false
 

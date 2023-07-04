@@ -1,4 +1,4 @@
-package release
+package releasing
 
 import (
 	"fmt"
@@ -68,7 +68,7 @@ func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 		fileName := file.Name()
 		if strings.HasSuffix(fileName, ".release.yaml") {
 			filePath := filepath.Join(dir, fileName)
-			release, err := Load(filePath)
+			release, err := LoadRelease(filePath)
 			if err != nil {
 				return nil, fmt.Errorf("loading release %s: %w", filePath, err)
 			}
@@ -82,8 +82,8 @@ func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 	return releases, nil
 }
 
-// Load loads a release from the given release file.
-func Load(filePath string) (*Release, error) {
+// LoadRelease loads a release from the given release file.
+func LoadRelease(filePath string) (*Release, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("reading release file %s: %w", filePath, err)
