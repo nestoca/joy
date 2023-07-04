@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/releasing"
 	"text/tabwriter"
 )
@@ -16,7 +17,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	env := list.Environments[1]
 	for _, rel := range sortedCrossReleases {
 		rel := fmt.Sprintf("%s/%s\t%s\t>\t%s",
-			color.Colorize(darkYellow, env.Name),
+			colors.InDarkYellow(env.Name),
 			color.InBold(color.InYellow(rel.Name)),
 			color.InRed(GetReleaseVersion(rel.Releases[1])),
 			color.InGreen(GetReleaseVersion(rel.Releases[0])))
@@ -33,7 +34,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 		Options: choices,
 	}
 	var selectedIndices []int
-	err := survey.AskOne(selectQuestion, &selectedIndices, survey.WithPageSize(5))
+	err := survey.AskOne(selectQuestion, &selectedIndices, survey.WithPageSize(5), survey.WithKeepFilter(true))
 	if err != nil {
 		return nil, fmt.Errorf("prompting for releases to promote: %w", err)
 	}
@@ -42,7 +43,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	for _, index := range selectedIndices {
 		selectedReleaseNames = append(selectedReleaseNames, sortedCrossReleases[index].Name)
 	}
-	return list.FilteredSpecificReleases(selectedReleaseNames), nil
+	return list.SubsetOfSpecificReleases(selectedReleaseNames), nil
 }
 
 func GetReleaseVersion(rel *releasing.Release) string {

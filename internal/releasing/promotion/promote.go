@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/releasing"
 )
-
-const darkGrey = "\033[38;2;90;90;90m"
-const darkYellow = "\033[38;2;128;128;0m"
 
 type Opts struct {
 	// BaseDir is the catalog base directory.
@@ -40,6 +38,8 @@ const (
 	ActionCancel  = "Cancel"
 )
 
+// Promote promotes releases from one environment to another.
+// It corresponds to the high-level, interactive, user-facing logic.
 func Promote(opts Opts) error {
 	err := git.EnsureNoUncommittedChanges()
 	if err != nil {
@@ -85,10 +85,24 @@ func Promote(opts Opts) error {
 	if releaseCount > 1 {
 		plural = "s"
 	}
+	nonPromotableCount := 0
+	for _, release := range list.Releases {
+		if !release.Promotable() {
+			nonPromotableCount++
+		}
+	}
+	nonPromotable := ""
+	if nonPromotableCount > 0 {
+		plural := "is"
+		if nonPromotableCount > 1 {
+			plural = "are"
+		}
+		nonPromotable = fmt.Sprintf(" (%d of which %s not promotable)", nonPromotableCount, plural)
+	}
 	fmt.Println(MajorSeparator)
-	fmt.Printf("🔍%s %d release%s\n", color.InWhite("Matching"), releaseCount, plural)
+	fmt.Printf("🔍%s %d release%s%s\n", color.InWhite("Matching"), releaseCount, plural, colors.InDarkGrey(nonPromotable))
 	fmt.Println(MinorSeparator)
-	list.Print()
+	list.Print(releasing.PrintOpts{IsPromoting: true})
 
 	for {
 		// Determine action to perform.
@@ -112,7 +126,7 @@ func Promote(opts Opts) error {
 				return nil
 			}
 		case ActionPromote:
-			err = promoteList(list, opts.Push)
+			err = apply(list, opts.Push)
 			if err != nil {
 				return fmt.Errorf("applying: %w", err)
 			}

@@ -3,6 +3,7 @@ package releasing
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/olekukonko/tablewriter"
 	"os"
@@ -27,21 +28,24 @@ func NewCrossReleaseList(environments []*environment.Environment) *CrossReleaseL
 
 // LoadCrossReleaseList loads all releases for given environments underneath the given base directory.
 func LoadCrossReleaseList(baseDir string, environments []*environment.Environment, releaseFilter Filter) (*CrossReleaseList, error) {
-	releases := NewCrossReleaseList(environments)
+	crossReleases := NewCrossReleaseList(environments)
 	for _, env := range environments {
+		// Load releases for given environment
 		envDir := filepath.Join(baseDir, env.Name)
 		envReleases, err := LoadAllInDir(envDir, releaseFilter)
 		if err != nil {
 			return nil, fmt.Errorf("loading releases in %s: %w", envDir, err)
 		}
+
+		// Add releases to cross-release list
 		for _, rel := range envReleases {
-			err := releases.AddRelease(rel, env)
+			err := crossReleases.AddRelease(rel, env)
 			if err != nil {
 				return nil, fmt.Errorf("adding release %s: %w", rel.Name, err)
 			}
 		}
 	}
-	return releases, nil
+	return crossReleases, nil
 }
 
 // GetEnvironmentIndex returns the index of the environment with the given name or -1 if not found.
@@ -81,7 +85,8 @@ func (r *CrossReleaseList) SortedCrossReleases() []*CrossRelease {
 	return releases
 }
 
-func (r *CrossReleaseList) FilteredSpecificReleases(releases []string) *CrossReleaseList {
+// SubsetOfSpecificReleases returns a subset of the releases in this list that match the given names.
+func (r *CrossReleaseList) SubsetOfSpecificReleases(releases []string) *CrossReleaseList {
 	subset := NewCrossReleaseList(r.Environments)
 	for _, rel := range releases {
 		subset.Releases[rel] = r.Releases[rel]
@@ -89,7 +94,13 @@ func (r *CrossReleaseList) FilteredSpecificReleases(releases []string) *CrossRel
 	return subset
 }
 
-func (r *CrossReleaseList) Print() {
+type PrintOpts struct {
+	// IsPromoting allows to dim releases that are not promotable (i.e. have no release in first environment)
+	IsPromoting bool
+}
+
+// Print displays all releases versions across environments in a table format.
+func (r *CrossReleaseList) Print(opts PrintOpts) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetHeaderLine(false)
@@ -109,14 +120,15 @@ func (r *CrossReleaseList) Print() {
 		// Check if releases and their values are synced across all environments
 		releasesSynced := release.AllReleasesSynced()
 		valuesSynced := release.AllValuesSynced()
+		dimmed := opts.IsPromoting && !release.Promotable()
 
-		row := []string{colorize(release.Name, releasesSynced, valuesSynced)}
+		row := []string{colorize(release.Name, releasesSynced, valuesSynced, dimmed)}
 		for _, rel := range release.Releases {
 			text := "-"
 			if rel != nil {
 				text = rel.Spec.Version
 			}
-			text = colorize(text, releasesSynced, valuesSynced)
+			text = colorize(text, releasesSynced, valuesSynced, dimmed)
 			row = append(row, text)
 		}
 		table.Append(row)
@@ -125,7 +137,10 @@ func (r *CrossReleaseList) Print() {
 	table.Render()
 }
 
-func colorize(text string, releasesSynced, valuesSynced bool) string {
+func colorize(text string, releasesSynced, valuesSynced, dimmed bool) string {
+	if dimmed {
+		return colors.InDarkGrey(text)
+	}
 	if !releasesSynced || !valuesSynced {
 		if !releasesSynced {
 			return color.InRed(text)

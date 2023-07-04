@@ -6,6 +6,7 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
+	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/releasing"
 	"gopkg.in/yaml.v3"
 	"strings"
@@ -20,6 +21,11 @@ func preview(list *releasing.CrossReleaseList) error {
 	anyUnsynced := false
 
 	for _, rel := range releases {
+		// Skip releases that are not promotable because they are not in source environment
+		if !rel.Promotable() {
+			continue
+		}
+
 		// Check if releases and values are synced across all environments
 		allReleasesSynced := rel.AllReleasesSynced()
 		allValuesSynced := rel.AllValuesSynced()
@@ -32,7 +38,7 @@ func preview(list *releasing.CrossReleaseList) error {
 		fmt.Println(MajorSeparator)
 		fmt.Printf("🚀%s %s/%s\n",
 			color.InWhite("Release"),
-			color.Colorize(darkYellow, env.Name),
+			colors.InDarkYellow(env.Name),
 			color.InBold(color.InYellow(rel.Name)))
 		fmt.Println(MinorSeparator)
 		source := rel.Releases[0]
@@ -41,7 +47,7 @@ func preview(list *releasing.CrossReleaseList) error {
 		// Print release diff
 		sections := 0
 		if !allReleasesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🕹Release file"), color.Colorize(darkGrey, target.ReleaseFile.FilePath))
+			fmt.Printf("%s %s\n", color.InWhite("🕹Release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
 			err := printDiff(source.ReleaseFile.Tree, target.ReleaseFile.Tree)
 			if err != nil {
 				return fmt.Errorf("printing release diff: %w", err)
@@ -54,7 +60,7 @@ func preview(list *releasing.CrossReleaseList) error {
 			if sections > 0 {
 				fmt.Println(MinorSeparator)
 			}
-			fmt.Printf("%s %s\n", color.InWhite("🎛Values file"), color.Colorize(darkGrey, target.ValuesFile.FilePath))
+			fmt.Printf("%s %s\n", color.InWhite("🎛Values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
 			err := printDiff(source.ValuesFile.Tree, target.ValuesFile.Tree)
 			if err != nil {
 				return fmt.Errorf("printing values diff: %w", err)

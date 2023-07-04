@@ -3,12 +3,15 @@ package promotion
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/releasing"
 	"strings"
 )
 
-func promoteList(list *releasing.CrossReleaseList, push bool) error {
+// apply performs the promotion of all releases in given list.
+// It corresponds to the low-level, non-interactive, logic.
+func apply(list *releasing.CrossReleaseList, push bool) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
@@ -34,7 +37,7 @@ func promoteList(list *releasing.CrossReleaseList, push bool) error {
 
 		// Promote release
 		if !allReleasesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🕹Promoting release file"), color.Colorize(darkGrey, target.ReleaseFile.FilePath))
+			fmt.Printf("%s %s\n", color.InWhite("🕹Promoting release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
 			err := promoteFile(source.ReleaseFile, target.ReleaseFile)
 			if err != nil {
 				return fmt.Errorf("promoting release file %q: %w", target.ReleaseFile.FilePath, err)
@@ -44,7 +47,7 @@ func promoteList(list *releasing.CrossReleaseList, push bool) error {
 
 		// Promote values
 		if !allValuesSynced {
-			fmt.Printf("%s %s\n", color.InWhite("🎛Promoting values file"), color.Colorize(darkGrey, target.ValuesFile.FilePath))
+			fmt.Printf("%s %s\n", color.InWhite("🎛Promoting values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
 			err := promoteFile(source.ValuesFile, target.ValuesFile)
 			if err != nil {
 				return fmt.Errorf("promoting values file %q: %w", target.ValuesFile.FilePath, err)

@@ -28,6 +28,6 @@ func List(opts Opts) error {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}
 
-	list.Print()
+	list.Print(releasing.PrintOpts{})
 	return nil
 }
