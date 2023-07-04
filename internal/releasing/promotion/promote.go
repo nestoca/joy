@@ -2,152 +2,129 @@ package promotion
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/colors"
-	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/releasing"
+	"strings"
 )
 
-type Opts struct {
-	// BaseDir is the catalog base directory.
-	BaseDir string
-
-	// SourceEnv is the source environment.
-	SourceEnv string
-
-	// TargetEnv is the target environment.
-	TargetEnv string
-
-	// Action is the operation to perform.
-	// Optional, defaults to prompting user.
-	Action string
-
-	// Whether to push changes after committing them.
-	Push bool
-
-	// Filter specifies releases to promote.
-	// Optional, defaults to prompting user.
-	Filter releasing.Filter
-}
-
-const (
-	ActionPreview = "Preview"
-	ActionPromote = "Promote"
-	ActionCancel  = "Cancel"
-)
-
-// Promote promotes releases from one environment to another.
-// It corresponds to the high-level, interactive, user-facing logic.
-func Promote(opts Opts) error {
-	err := git.EnsureNoUncommittedChanges()
-	if err != nil {
-		return err
+// promote performs the promotion of all releases in given list.
+func promote(list *releasing.CrossReleaseList, push bool) error {
+	if len(list.Environments) != 2 {
+		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
 
-	// Load matching releases from given environments.
-	environmentsDir := "environments"
-	environments := environment.NewList([]string{opts.SourceEnv, opts.TargetEnv})
-	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
-	if err != nil {
-		return fmt.Errorf("loading cross-environment releases: %w", err)
-	}
+	crossReleases := list.SortedCrossReleases()
+	var promotedFiles []string
+	var messages []string
+	promotedReleaseCount := 0
+	sourceEnv := list.Environments[0]
+	targetEnv := list.Environments[1]
 
-	// Count matching releases.
-	releaseCount := len(list.Releases)
-	if releaseCount == 0 {
-		if opts.Filter != nil {
-			fmt.Println("🤷Given filter matched no releases.")
-		} else {
-			fmt.Println("🤷Given environments contain no releases.")
+	for _, crossRelease := range crossReleases {
+		// Check if releases and values are synced across all environments
+		allReleasesSynced := crossRelease.AllReleasesSynced()
+		allValuesSynced := crossRelease.AllValuesSynced()
+		if allReleasesSynced && allValuesSynced {
+			continue
 		}
+		promotedReleaseCount++
+
+		source := crossRelease.Releases[0]
+		target := crossRelease.Releases[1]
+
+		// Promote release
+		if !allReleasesSynced {
+			fmt.Printf("%s %s\n", color.InWhite("🕹Promoting release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
+			err := promoteFile(source.ReleaseFile, target.ReleaseFile)
+			if err != nil {
+				return fmt.Errorf("promoting release file %q: %w", target.ReleaseFile.FilePath, err)
+			}
+			promotedFiles = append(promotedFiles, target.ReleaseFile.FilePath)
+		}
+
+		// Promote values
+		if !allValuesSynced {
+			fmt.Printf("%s %s\n", color.InWhite("🎛Promoting values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
+			err := promoteFile(source.ValuesFile, target.ValuesFile)
+			if err != nil {
+				return fmt.Errorf("promoting values file %q: %w", target.ValuesFile.FilePath, err)
+			}
+			promotedFiles = append(promotedFiles, target.ValuesFile.FilePath)
+		}
+
+		// Determine release-specific message
+		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version)
+		messages = append(messages, message)
+	}
+
+	// Any files promoted?
+	if len(promotedFiles) > 0 {
+		// Commit changes
+		fmt.Println(MajorSeparator)
+		err := git.Add(promotedFiles)
+		if err != nil {
+			return fmt.Errorf("adding files to index: %w", err)
+		}
+		message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseCount, messages)
+		err = git.Commit(message)
+		if err != nil {
+			return fmt.Errorf("committing changes: %w", err)
+		}
+		fmt.Println("✅Committed with message:")
+		fmt.Println(message)
+
+		// Push changes
+		if push {
+			err = git.Push()
+			if err != nil {
+				return fmt.Errorf("pushing changes: %w", err)
+			}
+			fmt.Println("✅Pushed")
+		} else {
+			fmt.Println("👉Skipping push! (use `joy push` to push changes manually)")
+		}
+		fmt.Println(MajorSeparator)
+		fmt.Println("🎉Promotion complete!")
+	} else {
+		fmt.Println("🎉Nothing to do, all releases already in sync!")
 		return nil
 	}
 
-	// Prompt user to select releases?
-	if opts.Filter == nil {
-		list, err = SelectReleases(opts.SourceEnv, opts.TargetEnv, list)
-		if err != nil {
-			return fmt.Errorf("selecting releases to promote: %w", err)
-		}
-
-		// Count releases selected by user.
-		releaseCount = len(list.Releases)
-		if releaseCount == 0 {
-			fmt.Println("🤷No releases selected.")
-			return nil
-		}
-	}
-
-	// Print releases that were matched by filter.
-	plural := ""
-	if releaseCount > 1 {
-		plural = "s"
-	}
-	nonPromotableCount := 0
-	for _, release := range list.Releases {
-		if !release.Promotable() {
-			nonPromotableCount++
-		}
-	}
-	nonPromotable := ""
-	if nonPromotableCount > 0 {
-		plural := "is"
-		if nonPromotableCount > 1 {
-			plural = "are"
-		}
-		nonPromotable = fmt.Sprintf(" (%d of which %s not promotable)", nonPromotableCount, plural)
-	}
-	fmt.Println(MajorSeparator)
-	fmt.Printf("🔍%s %d release%s%s\n", color.InWhite("Matching"), releaseCount, plural, colors.InDarkGrey(nonPromotable))
-	fmt.Println(MinorSeparator)
-	list.Print(releasing.PrintOpts{IsPromoting: true})
-
-	for {
-		// Determine action to perform.
-		action := opts.Action
-		interactive := false
-		if opts.Action == "" {
-			interactive = true
-			action, err = selectAction()
-			if err != nil {
-				return fmt.Errorf("selecting action: %w", err)
-			}
-		}
-
-		switch action {
-		case ActionPreview:
-			err := preview(list)
-			if err != nil {
-				return fmt.Errorf("previewing: %w", err)
-			}
-			if !interactive {
-				return nil
-			}
-		case ActionPromote:
-			err = apply(list, opts.Push)
-			if err != nil {
-				return fmt.Errorf("applying: %w", err)
-			}
-			return nil
-		case ActionCancel:
-			return nil
-		}
-	}
+	return nil
 }
 
-// selectAction prompts user for action to perform.
-func selectAction() (string, error) {
-	actions := []string{ActionPreview, ActionPromote, ActionCancel}
-	prompt := &survey.Select{
-		Message: "What do you want to do?",
-		Options: actions,
+// getPromotionMessage computes the message for a specific release promotion
+func getPromotionMessage(releaseName, sourceVersion, targetVersion string) string {
+	versionChanged := ""
+	if sourceVersion != targetVersion {
+		versionChanged = fmt.Sprintf(" %s -> %s", targetVersion, sourceVersion)
 	}
-	var selectedAction string
-	err := survey.AskOne(prompt, &selectedAction)
+	return fmt.Sprintf("Promote %s%s", releaseName, versionChanged)
+}
+
+// getCommitMessage computes the commit message for the whole promotion operation including all releases
+func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, messages []string) string {
+	if len(messages) == 1 {
+		// Put details of single promotion on first and only line
+		return fmt.Sprintf("%s (%s -> %s)", messages[0], sourceEnv, targetEnv)
+	}
+
+	// Put details of individual promotions on subsequent lines
+	return fmt.Sprintf("Promote %d releases (%s -> %s)\n%s", promotedReleaseCount, sourceEnv, targetEnv, strings.Join(messages, "\n"))
+}
+
+// promoteFile merges a specific source yaml release or values file onto an equivalent target file
+func promoteFile(source, target *releasing.YamlFile) error {
+	mergedTree := Merge(source.Tree, target.Tree)
+	merged, err := target.CopyWithNewTree(mergedTree)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
 	}
-	return selectedAction, nil
+	err = merged.Write()
+	if err != nil {
+		return fmt.Errorf("writing merged file: %w", err)
+	}
+	return nil
 }

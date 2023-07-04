@@ -85,7 +85,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 
-			return promotion.Promote(opts)
+			return promotion.Prompt(opts)
 		},
 	}
 
