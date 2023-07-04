@@ -2,8 +2,11 @@ package git
 
 import (
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/TwiN/go-color"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func Run(args []string) error {
@@ -59,12 +62,42 @@ func Pull() error {
 }
 
 func Reset() error {
-	cmd := exec.Command("git", "reset", "--hard")
+	// Check for uncommitted changes
+	cmd := exec.Command("git", "status", "--porcelain")
+	outputBytes, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	output := strings.TrimSpace(string(outputBytes))
+	if len(output) == 0 {
+		fmt.Println("🤷No uncommitted changes were found")
+		return nil
+	}
+
+	// Ask for confirmation
+	fmt.Printf("🔥Uncommitted changes detected:\n%s", color.InRed(output))
+	confirm := false
+	prompt := &survey.Confirm{
+		Message: "Are you sure you want discard all uncommitted changes?",
+		Default: false,
+	}
+	err = survey.AskOne(prompt, &confirm)
+	if err != nil {
+		return fmt.Errorf("asking for confirmation: %w", err)
+	}
+	if !confirm {
+		fmt.Println("❌Reset cancelled by user")
+		return nil
+	}
+
+	// Perform reset
+	cmd = exec.Command("git", "reset", "--hard")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("resetting changes: %w", err)
 	}
+	fmt.Println("✅Uncommitted changes discarded successfully!")
 	return nil
 }
