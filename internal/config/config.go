@@ -105,6 +105,7 @@ func LoadFile(file string) (*Config, error) {
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
 	}
+	cfg.FilePath = file
 	return cfg, nil
 }
 

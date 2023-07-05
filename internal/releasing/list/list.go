@@ -19,13 +19,12 @@ func List(opts Opts) error {
 		return err
 	}
 
-	environmentsDir := "environments"
-	environments, err := environment.LoadAll(environmentsDir)
+	environments, err := environment.LoadAll(environment.DirName)
 	if err != nil {
 		return fmt.Errorf("loading environments: %w", err)
 	}
 
-	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
+	list, err := releasing.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}

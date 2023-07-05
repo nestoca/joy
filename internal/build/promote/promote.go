@@ -3,6 +3,7 @@ package promote
 import (
 	"errors"
 	"fmt"
+	"github.com/nestoca/joy-cli/internal/environment"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +21,7 @@ type Opts struct {
 }
 
 func Promote(opts Opts) error {
-	envReleasesDir := filepath.Join("environments", opts.Environment, "releases")
+	envReleasesDir := filepath.Join(environment.DirName, opts.Environment, "releases")
 
 	type promoteTarget struct {
 		File    os.FileInfo

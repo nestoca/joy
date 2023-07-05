@@ -44,12 +44,11 @@ func Prompt(opts Opts) error {
 	}
 
 	// Load matching releases from given environments.
-	environmentsDir := "environments"
-	environments, err := environment.LoadAll(environmentsDir, opts.SourceEnv, opts.TargetEnv)
+	environments, err := environment.LoadAll(environment.DirName, opts.SourceEnv, opts.TargetEnv)
 	if err != nil {
 		return fmt.Errorf("loading environments: %w", err)
 	}
-	list, err := releasing.LoadCrossReleaseList(environmentsDir, environments, opts.Filter)
+	list, err := releasing.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}

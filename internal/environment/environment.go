@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+const DirName = "environments"
+
 type Environment struct {
 	// Name is the name identifier of the environment (eg: dev, staging, prod).
 	Name string

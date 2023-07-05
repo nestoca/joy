@@ -2,6 +2,7 @@ package promote
 
 import (
 	"fmt"
+	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -178,7 +179,7 @@ type setupPromoteTestArgs struct {
 }
 
 func setupPromoteTest(args setupPromoteTestArgs) (string, error) {
-	testReleaseDir := filepath.Join("environments", args.env, "releases")
+	testReleaseDir := filepath.Join(environment.DirName, args.env, "releases")
 	err := os.MkdirAll(testReleaseDir, 0755)
 	if err != nil {
 		return "", err
