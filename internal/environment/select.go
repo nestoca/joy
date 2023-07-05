@@ -42,61 +42,60 @@ func Select(configFilePath string) error {
 		survey.WithPageSize(5),
 		survey.WithKeepFilter(true),
 		survey.WithRemoveSelectNone(),
+		survey.WithValidator(survey.Required),
 	)
 	if err != nil {
 		return fmt.Errorf("prompting for environments: %w", err)
 	}
 
-	// Prompt user to select source environment within selected environments
-	var source string
-	defaultSource := getDefaultValueWithinOptions(cfg.Environments.Source, selected)
-	err = survey.AskOne(&survey.Select{
-		Message: "Select source/current environment:",
-		Options: selected,
-		Default: defaultSource,
-	},
-		&source,
-		survey.WithPageSize(5),
-	)
-	if err != nil {
-		return fmt.Errorf("prompting for source environment: %w", err)
-	}
+	// At least two environments must be selected in order to select a source and target environments.
+	// Otherwise, just leave their values unchanged in config.
+	if len(selected) >= 2 {
+		// Prompt user to select source environment within selected environments
+		defaultSource := getDefaultValueWithinOptions(cfg.Environments.Source, selected)
+		err = survey.AskOne(&survey.Select{
+			Message: "Select source/current environment:",
+			Options: selected,
+			Default: defaultSource,
+		},
+			&cfg.Environments.Source,
+			survey.WithPageSize(5),
+		)
+		if err != nil {
+			return fmt.Errorf("prompting for source environment: %w", err)
+		}
 
-	// Exclude source environment from target environment options
-	var targetOptions []string
-	for _, env := range selected {
-		if env != source {
-			targetOptions = append(targetOptions, env)
+		// Exclude source environment from target environment options
+		var targetOptions []string
+		for _, env := range selected {
+			if env != cfg.Environments.Source {
+				targetOptions = append(targetOptions, env)
+			}
+		}
+
+		// Prompt user to select target environment within selected environments
+		defaultTarget := getDefaultValueWithinOptions(cfg.Environments.Target, targetOptions)
+		err = survey.AskOne(&survey.Select{
+			Message: "Select target/promotion environment:",
+			Options: targetOptions,
+			Default: defaultTarget,
+		},
+			&cfg.Environments.Target,
+			survey.WithPageSize(5),
+		)
+		if err != nil {
+			return fmt.Errorf("prompting for target environment: %w", err)
 		}
 	}
 
-	// Prompt user to select target environment within selected environments
-	var target string
-	defaultTarget := getDefaultValueWithinOptions(cfg.Environments.Target, targetOptions)
-	err = survey.AskOne(&survey.Select{
-		Message: "Select target/promotion environment:",
-		Options: targetOptions,
-		Default: defaultTarget,
-	},
-		&target,
-		survey.WithPageSize(5),
-	)
-	if err != nil {
-		return fmt.Errorf("prompting for target environment: %w", err)
-	}
-
-	// If all environments are selected, don't save selected environments to config file.
-	// That allows to automatically include new environments in selection.
+	// If all environments are selected, don't explicitly list them in config file,
+	// so that new environments are automatically included in selection.
 	if len(selected) == len(envNames) {
 		selected = nil
 	}
-
-	// Save selected environments to config file
 	cfg.Environments.Selected = selected
-	cfg.Environments.Source = source
-	cfg.Environments.Target = target
-	err = cfg.Save()
-	return nil
+
+	return cfg.Save()
 }
 
 // getDefaultValueWithinOptions returns the default value if it is within the given options, otherwise nil.

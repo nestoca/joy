@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/releasing"
 	"github.com/nestoca/joy-cli/internal/releasing/list"
 	"github.com/nestoca/joy-cli/internal/releasing/promotion"
@@ -27,7 +29,9 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list.List(list.Opts{})
+			return list.List(list.Opts{
+				SelectedEnvs: cfg.Environments.Selected,
+			})
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to all)")
@@ -42,12 +46,17 @@ func NewReleasePromoteCmd() *cobra.Command {
 		Use:     "promote",
 		Aliases: []string{"prom"},
 		Short:   "Promote releases from one environment to another",
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if cfg.Environments.Source == "" || cfg.Environments.Target == "" {
+				fmt.Printf("🙏Please run %s to specify source and target promotion environments.", color.InWhite("joy env select"))
+				return nil
+			}
+
 			// Options
 			opts := promotion.Opts{
-				SourceEnv: args[0],
-				TargetEnv: args[1],
+				SourceEnv: cfg.Environments.Source,
+				TargetEnv: cfg.Environments.Target,
 				Push:      !noPush,
 			}
 
