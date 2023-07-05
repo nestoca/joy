@@ -13,9 +13,6 @@ func NewGitCmd() *cobra.Command {
 		GroupID: "git",
 		Args:    cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
-			}
 			return git.Run(args)
 		},
 	}
@@ -29,9 +26,6 @@ func NewPullCmd() *cobra.Command {
 		GroupID: "git",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
-			}
 			return git.Pull()
 		},
 	}
@@ -45,9 +39,6 @@ func NewPushCmd() *cobra.Command {
 		GroupID: "git",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
-			}
 			return git.Push()
 		},
 	}
@@ -61,9 +52,6 @@ func NewResetCmd() *cobra.Command {
 		GroupID: "git",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
-			}
 			return git.Reset()
 		},
 	}

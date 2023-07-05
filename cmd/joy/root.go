@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/utils"
-	"github.com/spf13/viper"
-	"os"
-	"strings"
-
+	"github.com/nestoca/joy-cli/internal/config"
 	"github.com/spf13/cobra"
+	"os"
 )
 
+var cfg *config.Config
+
 func main() {
+
 	rootCmd := NewRootCmd()
 	err := rootCmd.Execute()
 	if err != nil {
@@ -19,15 +19,30 @@ func main() {
 }
 
 func NewRootCmd() *cobra.Command {
+	var configDir, catalogDir string
 	cmd := &cobra.Command{
 		Use:          "joy",
 		Short:        "Manages project, environment and release resources as code",
 		SilenceUsage: true,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			return initConfig(cmd.Flag("config").Value.String())
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			cfg, err = config.Load(configDir, catalogDir)
+			if err != nil {
+				return fmt.Errorf("loading config: %w", err)
+			}
+
+			// Make catalog dir the current directory, as all commands
+			// need to be run from there for loading catalog and executing
+			// git commands.
+			err = os.Chdir(cfg.CatalogDir)
+			if err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
+			}
+			return nil
 		},
 	}
-	cmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy-cli containing overrides for the default settings")
+	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
+	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
 
 	// Core commands
 	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})
@@ -42,43 +57,4 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(NewResetCmd())
 
 	return cmd
-}
-
-func initConfig(path string) error {
-	configFile, err := utils.ResolvePath(path)
-	if err != nil {
-		return fmt.Errorf("failed resolve config file path: %w", err)
-	}
-
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(configFile)
-
-	// Overrides can be set using env vars and take precedence over the config file. Useful for CI
-	// Will look for env vars prefixed with `JOY_` followed by the config name.
-	// Ex: `catalog-dir`'s value would be set to the value of JOY_CATALOG_DIR
-	viper.SetEnvPrefix("joy")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
-
-	viper.SetDefault("catalog-dir", "~/.joy/catalog")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return fmt.Errorf("failed to read config: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func changeToCatalogDir() error {
-	catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
-	if err != nil {
-		return fmt.Errorf("failed to resolve catalog directory path: %w", err)
-	}
-	err = os.Chdir(catalogDir)
-	if err != nil {
-		return fmt.Errorf("changing to catalog directory: %w", err)
-	}
-	return nil
 }

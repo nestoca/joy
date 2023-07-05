@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/nestoca/joy-cli/internal/build/promote"
-	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func NewBuildCmd() *cobra.Command {
@@ -34,16 +31,10 @@ Usage: joy build promote <env> <project> <version>`,
 			project := args[1]
 			version := args[2]
 
-			catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
-			if err != nil {
-				return fmt.Errorf("failed to resolve catalog directory path: %w", err)
-			}
-
 			return promote.Promote(promote.Opts{
 				Environment: env,
 				Project:     project,
 				Version:     version,
-				CatalogDir:  catalogDir,
 			})
 		},
 	}

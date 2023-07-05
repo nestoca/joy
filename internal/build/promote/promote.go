@@ -17,11 +17,10 @@ type Opts struct {
 	Environment string
 	Project     string
 	Version     string
-	CatalogDir  string
 }
 
 func Promote(opts Opts) error {
-	envReleasesDir := filepath.Join(opts.CatalogDir, "environments", opts.Environment, "releases")
+	envReleasesDir := filepath.Join("environments", opts.Environment, "releases")
 
 	type promoteTarget struct {
 		File    os.FileInfo

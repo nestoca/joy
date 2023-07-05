@@ -11,9 +11,6 @@ import (
 )
 
 type Opts struct {
-	// BaseDir is the catalog base directory.
-	BaseDir string
-
 	// SourceEnv is the source environment.
 	SourceEnv string
 
@@ -41,7 +38,7 @@ const (
 // Prompt prompts user for different selections and actions to perform,
 // such as previewing or promoting releases.
 func Prompt(opts Opts) error {
-	err := git.EnsureNoUncommittedChanges()
+	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
 	}

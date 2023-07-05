@@ -13,6 +13,7 @@ func Run(args []string) error {
 	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("running git command: %w", err)
@@ -43,6 +44,7 @@ func Push() error {
 	cmd := exec.Command("git", "push")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("pushing changes: %w", err)
@@ -54,6 +56,7 @@ func Pull() error {
 	cmd := exec.Command("git", "pull")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("pulling changes: %w", err)

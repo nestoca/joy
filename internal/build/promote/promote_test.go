@@ -1,8 +1,7 @@
-package promote_test
+package promote
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/build"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -28,48 +27,48 @@ spec:
 `
 
 func TestPromote(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	assert.Nil(t, os.Chdir(t.TempDir()))
+
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir: testArgs.CatalogDir,
-		env:        testArgs.Environment,
-		project:    testArgs.Project,
+		env:     opts.Environment,
+		project: opts.Project,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.Nil(t, err)
 
 	result, err := os.ReadFile(testReleaseFile)
 	assert.Nil(t, err)
 
 	assert.Equal(t,
-		fmt.Sprintf(releaseTemplate, "promote-build-release", testArgs.Project, testArgs.Version),
+		fmt.Sprintf(releaseTemplate, "promote-build-release", opts.Project, opts.Version),
 		string(result),
 	)
 }
 
 func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	assert.Nil(t, os.Chdir(t.TempDir()))
+
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir: testArgs.CatalogDir,
-		env:        testArgs.Environment,
-		project:    "other-project",
+		env:     opts.Environment,
+		project: "other-project",
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 
 	result, err := os.ReadFile(testReleaseFile)
@@ -83,23 +82,25 @@ func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 }
 
 func TestPromoteWhenCatalogDirNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	assert.Nil(t, os.Chdir(t.TempDir()))
+
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  "/foo/bar",
 	}
 
-	err := build.Promote(testArgs)
+	err := Promote(opts)
 	assert.NotNil(t, err)
 }
 
 func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	assert.Nil(t, os.Chdir(t.TempDir()))
+
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	fileContents := `some:
@@ -109,13 +110,12 @@ func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
 `
 
 	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir:   testArgs.CatalogDir,
-		env:          testArgs.Environment,
+		env:          opts.Environment,
 		fileContents: fileContents,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 	assert.EqualError(t,
 		err,
@@ -133,11 +133,12 @@ func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
 }
 
 func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	assert.Nil(t, os.Chdir(t.TempDir()))
+
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	fileContents := `spec:
@@ -148,13 +149,12 @@ func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
 `
 
 	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir:   testArgs.CatalogDir,
-		env:          testArgs.Environment,
+		env:          opts.Environment,
 		fileContents: fileContents,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 	assert.EqualError(t,
 		err,
@@ -172,19 +172,13 @@ func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
 }
 
 type setupPromoteTestArgs struct {
-	catalogDir   string
 	env          string
 	project      string
 	fileContents string
 }
 
 func setupPromoteTest(args setupPromoteTestArgs) (string, error) {
-	testReleaseDir := filepath.Join(
-		args.catalogDir,
-		"environments",
-		args.env,
-		"releases",
-	)
+	testReleaseDir := filepath.Join("environments", args.env, "releases")
 	err := os.MkdirAll(testReleaseDir, 0755)
 	if err != nil {
 		return "", err

@@ -1,13 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/nestoca/joy-cli/internal/releasing"
 	"github.com/nestoca/joy-cli/internal/releasing/list"
 	"github.com/nestoca/joy-cli/internal/releasing/promotion"
-	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func NewReleaseCmd() *cobra.Command {
@@ -30,14 +27,7 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			catalogDir, err := utils.ResolvePath(viper.GetString("catalog-dir"))
-			if err != nil {
-				return fmt.Errorf("failed to resolve catalog directory path: %w", err)
-			}
-
-			return list.List(list.Opts{
-				BaseDir: catalogDir,
-			})
+			return list.List(list.Opts{})
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to all)")
@@ -56,7 +46,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Options
 			opts := promotion.Opts{
-				BaseDir:   "",
 				SourceEnv: args[0],
 				TargetEnv: args[1],
 				Push:      !noPush,
@@ -72,11 +61,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 			// Filter
 			if releases != "" {
 				opts.Filter = releasing.NewNamePatternFilter(releases)
-			}
-
-			// Catalog
-			if err := changeToCatalogDir(); err != nil {
-				return err
 			}
 
 			return promotion.Prompt(opts)
