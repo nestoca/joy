@@ -19,6 +19,7 @@ func NewReleaseCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewReleaseListCmd())
 	cmd.AddCommand(NewReleasePromoteCmd())
+	cmd.AddCommand(NewReleaseSelectCmd())
 	return cmd
 }
 
@@ -29,8 +30,17 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Filtering
+			var filter releasing.Filter
+			if releases != "" {
+				filter = releasing.NewNamePatternFilter(releases)
+			} else if len(cfg.Releases.Selected) > 0 {
+				filter = releasing.NewSpecificReleasesFilter(cfg.Releases.Selected)
+			}
+
 			return list.List(list.Opts{
 				SelectedEnvs: cfg.Environments.Selected,
+				Filter:       filter,
 			})
 		},
 	}
@@ -53,11 +63,20 @@ func NewReleasePromoteCmd() *cobra.Command {
 				return nil
 			}
 
+			// Filtering
+			var filter releasing.Filter
+			if releases != "" {
+				filter = releasing.NewNamePatternFilter(releases)
+			} else if len(cfg.Releases.Selected) > 0 {
+				filter = releasing.NewSpecificReleasesFilter(cfg.Releases.Selected)
+			}
+
 			// Options
 			opts := promotion.Opts{
 				SourceEnv: cfg.Environments.Source,
 				TargetEnv: cfg.Environments.Target,
 				Push:      !noPush,
+				Filter:    filter,
 			}
 
 			// Action
@@ -81,5 +100,20 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&noPush, "no-push", false, "Skip pushing changes (only commit locally)")
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to promote (comma-separated with wildcards, defaults to prompting user)")
 
+	return cmd
+}
+
+func NewReleaseSelectCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "select",
+		Aliases: []string{"sel"},
+		Short:   "Choose releases to work with",
+		Long: `Choose releases to work with.
+
+Only selected releases will be included in releases table and during promotion.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return releasing.Select(cfg.FilePath)
+		},
+	}
 	return cmd
 }

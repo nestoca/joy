@@ -43,7 +43,7 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 
 		// Promote release
 		if !allReleasesSynced {
-			fmt.Printf("🕹%s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
+			fmt.Printf("🕹  %s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
 			err := promoteFile(source.ReleaseFile, target.ReleaseFile)
 			if err != nil {
 				return fmt.Errorf("promoting release file %q: %w", target.ReleaseFile.FilePath, err)
@@ -53,7 +53,7 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 
 		// Promote values
 		if !allValuesSynced {
-			fmt.Printf("🎛%s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
+			fmt.Printf("🎛  %s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
 			err := promoteFile(source.ValuesFile, target.ValuesFile)
 			if err != nil {
 				return fmt.Errorf("promoting values file %q: %w", target.ValuesFile.FilePath, err)
@@ -79,7 +79,7 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 		if err != nil {
 			return fmt.Errorf("committing changes: %w", err)
 		}
-		fmt.Println("✅Committed with message:")
+		fmt.Println("✅ Committed with message:")
 		fmt.Println(message)
 
 		// Push changes
@@ -88,14 +88,14 @@ func promote(list *releasing.CrossReleaseList, push bool) error {
 			if err != nil {
 				return fmt.Errorf("pushing changes: %w", err)
 			}
-			fmt.Println("✅Pushed")
+			fmt.Println("✅ Pushed")
 		} else {
-			fmt.Println("👉Skipping push! (use `joy push` to push changes manually)")
+			fmt.Println("👉 Skipping push! (use `joy push` to push changes manually)")
 		}
 		fmt.Println(MajorSeparator)
-		fmt.Println("🎉Promotion complete!")
+		fmt.Println("🎉 Promotion complete!")
 	} else {
-		fmt.Println("🎉Nothing to do, all releases already in sync!")
+		fmt.Println("🎉 Nothing to do, all releases already in sync!")
 		return nil
 	}
 

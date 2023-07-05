@@ -54,7 +54,7 @@ func Prompt(opts Opts) error {
 	// Keep only promotable releases.
 	list = list.OnlyPromotableReleases()
 	if len(list.Releases) == 0 {
-		fmt.Println("🤷No promotable releases found.")
+		fmt.Println("🤷 No promotable releases found.")
 		return nil
 	}
 
@@ -67,20 +67,23 @@ func Prompt(opts Opts) error {
 	releaseCount := len(list.Releases)
 	if releaseCount == 0 {
 		if opts.Filter != nil {
-			fmt.Println("🤷Given filter matched no releases.")
+			fmt.Println("🤷 Given filter matched no releases.")
 		} else {
-			fmt.Println("🤷Given environments contain no releases.")
+			fmt.Println("🤷 Given environments contain no releases.")
 		}
 		return nil
 	}
 
-	// Prompt user to select releases?
-	if opts.Filter == nil {
-		list, err = SelectReleases(opts.SourceEnv, opts.TargetEnv, list)
-		if err != nil {
-			return fmt.Errorf("selecting releases to promote: %w", err)
-		}
+	// Prompt user to select releases
+	list, err = SelectReleases(opts.SourceEnv, opts.TargetEnv, list)
+	if err != nil {
+		return fmt.Errorf("selecting releases to promote: %w", err)
 	}
+
+	// Print selected releases
+	fmt.Println(MajorSeparator)
+	list.Print(releasing.PrintOpts{IsPromoting: true})
+	fmt.Println(MajorSeparator)
 
 	for {
 		// Determine action to perform.

@@ -4,10 +4,16 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy-cli/internal/config"
+	"github.com/nestoca/joy-cli/internal/git"
 	"sort"
 )
 
 func Select(configFilePath string) error {
+	err := git.EnsureCleanAndUpToDateWorkingCopy()
+	if err != nil {
+		return err
+	}
+
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)
 	if err != nil {
@@ -39,9 +45,8 @@ func Select(configFilePath string) error {
 		Default: defaultSelected,
 	},
 		&selected,
-		survey.WithPageSize(5),
+		survey.WithPageSize(10),
 		survey.WithKeepFilter(true),
-		survey.WithRemoveSelectNone(),
 		survey.WithValidator(survey.Required),
 	)
 	if err != nil {
@@ -59,7 +64,7 @@ func Select(configFilePath string) error {
 			Default: defaultSource,
 		},
 			&cfg.Environments.Source,
-			survey.WithPageSize(5),
+			survey.WithPageSize(10),
 		)
 		if err != nil {
 			return fmt.Errorf("prompting for source environment: %w", err)
@@ -81,7 +86,7 @@ func Select(configFilePath string) error {
 			Default: defaultTarget,
 		},
 			&cfg.Environments.Target,
-			survey.WithPageSize(5),
+			survey.WithPageSize(10),
 		)
 		if err != nil {
 			return fmt.Errorf("prompting for target environment: %w", err)
@@ -95,7 +100,13 @@ func Select(configFilePath string) error {
 	}
 	cfg.Environments.Selected = selected
 
-	return cfg.Save()
+	// Save config
+	err = cfg.Save()
+	if err != nil {
+		return fmt.Errorf("saving config file %s: %w", configFilePath, err)
+	}
+	fmt.Println("✅ Config updated.")
+	return nil
 }
 
 // getDefaultValueWithinOptions returns the default value if it is within the given options, otherwise nil.

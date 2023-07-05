@@ -35,7 +35,7 @@ func preview(list *releasing.CrossReleaseList) error {
 
 		// Print header
 		fmt.Println(MajorSeparator)
-		fmt.Printf("🚀%s %s/%s\n",
+		fmt.Printf("🚀 %s %s/%s\n",
 			color.InWhite("Release"),
 			colors.InDarkYellow(env.Name),
 			color.InBold(color.InYellow(rel.Name)))
@@ -53,7 +53,7 @@ func preview(list *releasing.CrossReleaseList) error {
 		// Print release diff
 		sections := 0
 		if !allReleasesSynced {
-			fmt.Printf("🕹%s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
+			fmt.Printf("🕹  %s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
 			err := printDiff(source.ReleaseFile, target.ReleaseFile, target.Missing)
 			if err != nil {
 				return fmt.Errorf("printing release diff: %w", err)
@@ -66,7 +66,7 @@ func preview(list *releasing.CrossReleaseList) error {
 			if sections > 0 {
 				fmt.Println(MinorSeparator)
 			}
-			fmt.Printf("🎛%s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
+			fmt.Printf("🎛  %s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
 			err := printDiff(source.ValuesFile, target.ValuesFile, target.Missing)
 			if err != nil {
 				return fmt.Errorf("printing values diff: %w", err)
@@ -75,7 +75,7 @@ func preview(list *releasing.CrossReleaseList) error {
 	}
 
 	if !anyUnsynced {
-		fmt.Println("🎉All releases are in sync!")
+		fmt.Println("🎉 All releases are in sync!")
 	}
 	fmt.Println(MajorSeparator)
 	return nil

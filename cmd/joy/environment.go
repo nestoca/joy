@@ -21,8 +21,8 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "select",
 		Aliases: []string{"sel"},
-		Short:   "Configure environments to work with",
-		Long: `Configure environments to work with and to promote from and to.
+		Short:   "Choose environments to work with",
+		Long: `Choose environments to work with and to promote from and to.
 
 Only selected environments will be included in releases table columns.`,
 		RunE: func(cmd *cobra.Command, args []string) error {

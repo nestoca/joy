@@ -52,7 +52,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	var selectedIndices []int
 	err := survey.Ask(questions,
 		&selectedIndices,
-		survey.WithPageSize(5),
+		survey.WithPageSize(10),
 		survey.WithKeepFilter(true),
 		survey.WithValidator(survey.Required))
 	if err != nil {
