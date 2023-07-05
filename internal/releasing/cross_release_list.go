@@ -85,11 +85,21 @@ func (r *CrossReleaseList) SortedCrossReleases() []*CrossRelease {
 	return releases
 }
 
-// SubsetOfSpecificReleases returns a subset of the releases in this list that match the given names.
-func (r *CrossReleaseList) SubsetOfSpecificReleases(releases []string) *CrossReleaseList {
+// OnlySpecificReleases returns a subset of the releases in this list that match the given names.
+func (r *CrossReleaseList) OnlySpecificReleases(releases []string) *CrossReleaseList {
 	subset := NewCrossReleaseList(r.Environments)
 	for _, rel := range releases {
 		subset.Releases[rel] = r.Releases[rel]
+	}
+	return subset
+}
+
+func (r *CrossReleaseList) OnlyPromotableReleases() *CrossReleaseList {
+	subset := NewCrossReleaseList(r.Environments)
+	for _, rel := range r.Releases {
+		if rel.Promotable() {
+			subset.Releases[rel.Name] = rel
+		}
 	}
 	return subset
 }

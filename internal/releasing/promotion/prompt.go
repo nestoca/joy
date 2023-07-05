@@ -3,8 +3,6 @@ package promotion
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/releasing"
@@ -53,8 +51,14 @@ func Prompt(opts Opts) error {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}
 
-	// Create missing releases.
-	err = CreateMissingReleases(list)
+	// Keep only promotable releases.
+	list = list.OnlyPromotableReleases()
+	if len(list.Releases) == 0 {
+		fmt.Println("🤷No promotable releases found.")
+		return nil
+	}
+
+	err = CreateMissingTargetReleases(list)
 	if err != nil {
 		return fmt.Errorf("creating missing releases: %w", err)
 	}
@@ -76,38 +80,7 @@ func Prompt(opts Opts) error {
 		if err != nil {
 			return fmt.Errorf("selecting releases to promote: %w", err)
 		}
-
-		// Count releases selected by user.
-		releaseCount = len(list.Releases)
-		if releaseCount == 0 {
-			fmt.Println("🤷No releases selected.")
-			return nil
-		}
 	}
-
-	// Print releases that were matched by filter.
-	plural := ""
-	if releaseCount > 1 {
-		plural = "s"
-	}
-	nonPromotableCount := 0
-	for _, release := range list.Releases {
-		if !release.Promotable() {
-			nonPromotableCount++
-		}
-	}
-	nonPromotable := ""
-	if nonPromotableCount > 0 {
-		plural := "is"
-		if nonPromotableCount > 1 {
-			plural = "are"
-		}
-		nonPromotable = fmt.Sprintf(" (%d of which %s not promotable)", nonPromotableCount, plural)
-	}
-	fmt.Println(MajorSeparator)
-	fmt.Printf("🔍%s %d release%s%s\n", color.InWhite("Matching"), releaseCount, plural, colors.InDarkGrey(nonPromotable))
-	fmt.Println(MinorSeparator)
-	list.Print(releasing.PrintOpts{IsPromoting: true})
 
 	for {
 		// Determine action to perform.

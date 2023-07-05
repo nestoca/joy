@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-// CreateMissingReleases creates releases in target environment for releases that are in source environment but not in target.
-func CreateMissingReleases(crossReleases *releasing.CrossReleaseList) error {
+// CreateMissingTargetReleases creates releases in target environment for releases that are in source environment but not in target.
+func CreateMissingTargetReleases(crossReleases *releasing.CrossReleaseList) error {
 	// Ensure we have two environments
 	if len(crossReleases.Environments) != 2 {
 		return fmt.Errorf("expected two environments, got %d", len(crossReleases.Environments))

@@ -50,7 +50,11 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 		Transform: transform,
 	}}
 	var selectedIndices []int
-	err := survey.Ask(questions, &selectedIndices, survey.WithPageSize(5), survey.WithKeepFilter(true))
+	err := survey.Ask(questions,
+		&selectedIndices,
+		survey.WithPageSize(5),
+		survey.WithKeepFilter(true),
+		survey.WithValidator(survey.Required))
 	if err != nil {
 		return nil, fmt.Errorf("prompting for releases to promote: %w", err)
 	}
@@ -60,7 +64,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	for _, index := range selectedIndices {
 		selectedReleaseNames = append(selectedReleaseNames, sortedCrossReleases[index].Name)
 	}
-	return list.SubsetOfSpecificReleases(selectedReleaseNames), nil
+	return list.OnlySpecificReleases(selectedReleaseNames), nil
 }
 
 func GetReleaseVersion(rel *releasing.Release) string {
