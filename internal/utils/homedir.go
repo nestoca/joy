@@ -2,22 +2,21 @@ package utils
 
 import (
 	"fmt"
-	"os/user"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
 func ResolvePath(path string) (string, error) {
-	usr, err := user.Current()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("identifying user: %w", err)
+		return "", fmt.Errorf("getting home directory: %w", err)
 	}
 
-	dir := usr.HomeDir
 	if path == "~" {
-		return dir, nil
+		return homeDir, nil
 	} else if strings.HasPrefix(path, "~/") {
-		return filepath.Join(dir, path[2:]), nil
+		return filepath.Join(homeDir, path[2:]), nil
 	}
 
 	return path, nil

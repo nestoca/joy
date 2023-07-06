@@ -6,6 +6,7 @@ import (
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/yml"
 	"strings"
 )
 
@@ -125,8 +126,8 @@ func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, mes
 }
 
 // promoteFile merges a specific source yaml release or values file onto an equivalent target file
-func promoteFile(source, target *release.YamlFile) error {
-	mergedTree := Merge(source.Tree, target.Tree)
+func promoteFile(source, target *yml.File) error {
+	mergedTree := yml.Merge(source.Tree, target.Tree)
 	merged, err := target.CopyWithNewTree(mergedTree)
 	if err != nil {
 		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)

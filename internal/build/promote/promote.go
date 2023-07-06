@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nestoca/joy-cli/internal/environment"
+	"github.com/nestoca/joy-cli/internal/yml"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/kyokomi/emoji"
-	"github.com/nestoca/joy-cli/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -50,7 +50,7 @@ func Promote(opts Opts) error {
 			return fmt.Errorf("parsing release file: %w", err)
 		}
 
-		releaseProject, err := utils.FindNode(rel, ".spec.project")
+		releaseProject, err := yml.FindNode(rel, ".spec.project")
 		if err != nil {
 			return fmt.Errorf("reading release's project: %w", err)
 		}
@@ -69,13 +69,13 @@ func Promote(opts Opts) error {
 	}
 
 	for _, target := range targets {
-		versionNode, err := utils.FindNode(target.Release, ".spec.version")
+		versionNode, err := yml.FindNode(target.Release, ".spec.version")
 		if err != nil {
 			return fmt.Errorf("updating release version: %w", err)
 		}
 		versionNode.Value = opts.Version
 
-		result, err := utils.EncodeYaml(target.Release)
+		result, err := yml.EncodeYaml(target.Release)
 		if err != nil {
 			return fmt.Errorf("encoding updated release: %w", err)
 		}
@@ -84,7 +84,7 @@ func Promote(opts Opts) error {
 			return fmt.Errorf("writing to release file: %w", err)
 		}
 
-		releaseName, err := utils.FindNode(target.Release, ".metadata.name")
+		releaseName, err := yml.FindNode(target.Release, ".metadata.name")
 		if err != nil {
 			return fmt.Errorf("reading release's name: %w", err)
 		}

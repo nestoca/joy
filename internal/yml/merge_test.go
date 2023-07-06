@@ -1,4 +1,4 @@
-package promote
+package yml
 
 import (
 	"bytes"

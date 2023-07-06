@@ -1,7 +1,6 @@
-package utils_test
+package yml
 
 import (
-	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"testing"
@@ -30,7 +29,7 @@ func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.Nil(t, err)
 
-	node, err := utils.FindNode(yamlNode, ".spec.chart.name")
+	node, err := FindNode(yamlNode, ".spec.chart.name")
 	assert.Nil(t, err)
 	assert.NotNil(t, node)
 
@@ -45,7 +44,7 @@ func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 	mappingNode := yamlNode.Content[0]
 	assert.Equal(t, yaml.MappingNode, mappingNode.Kind)
 
-	node, err := utils.FindNode(mappingNode, ".spec.chart.name")
+	node, err := FindNode(mappingNode, ".spec.chart.name")
 	assert.Nil(t, err)
 	assert.NotNil(t, node)
 
@@ -57,7 +56,7 @@ func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.Nil(t, err)
 
-	node, err := utils.FindNode(yamlNode, "spec.chart.name.foobar")
+	node, err := FindNode(yamlNode, "spec.chart.name.foobar")
 	assert.NotNil(t, err)
 	assert.Nil(t, node)
 
@@ -87,7 +86,7 @@ spec:
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.Nil(t, err)
 
-	node, err := utils.FindNode(yamlNode, ".spec.version")
+	node, err := FindNode(yamlNode, ".spec.version")
 	assert.Nil(t, err)
 	assert.NotNil(t, node)
 	assert.Equal(t, "1.0.0-avvvvvvd", node.Value)

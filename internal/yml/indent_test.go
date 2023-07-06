@@ -1,4 +1,4 @@
-package release
+package yml
 
 import (
 	"testing"

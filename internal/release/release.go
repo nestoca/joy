@@ -2,6 +2,7 @@ package release
 
 import (
 	"fmt"
+	"github.com/nestoca/joy-cli/internal/yml"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -43,10 +44,10 @@ type Release struct {
 	Spec Spec `yaml:"spec,omitempty"`
 
 	// ReleaseFile represents the in-memory yaml file of the release.
-	ReleaseFile *YamlFile `yaml:"-"`
+	ReleaseFile *yml.File `yaml:"-"`
 
 	// ValuesFile represents the in-memory yaml file of the values associated with the release.
-	ValuesFile *YamlFile `yaml:"-"`
+	ValuesFile *yml.File `yaml:"-"`
 
 	// Missing indicates whether the release is missing in the target environment. During a promotion,
 	// this allows to know whether the release will be created or updated.
@@ -100,7 +101,7 @@ func LoadRelease(filePath string) (*Release, error) {
 	}
 
 	// Load in yaml file form
-	yamlFile, err := NewYamlFile(filePath, content)
+	yamlFile, err := yml.NewFile(filePath, content)
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for release file %s: %w", filePath, err)
 	}
@@ -112,7 +113,7 @@ func LoadRelease(filePath string) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading values file %s: %w", valuesFilePath, err)
 	}
-	valuesYamlFile, err := NewYamlFile(valuesFilePath, valuesContent)
+	valuesYamlFile, err := yml.NewFile(valuesFilePath, valuesContent)
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for values file %s: %w", valuesFilePath, err)
 	}

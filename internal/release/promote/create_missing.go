@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/yml"
 	"path/filepath"
 )
 
@@ -31,8 +32,8 @@ func createMissingRelease(source *release.Release, env *environment.Environment)
 	target := *source
 	target.ReleaseFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".release.yaml")
 	target.ValuesFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".values.yaml")
-	target.ReleaseFile.Tree = Merge(source.ReleaseFile.Tree, nil)
-	target.ValuesFile.Tree = Merge(source.ValuesFile.Tree, nil)
+	target.ReleaseFile.Tree = yml.Merge(source.ReleaseFile.Tree, nil)
+	target.ValuesFile.Tree = yml.Merge(source.ValuesFile.Tree, nil)
 	target.Missing = true
 	return &target
 }

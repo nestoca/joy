@@ -8,6 +8,7 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/yml"
 	"strings"
 )
 
@@ -81,15 +82,15 @@ func preview(list *release.CrossReleaseList) error {
 	return nil
 }
 
-func printDiff(source, target *release.YamlFile, targetMissing bool) error {
-	merged := Merge(source.Tree, target.Tree)
+func printDiff(source, target *yml.File, targetMissing bool) error {
+	merged := yml.Merge(source.Tree, target.Tree)
 
 	beforeYaml, err := target.ToYaml()
 	if err != nil {
 		return fmt.Errorf("marshalling before: %w", err)
 	}
 
-	afterYaml, err := release.TreeToYaml(merged, target.Indent)
+	afterYaml, err := yml.TreeToYaml(merged, target.Indent)
 	if err != nil {
 		return fmt.Errorf("marshalling after: %w", err)
 	}
