@@ -1,4 +1,4 @@
-package promotion
+package promote
 
 import (
 	"fmt"
@@ -33,9 +33,9 @@ const (
 	ActionCancel  = "Cancel"
 )
 
-// Prompt prompts user for different selections and actions to perform,
+// Promote prompts user for different selections and actions to perform,
 // such as previewing or promoting releases.
-func Prompt(opts Opts) error {
+func Promote(opts Opts) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func Prompt(opts Opts) error {
 		return nil
 	}
 
-	// Prompt user to select releases
+	// Promote user to select releases
 	list, err = SelectReleases(opts.SourceEnv, opts.TargetEnv, list)
 	if err != nil {
 		return fmt.Errorf("selecting releases to promote: %w", err)
@@ -107,7 +107,7 @@ func Prompt(opts Opts) error {
 				return nil
 			}
 		case ActionPromote:
-			err = promote(list, opts.Push)
+			err = perform(list, opts.Push)
 			if err != nil {
 				return fmt.Errorf("applying: %w", err)
 			}

@@ -1,4 +1,4 @@
-package promotion
+package promote
 
 import (
 	"github.com/nestoca/joy-cli/internal/release"

@@ -5,7 +5,7 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/release"
 	"github.com/nestoca/joy-cli/internal/release/list"
-	"github.com/nestoca/joy-cli/internal/release/promotion"
+	"github.com/nestoca/joy-cli/internal/release/promote"
 	"github.com/spf13/cobra"
 )
 
@@ -72,7 +72,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 			}
 
 			// Options
-			opts := promotion.Opts{
+			opts := promote.Opts{
 				SourceEnv: cfg.Environments.Source,
 				TargetEnv: cfg.Environments.Target,
 				Push:      !noPush,
@@ -81,9 +81,9 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 			// Action
 			if doPreview {
-				opts.Action = promotion.ActionPreview
+				opts.Action = promote.ActionPreview
 			} else if doPromote {
-				opts.Action = promotion.ActionPromote
+				opts.Action = promote.ActionPromote
 			}
 
 			// Filter
@@ -91,7 +91,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				opts.Filter = release.NewNamePatternFilter(releases)
 			}
 
-			return promotion.Prompt(opts)
+			return promote.Promote(opts)
 		},
 	}
 

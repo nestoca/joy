@@ -1,4 +1,4 @@
-package promotion
+package promote
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// promote performs the promotion of all releases in given list.
-func promote(list *release.CrossReleaseList, push bool) error {
+// perform performs the promotion of all releases in given list.
+func perform(list *release.CrossReleaseList, push bool) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
