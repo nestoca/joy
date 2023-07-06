@@ -5,7 +5,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy-cli/internal/environment"
 	"github.com/nestoca/joy-cli/internal/git"
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 )
 
 type Opts struct {
@@ -24,7 +24,7 @@ type Opts struct {
 
 	// Filter specifies releases to promote.
 	// Optional, defaults to prompting user.
-	Filter releasing.Filter
+	Filter release.Filter
 }
 
 const (
@@ -46,7 +46,7 @@ func Prompt(opts Opts) error {
 	if err != nil {
 		return fmt.Errorf("loading environments: %w", err)
 	}
-	list, err := releasing.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
+	list, err := release.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
 	if err != nil {
 		return fmt.Errorf("loading cross-environment releases: %w", err)
 	}
@@ -82,7 +82,7 @@ func Prompt(opts Opts) error {
 
 	// Print selected releases
 	fmt.Println(MajorSeparator)
-	list.Print(releasing.PrintOpts{IsPromoting: true})
+	list.Print(release.PrintOpts{IsPromoting: true})
 	fmt.Println(MajorSeparator)
 
 	for {

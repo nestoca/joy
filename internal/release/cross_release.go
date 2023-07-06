@@ -1,4 +1,4 @@
-package releasing
+package release
 
 import (
 	"github.com/nestoca/joy-cli/internal/environment"

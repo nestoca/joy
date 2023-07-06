@@ -1,4 +1,4 @@
-package releasing
+package release
 
 import "gopkg.in/yaml.v3"
 

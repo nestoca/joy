@@ -7,14 +7,14 @@ import (
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
 	"github.com/nestoca/joy-cli/internal/colors"
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 	"strings"
 )
 
 var MajorSeparator = strings.Repeat("—", 80)
 var MinorSeparator = ""
 
-func preview(list *releasing.CrossReleaseList) error {
+func preview(list *release.CrossReleaseList) error {
 	releases := list.SortedCrossReleases()
 	env := list.Environments[1]
 	anyUnsynced := false
@@ -81,7 +81,7 @@ func preview(list *releasing.CrossReleaseList) error {
 	return nil
 }
 
-func printDiff(source, target *releasing.YamlFile, targetMissing bool) error {
+func printDiff(source, target *release.YamlFile, targetMissing bool) error {
 	merged := Merge(source.Tree, target.Tree)
 
 	beforeYaml, err := target.ToYaml()
@@ -89,7 +89,7 @@ func printDiff(source, target *releasing.YamlFile, targetMissing bool) error {
 		return fmt.Errorf("marshalling before: %w", err)
 	}
 
-	afterYaml, err := releasing.TreeToYaml(merged, target.Indent)
+	afterYaml, err := release.TreeToYaml(merged, target.Indent)
 	if err != nil {
 		return fmt.Errorf("marshalling after: %w", err)
 	}

@@ -1,4 +1,4 @@
-package releasing
+package release
 
 import "strings"
 

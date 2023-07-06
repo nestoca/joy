@@ -5,12 +5,12 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/git"
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 	"strings"
 )
 
 // promote performs the promotion of all releases in given list.
-func promote(list *releasing.CrossReleaseList, push bool) error {
+func promote(list *release.CrossReleaseList, push bool) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
@@ -125,7 +125,7 @@ func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, mes
 }
 
 // promoteFile merges a specific source yaml release or values file onto an equivalent target file
-func promoteFile(source, target *releasing.YamlFile) error {
+func promoteFile(source, target *release.YamlFile) error {
 	mergedTree := Merge(source.Tree, target.Tree)
 	merged, err := target.CopyWithNewTree(mergedTree)
 	if err != nil {

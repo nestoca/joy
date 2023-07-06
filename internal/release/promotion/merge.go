@@ -1,7 +1,7 @@
 package promotion
 
 import (
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 	"gopkg.in/yaml.v3"
 )
 
@@ -9,7 +9,7 @@ import (
 // destination release's locked values. Source and destination releases are
 // left unchanged and a new release node tree is returned.
 func Merge(src *yaml.Node, dest *yaml.Node) *yaml.Node {
-	result := releasing.DeepCopyNode(src)
+	result := release.DeepCopyNode(src)
 
 	if dest == nil {
 		dest = &yaml.Node{
@@ -19,7 +19,7 @@ func Merge(src *yaml.Node, dest *yaml.Node) *yaml.Node {
 			}},
 		}
 	} else {
-		dest = releasing.DeepCopyNode(dest)
+		dest = release.DeepCopyNode(dest)
 	}
 
 	if src.Kind != yaml.DocumentNode || dest.Kind != yaml.DocumentNode {
@@ -71,7 +71,7 @@ func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
 		}
 
 		var subtree *yaml.Node
-		if releasing.IsLocked(destKeyNode, destValueNode) {
+		if release.IsLocked(destKeyNode, destValueNode) {
 			lockMarkerFound = true
 			subtree = destValueNode
 		} else {
@@ -120,7 +120,7 @@ func setLockedScalarValuesAsTodo(node *yaml.Node, locked bool) {
 					setLockedScalarValuesAsTodo(valueNode, true)
 				}
 			} else {
-				setLockedScalarValuesAsTodo(valueNode, releasing.IsLocked(keyNode, valueNode))
+				setLockedScalarValuesAsTodo(valueNode, release.IsLocked(keyNode, valueNode))
 			}
 		}
 	case yaml.SequenceNode:

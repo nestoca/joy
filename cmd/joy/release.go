@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/releasing"
-	"github.com/nestoca/joy-cli/internal/releasing/list"
-	"github.com/nestoca/joy-cli/internal/releasing/promotion"
+	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/release/list"
+	"github.com/nestoca/joy-cli/internal/release/promotion"
 	"github.com/spf13/cobra"
 )
 
@@ -31,11 +31,11 @@ func NewReleaseListCmd() *cobra.Command {
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Filtering
-			var filter releasing.Filter
+			var filter release.Filter
 			if releases != "" {
-				filter = releasing.NewNamePatternFilter(releases)
+				filter = release.NewNamePatternFilter(releases)
 			} else if len(cfg.Releases.Selected) > 0 {
-				filter = releasing.NewSpecificReleasesFilter(cfg.Releases.Selected)
+				filter = release.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
 			return list.List(list.Opts{
@@ -64,11 +64,11 @@ func NewReleasePromoteCmd() *cobra.Command {
 			}
 
 			// Filtering
-			var filter releasing.Filter
+			var filter release.Filter
 			if releases != "" {
-				filter = releasing.NewNamePatternFilter(releases)
+				filter = release.NewNamePatternFilter(releases)
 			} else if len(cfg.Releases.Selected) > 0 {
-				filter = releasing.NewSpecificReleasesFilter(cfg.Releases.Selected)
+				filter = release.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
 			// Options
@@ -88,7 +88,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 			// Filter
 			if releases != "" {
-				opts.Filter = releasing.NewNamePatternFilter(releases)
+				opts.Filter = release.NewNamePatternFilter(releases)
 			}
 
 			return promotion.Prompt(opts)
@@ -112,7 +112,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 
 Only selected releases will be included in releases table and during promotion.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return releasing.Select(cfg.FilePath)
+			return release.Select(cfg.FilePath)
 		},
 	}
 	return cmd

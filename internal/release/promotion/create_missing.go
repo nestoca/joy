@@ -3,12 +3,12 @@ package promotion
 import (
 	"fmt"
 	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 	"path/filepath"
 )
 
 // CreateMissingTargetReleases creates releases in target environment for releases that are in source environment but not in target.
-func CreateMissingTargetReleases(crossReleases *releasing.CrossReleaseList) error {
+func CreateMissingTargetReleases(crossReleases *release.CrossReleaseList) error {
 	// Ensure we have two environments
 	if len(crossReleases.Environments) != 2 {
 		return fmt.Errorf("expected two environments, got %d", len(crossReleases.Environments))
@@ -27,7 +27,7 @@ func CreateMissingTargetReleases(crossReleases *releasing.CrossReleaseList) erro
 	return nil
 }
 
-func createMissingRelease(source *releasing.Release, env *environment.Environment) *releasing.Release {
+func createMissingRelease(source *release.Release, env *environment.Environment) *release.Release {
 	target := *source
 	target.ReleaseFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".release.yaml")
 	target.ValuesFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".values.yaml")

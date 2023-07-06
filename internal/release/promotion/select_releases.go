@@ -7,12 +7,12 @@ import (
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy-cli/internal/colors"
-	"github.com/nestoca/joy-cli/internal/releasing"
+	"github.com/nestoca/joy-cli/internal/release"
 	"strings"
 	"text/tabwriter"
 )
 
-func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseList) (*releasing.CrossReleaseList, error) {
+func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList) (*release.CrossReleaseList, error) {
 	// Format releases for user selection.
 	var choices []string
 	sortedCrossReleases := list.SortedCrossReleases()
@@ -67,7 +67,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *releasing.CrossReleaseLis
 	return list.OnlySpecificReleases(selectedReleaseNames), nil
 }
 
-func GetReleaseVersion(rel *releasing.Release) string {
+func GetReleaseVersion(rel *release.Release) string {
 	if rel == nil || rel.Missing {
 		return "-"
 	}
