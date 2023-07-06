@@ -44,13 +44,13 @@ func Promote(opts Opts) error {
 			return fmt.Errorf("reading release file: %w", err)
 		}
 
-		release := &yaml.Node{}
-		err = yaml.Unmarshal(file, release)
+		rel := &yaml.Node{}
+		err = yaml.Unmarshal(file, rel)
 		if err != nil {
 			return fmt.Errorf("parsing release file: %w", err)
 		}
 
-		releaseProject, err := utils.FindNode(release, ".spec.project")
+		releaseProject, err := utils.FindNode(rel, ".spec.project")
 		if err != nil {
 			return fmt.Errorf("reading release's project: %w", err)
 		}
@@ -58,7 +58,7 @@ func Promote(opts Opts) error {
 		if releaseProject != nil && opts.Project == releaseProject.Value {
 			targets = append(targets, &promoteTarget{
 				File:    info,
-				Release: release,
+				Release: rel,
 				Path:    path,
 			})
 		}

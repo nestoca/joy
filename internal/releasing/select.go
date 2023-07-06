@@ -33,8 +33,8 @@ func Select(configFilePath string) error {
 
 	// Create list of release names
 	var releaseNames []string
-	for _, release := range list.Releases {
-		releaseNames = append(releaseNames, release.Name)
+	for _, rel := range list.Releases {
+		releaseNames = append(releaseNames, rel.Name)
 	}
 	sort.Strings(releaseNames)
 

@@ -3,7 +3,7 @@ package releasing
 import "strings"
 
 type Filter interface {
-	Match(release *Release) bool
+	Match(rel *Release) bool
 }
 
 type NamePatternFilter struct {
@@ -16,9 +16,9 @@ func NewNamePatternFilter(pattern string) *NamePatternFilter {
 	}
 }
 
-func (f *NamePatternFilter) Match(release *Release) bool {
+func (f *NamePatternFilter) Match(rel *Release) bool {
 	for _, name := range f.ReleaseNames {
-		if release.Metadata.Name == name {
+		if rel.Metadata.Name == name {
 			return true
 		}
 	}
@@ -35,9 +35,9 @@ func NewSpecificReleasesFilter(releaseNames []string) *SpecificReleasesFilter {
 	}
 }
 
-func (f *SpecificReleasesFilter) Match(release *Release) bool {
+func (f *SpecificReleasesFilter) Match(rel *Release) bool {
 	for _, name := range f.ReleaseNames {
-		if release.Name == name {
+		if rel.Name == name {
 			return true
 		}
 	}

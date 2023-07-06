@@ -72,13 +72,13 @@ func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 		fileName := file.Name()
 		if strings.HasSuffix(fileName, ".release.yaml") {
 			filePath := filepath.Join(dir, fileName)
-			release, err := LoadRelease(filePath)
+			rel, err := LoadRelease(filePath)
 			if err != nil {
 				return nil, fmt.Errorf("loading release %s: %w", filePath, err)
 			}
 
-			if releaseFilter == nil || releaseFilter.Match(release) {
-				releases = append(releases, release)
+			if releaseFilter == nil || releaseFilter.Match(rel) {
+				releases = append(releases, rel)
 			}
 		}
 	}
@@ -94,8 +94,8 @@ func LoadRelease(filePath string) (*Release, error) {
 	}
 
 	// Load in structured form
-	var release Release
-	if err := yaml.Unmarshal(content, &release); err != nil {
+	var rel Release
+	if err := yaml.Unmarshal(content, &rel); err != nil {
 		return nil, fmt.Errorf("unmarshalling release file %s in structured form: %w", filePath, err)
 	}
 
@@ -104,7 +104,7 @@ func LoadRelease(filePath string) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for release file %s: %w", filePath, err)
 	}
-	release.ReleaseFile = yamlFile
+	rel.ReleaseFile = yamlFile
 
 	// Load values file
 	valuesFilePath := strings.TrimSuffix(filePath, ".release.yaml") + ".values.yaml"
@@ -116,7 +116,7 @@ func LoadRelease(filePath string) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for values file %s: %w", valuesFilePath, err)
 	}
-	release.ValuesFile = valuesYamlFile
+	rel.ValuesFile = valuesYamlFile
 
-	return &release, nil
+	return &rel, nil
 }

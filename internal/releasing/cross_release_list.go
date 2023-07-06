@@ -59,18 +59,18 @@ func (r *CrossReleaseList) GetEnvironmentIndex(name string) int {
 }
 
 // AddRelease adds a release for given environment.
-func (r *CrossReleaseList) AddRelease(release *Release, environment *environment.Environment) error {
+func (r *CrossReleaseList) AddRelease(rel *Release, environment *environment.Environment) error {
 	index := r.GetEnvironmentIndex(environment.Name)
 	if index == -1 {
 		return fmt.Errorf("environment %s not found in list", environment.Name)
 	}
 
-	rel, ok := r.Releases[release.Name]
+	crossRelease, ok := r.Releases[rel.Name]
 	if !ok {
-		rel = NewCrossRelease(release.Name, r.Environments)
-		r.Releases[release.Name] = rel
+		crossRelease = NewCrossRelease(rel.Name, r.Environments)
+		r.Releases[rel.Name] = crossRelease
 	}
-	rel.Releases[index] = release
+	crossRelease.Releases[index] = rel
 	return nil
 }
 
@@ -126,14 +126,14 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 	}
 	table.SetHeader(headers)
 
-	for _, release := range r.SortedCrossReleases() {
+	for _, crossRelease := range r.SortedCrossReleases() {
 		// Check if releases and their values are synced across all environments
-		releasesSynced := release.AllReleasesSynced()
-		valuesSynced := release.AllValuesSynced()
-		dimmed := opts.IsPromoting && !release.Promotable()
+		releasesSynced := crossRelease.AllReleasesSynced()
+		valuesSynced := crossRelease.AllValuesSynced()
+		dimmed := opts.IsPromoting && !crossRelease.Promotable()
 
-		row := []string{colorize(release.Name, releasesSynced, valuesSynced, dimmed)}
-		for _, rel := range release.Releases {
+		row := []string{colorize(crossRelease.Name, releasesSynced, valuesSynced, dimmed)}
+		for _, rel := range crossRelease.Releases {
 			text := "-"
 			if rel != nil && !rel.Missing {
 				text = rel.Spec.Version
