@@ -6,8 +6,8 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
-	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/utils/colors"
 	"github.com/nestoca/joy-cli/internal/yml"
 	"strings"
 )

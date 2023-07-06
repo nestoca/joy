@@ -1,8 +1,7 @@
-package utils_test
+package home
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"os/user"
 	"path/filepath"
@@ -16,7 +15,7 @@ func TestResolvePathWithoutTilde(t *testing.T) {
 
 	path := "/foo/bar"
 
-	resolvedPath, err := utils.ResolvePath(path)
+	resolvedPath, err := ResolvePath(path)
 	assert.Equal(t, path, resolvedPath)
 	assert.Nil(t, err)
 }
@@ -26,7 +25,7 @@ func TestResolvePathWithJustTilde(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, usr)
 
-	resolvedPath, err := utils.ResolvePath("~")
+	resolvedPath, err := ResolvePath("~")
 	assert.Equal(t, usr.HomeDir, resolvedPath)
 	assert.Nil(t, err)
 }
@@ -38,7 +37,7 @@ func TestResolvePathWithTildePrefix(t *testing.T) {
 
 	pathInHomeDir := "foo/bar"
 
-	resolvedPath, err := utils.ResolvePath(fmt.Sprintf("~/%s", pathInHomeDir))
+	resolvedPath, err := ResolvePath(fmt.Sprintf("~/%s", pathInHomeDir))
 	assert.Equal(t, filepath.Join(usr.HomeDir, pathInHomeDir), resolvedPath)
 	assert.Nil(t, err)
 }

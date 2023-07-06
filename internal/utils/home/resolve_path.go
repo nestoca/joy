@@ -1,4 +1,4 @@
-package utils
+package home
 
 import (
 	"fmt"

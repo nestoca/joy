@@ -3,8 +3,8 @@ package release
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/environment"
+	"github.com/nestoca/joy-cli/internal/utils/colors"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"path/filepath"

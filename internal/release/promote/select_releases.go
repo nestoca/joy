@@ -6,8 +6,8 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/colors"
 	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy-cli/internal/utils/colors"
 	"strings"
 	"text/tabwriter"
 )
