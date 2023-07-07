@@ -1,4 +1,4 @@
-# joy-cli
+# joy
 
 ## Development
 

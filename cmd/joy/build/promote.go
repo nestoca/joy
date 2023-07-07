@@ -2,8 +2,8 @@ package build
 
 import (
 	"fmt"
-	internalBuild "github.com/nestoca/joy-cli/internal/build"
-	"github.com/nestoca/joy-cli/internal/utils"
+	internalBuild "github.com/nestoca/joy/internal/build"
+	"github.com/nestoca/joy/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

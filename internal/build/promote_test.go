@@ -2,7 +2,7 @@ package build_test
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/build"
+	"github.com/nestoca/joy/internal/build"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"

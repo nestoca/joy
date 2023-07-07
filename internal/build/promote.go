@@ -9,7 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/kyokomi/emoji"
-	"github.com/nestoca/joy-cli/internal/utils"
+	"github.com/nestoca/joy/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 

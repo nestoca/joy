@@ -27,6 +27,6 @@ brews:
     tap:
       owner: nestoca
       name: homebrew-public
-    homepage: "https://github.com/nestoca/joy-cli"
+    homepage: "https://github.com/nestoca/joy"
     description: "A CLI for happily managing and deploying applications"
     license: "MIT"
