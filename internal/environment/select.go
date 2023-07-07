@@ -3,8 +3,8 @@ package environment
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/nestoca/joy-cli/internal/config"
-	"github.com/nestoca/joy-cli/internal/git"
+	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
 	"sort"
 )
 

@@ -2,7 +2,7 @@ package release
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/yml"
+	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"

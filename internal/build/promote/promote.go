@@ -3,8 +3,8 @@ package promote
 import (
 	"errors"
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/yml"
+	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/yml"
 	"os"
 	"path/filepath"
 	"strings"

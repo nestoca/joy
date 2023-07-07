@@ -1,6 +1,6 @@
 package project
 
-import "github.com/nestoca/joy-cli/internal/yml"
+import "github.com/nestoca/joy/internal/yml"
 
 type Metadata struct {
 	// Name is the name of the project.

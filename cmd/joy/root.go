@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/config"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/spf13/cobra"
 	"os"
 )

@@ -6,9 +6,9 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/utils/colors"
-	"github.com/nestoca/joy-cli/internal/yml"
+	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
 

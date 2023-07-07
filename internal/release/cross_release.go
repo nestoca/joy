@@ -1,7 +1,7 @@
 package release
 
 import (
-	"github.com/nestoca/joy-cli/internal/environment"
+	"github.com/nestoca/joy/internal/environment"
 )
 
 // CrossRelease describes a given release across multiple environments

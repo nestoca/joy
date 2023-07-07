@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nestoca/joy-cli/internal/environment"
+	"github.com/nestoca/joy/internal/environment"
 	"github.com/spf13/cobra"
 )
 

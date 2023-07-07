@@ -2,7 +2,7 @@ package promote
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/environment"
+	"github.com/nestoca/joy/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"

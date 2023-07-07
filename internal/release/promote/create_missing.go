@@ -2,9 +2,9 @@ package promote
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/yml"
+	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/yml"
 	"path/filepath"
 )
 

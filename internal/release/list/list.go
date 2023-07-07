@@ -2,9 +2,9 @@ package list
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/environment"
-	"github.com/nestoca/joy-cli/internal/git"
-	"github.com/nestoca/joy-cli/internal/release"
+	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/release"
 )
 
 type Opts struct {

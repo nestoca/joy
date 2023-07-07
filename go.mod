@@ -1,4 +1,4 @@
-module github.com/nestoca/joy-cli
+module github.com/nestoca/joy
 
 go 1.19
 
@@ -8,6 +8,7 @@ require (
 	github.com/cli/cli v1.14.0
 	github.com/fatih/color v1.15.0
 	github.com/google/go-cmp v0.5.9
+	github.com/google/uuid v1.1.2
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/olekukonko/tablewriter v0.0.5
@@ -38,7 +39,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/microcosm-cc/bluemonday v1.0.6 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.24 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/muesli/reflow v0.2.0 // indirect
 	github.com/muesli/termenv v0.8.1 // indirect
@@ -48,10 +49,10 @@ require (
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
 	github.com/yuin/goldmark v1.4.13 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/term v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 )
 

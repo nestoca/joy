@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
-	"github.com/nestoca/joy-cli/internal/release"
-	"github.com/nestoca/joy-cli/internal/release/list"
-	"github.com/nestoca/joy-cli/internal/release/promote"
+	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/list"
+	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/spf13/cobra"
 )
 

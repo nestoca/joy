@@ -2,7 +2,7 @@ package environment
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/yml"
+	"github.com/nestoca/joy/internal/yml"
 	"os"
 	"path/filepath"
 )
