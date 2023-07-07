@@ -2,7 +2,7 @@ package utils_test
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/utils"
+	"github.com/nestoca/joy/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"os/user"
 	"path/filepath"

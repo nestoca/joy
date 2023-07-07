@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy-cli/internal/utils"
+	"github.com/nestoca/joy/internal/utils"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
 
-	"github.com/nestoca/joy-cli/cmd/joy/build"
+	"github.com/nestoca/joy/cmd/joy/build"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ func createCLI() *cobra.Command {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy-cli containing overrides for the default settings")
+	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy containing overrides for the default settings")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

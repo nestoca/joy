@@ -1,4 +1,4 @@
-module github.com/nestoca/joy-cli
+module github.com/nestoca/joy
 
 go 1.19
 

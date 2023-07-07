@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"github.com/nestoca/joy-cli/internal/utils"
+	"github.com/nestoca/joy/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"testing"
