@@ -49,7 +49,7 @@ func NewReleaseListCmd() *cobra.Command {
 }
 
 func NewReleasePromoteCmd() *cobra.Command {
-	var doPreview, doPromote, noPush bool
+	var doPreview, doPromote bool
 	var releases string
 
 	cmd := &cobra.Command{
@@ -75,7 +75,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 			opts := promote.Opts{
 				SourceEnv: cfg.Environments.Source,
 				TargetEnv: cfg.Environments.Target,
-				Push:      !noPush,
 				Filter:    filter,
 			}
 
@@ -97,7 +96,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&doPreview, "preview", false, "Preview changes (don't prompt for action)")
 	cmd.Flags().BoolVar(&doPromote, "promote", false, "Promote changes (don't prompt for action)")
-	cmd.Flags().BoolVar(&noPush, "no-push", false, "Skip pushing changes (only commit locally)")
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to promote (comma-separated with wildcards, defaults to prompting user)")
 
 	return cmd
