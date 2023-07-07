@@ -15,23 +15,12 @@ type Opts struct {
 	// TargetEnv is the target environment.
 	TargetEnv string
 
-	// Action is the operation to perform.
-	// Optional, defaults to prompting user.
-	Action string
-
 	// Filter specifies releases to promote.
 	// Optional, defaults to prompting user.
 	Filter release.Filter
 }
 
-const (
-	ActionPreview = "Preview"
-	ActionPromote = "Promote"
-	ActionCancel  = "Cancel"
-)
-
-// Promote prompts user for different selections and actions to perform,
-// such as previewing or promoting releases.
+// Promote prepares a promotion, shows a preview to user and asks for confirmation before performing it.
 func Promote(opts Opts) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
@@ -80,52 +69,35 @@ func Promote(opts Opts) error {
 	// Print selected releases
 	fmt.Println(MajorSeparator)
 	list.Print(release.PrintOpts{IsPromoting: true})
-	fmt.Println(MajorSeparator)
 
-	for {
-		// Determine action to perform.
-		action := opts.Action
-		interactive := false
-		if opts.Action == "" {
-			interactive = true
-			action, err = selectAction()
-			if err != nil {
-				return fmt.Errorf("selecting action: %w", err)
-			}
-		}
-
-		switch action {
-		case ActionPreview:
-			err := preview(list)
-			if err != nil {
-				return fmt.Errorf("previewing: %w", err)
-			}
-			if !interactive {
-				return nil
-			}
-		case ActionPromote:
-			err = perform(list)
-			if err != nil {
-				return fmt.Errorf("applying: %w", err)
-			}
-			return nil
-		case ActionCancel:
-			return nil
-		}
+	// Show preview.
+	err = preview(list)
+	if err != nil {
+		return fmt.Errorf("previewing: %w", err)
 	}
-}
 
-// selectAction prompts user for action to perform.
-func selectAction() (string, error) {
-	actions := []string{ActionPreview, ActionPromote, ActionCancel}
+	// Ask for confirmation before performing promotion.
+	actions := []string{"Create PR", "Cancel"}
 	prompt := &survey.Select{
 		Message: "What do you want to do?",
 		Options: actions,
 	}
 	var selectedAction string
-	err := survey.AskOne(prompt, &selectedAction)
+	err = survey.AskOne(prompt, &selectedAction)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("asking user for confirmation: %w", err)
 	}
-	return selectedAction, nil
+
+	// Cancel?
+	if selectedAction == "Cancel" {
+		fmt.Println("👋 OK, so long my friend!")
+		return nil
+	}
+
+	// Perform promotion.
+	err = perform(list)
+	if err != nil {
+		return fmt.Errorf("applying: %w", err)
+	}
+	return nil
 }

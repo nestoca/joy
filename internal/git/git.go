@@ -23,17 +23,20 @@ func Run(args []string) error {
 
 func Checkout(name string) error {
 	cmd := exec.Command("git", "checkout", name)
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println(string(output))
 		return fmt.Errorf("checkint out branch %s: %w", name, err)
 	}
 	return nil
 }
 
 func CreateBranch(name string) error {
+	// Create and checkout branch
 	cmd := exec.Command("git", "checkout", "-b", name)
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println(string(output))
 		return fmt.Errorf("creating branch %s: %w", name, err)
 	}
 	return nil
@@ -42,8 +45,9 @@ func CreateBranch(name string) error {
 func Add(files []string) error {
 	args := append([]string{"add", "--"}, files...)
 	cmd := exec.Command("git", args...)
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println(string(output))
 		return fmt.Errorf("adding files to index: %w", err)
 	}
 	return nil
@@ -51,8 +55,9 @@ func Add(files []string) error {
 
 func Commit(message string) error {
 	cmd := exec.Command("git", "commit", "-m", message)
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println(string(output))
 		return fmt.Errorf("committing changes: %w", err)
 	}
 	return nil
@@ -66,6 +71,17 @@ func Push() error {
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("pushing changes: %w", err)
+	}
+	return nil
+}
+
+func PushNewBranch(name string) error {
+	// Set upstream to origin
+	cmd := exec.Command("git", "push", "-u", "origin", name)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(output))
+		return fmt.Errorf("pushing new branch %s: %w", name, err)
 	}
 	return nil
 }
@@ -85,12 +101,13 @@ func Pull() error {
 func Reset() error {
 	// Check for uncommitted changes
 	cmd := exec.Command("git", "status", "--porcelain")
-	outputBytes, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		fmt.Println(string(output))
+		return fmt.Errorf("checking for uncommitted changes: %w", err)
 	}
-	output := strings.TrimSpace(string(outputBytes))
-	if len(output) == 0 {
+	outputText := strings.TrimSpace(string(output))
+	if len(outputText) == 0 {
 		fmt.Println("🤷No uncommitted changes were found")
 		return nil
 	}
@@ -113,10 +130,9 @@ func Reset() error {
 
 	// Perform reset
 	cmd = exec.Command("git", "reset", "--hard")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
+	output, err = cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println(string(output))
 		return fmt.Errorf("resetting changes: %w", err)
 	}
 	fmt.Println("✅Uncommitted changes discarded successfully!")

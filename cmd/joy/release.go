@@ -49,7 +49,6 @@ func NewReleaseListCmd() *cobra.Command {
 }
 
 func NewReleasePromoteCmd() *cobra.Command {
-	var doPreview, doPromote bool
 	var releases string
 
 	cmd := &cobra.Command{
@@ -78,13 +77,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 				Filter:    filter,
 			}
 
-			// Action
-			if doPreview {
-				opts.Action = promote.ActionPreview
-			} else if doPromote {
-				opts.Action = promote.ActionPromote
-			}
-
 			// Filter
 			if releases != "" {
 				opts.Filter = release.NewNamePatternFilter(releases)
@@ -94,8 +86,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&doPreview, "preview", false, "Preview changes (don't prompt for action)")
-	cmd.Flags().BoolVar(&doPromote, "promote", false, "Promote changes (don't prompt for action)")
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to promote (comma-separated with wildcards, defaults to prompting user)")
 
 	return cmd

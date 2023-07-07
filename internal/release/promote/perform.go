@@ -69,58 +69,56 @@ func perform(list *release.CrossReleaseList) error {
 		messages = append(messages, message)
 	}
 
-	// Any files promoted?
-	if len(promotedFiles) > 0 {
-		// Create branch
-		branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
-		err := git.CreateBranch(branchName)
-		if err != nil {
-			return fmt.Errorf("creating branch %s: %w", branchName, err)
-		}
-		fmt.Printf("✅ Created branch: %s", branchName)
-
-		// Commit changes
-		fmt.Println(MajorSeparator)
-		err = git.Add(promotedFiles)
-		if err != nil {
-			return fmt.Errorf("adding files to index: %w", err)
-		}
-		message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
-		err = git.Commit(message)
-		if err != nil {
-			return fmt.Errorf("committing changes: %w", err)
-		}
-		fmt.Println("✅ Committed with message:")
-		fmt.Println(message)
-
-		// Push changes
-		err = git.Push()
-		if err != nil {
-			return fmt.Errorf("pushing changes: %w", err)
-		}
-		fmt.Println("✅ Pushed")
-
-		// Create pull request
-		prTitle, prBody := getPRTitleAndBody(message)
-		err = gh.CreatePullRequest("--title", prTitle, "--body", prBody)
-		if err != nil {
-			return fmt.Errorf("creating pull request: %w", err)
-		}
-		fmt.Printf("✅ Created pull request: %s", prTitle)
-
-		// Checking out master branch
-		err = git.Checkout("master")
-		if err != nil {
-			return fmt.Errorf("checking out master branch: %w", err)
-		}
-		fmt.Println("✅ Checked out master branch")
-
-		fmt.Println("🎉 Promotion complete!")
-	} else {
+	// Nothing promoted?
+	if len(promotedFiles) == 0 {
 		fmt.Println("🎉 Nothing to do, all releases already in sync!")
 		return nil
 	}
 
+	// Create branch
+	branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
+	err := git.CreateBranch(branchName)
+	if err != nil {
+		return fmt.Errorf("creating branch %s: %w", branchName, err)
+	}
+	fmt.Printf("✅ Created branch: %s\n", branchName)
+
+	// Commit changes
+	err = git.Add(promotedFiles)
+	if err != nil {
+		return fmt.Errorf("adding files to index: %w", err)
+	}
+	message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
+	err = git.Commit(message)
+	if err != nil {
+		return fmt.Errorf("committing changes: %w", err)
+	}
+	fmt.Println("✅ Committed with message:")
+	fmt.Println(message)
+
+	// Push changes
+	err = git.PushNewBranch(branchName)
+	if err != nil {
+		return fmt.Errorf("pushing changes: %w", err)
+	}
+	fmt.Println("✅ Pushed")
+
+	// Create pull request
+	prTitle, prBody := getPRTitleAndBody(message)
+	err = gh.CreatePullRequest("pr", "create", "--title", prTitle, "--body", prBody)
+	if err != nil {
+		return fmt.Errorf("creating pull request: %w", err)
+	}
+	fmt.Printf("✅ Created pull request: %s\n", prTitle)
+
+	// Checking out master branch
+	err = git.Checkout("master")
+	if err != nil {
+		return fmt.Errorf("checking out master branch: %w", err)
+	}
+	fmt.Println("✅ Checked out master branch")
+
+	fmt.Println("🎉 Promotion complete!")
 	return nil
 }
 
