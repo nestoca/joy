@@ -3,6 +3,8 @@ package promote
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
+	"github.com/google/uuid"
+	"github.com/nestoca/joy-cli/internal/gh"
 	"github.com/nestoca/joy-cli/internal/git"
 	"github.com/nestoca/joy-cli/internal/release"
 	"github.com/nestoca/joy-cli/internal/utils/colors"
@@ -11,7 +13,7 @@ import (
 )
 
 // perform performs the promotion of all releases in given list.
-func perform(list *release.CrossReleaseList, push bool) error {
+func perform(list *release.CrossReleaseList) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
@@ -19,7 +21,7 @@ func perform(list *release.CrossReleaseList, push bool) error {
 	crossReleases := list.SortedCrossReleases()
 	var promotedFiles []string
 	var messages []string
-	promotedReleaseCount := 0
+	var promotedReleaseNames []string
 	sourceEnv := list.Environments[0]
 	targetEnv := list.Environments[1]
 
@@ -30,7 +32,7 @@ func perform(list *release.CrossReleaseList, push bool) error {
 		if allReleasesSynced && allValuesSynced {
 			continue
 		}
-		promotedReleaseCount++
+		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
 
 		source := crossRelease.Releases[0]
 		target := crossRelease.Releases[1]
@@ -69,13 +71,21 @@ func perform(list *release.CrossReleaseList, push bool) error {
 
 	// Any files promoted?
 	if len(promotedFiles) > 0 {
+		// Create branch
+		branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
+		err := git.CreateBranch(branchName)
+		if err != nil {
+			return fmt.Errorf("creating branch %s: %w", branchName, err)
+		}
+		fmt.Printf("✅ Created branch: %s", branchName)
+
 		// Commit changes
 		fmt.Println(MajorSeparator)
-		err := git.Add(promotedFiles)
+		err = git.Add(promotedFiles)
 		if err != nil {
 			return fmt.Errorf("adding files to index: %w", err)
 		}
-		message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseCount, messages)
+		message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
 		err = git.Commit(message)
 		if err != nil {
 			return fmt.Errorf("committing changes: %w", err)
@@ -84,16 +94,27 @@ func perform(list *release.CrossReleaseList, push bool) error {
 		fmt.Println(message)
 
 		// Push changes
-		if push {
-			err = git.Push()
-			if err != nil {
-				return fmt.Errorf("pushing changes: %w", err)
-			}
-			fmt.Println("✅ Pushed")
-		} else {
-			fmt.Println("👉 Skipping push! (use `joy push` to push changes manually)")
+		err = git.Push()
+		if err != nil {
+			return fmt.Errorf("pushing changes: %w", err)
 		}
-		fmt.Println(MajorSeparator)
+		fmt.Println("✅ Pushed")
+
+		// Create pull request
+		prTitle, prBody := getPRTitleAndBody(message)
+		err = gh.CreatePullRequest("--title", prTitle, "--body", prBody)
+		if err != nil {
+			return fmt.Errorf("creating pull request: %w", err)
+		}
+		fmt.Printf("✅ Created pull request: %s", prTitle)
+
+		// Checking out master branch
+		err = git.Checkout("master")
+		if err != nil {
+			return fmt.Errorf("checking out master branch: %w", err)
+		}
+		fmt.Println("✅ Checked out master branch")
+
 		fmt.Println("🎉 Promotion complete!")
 	} else {
 		fmt.Println("🎉 Nothing to do, all releases already in sync!")
@@ -114,15 +135,38 @@ func getPromotionMessage(releaseName, sourceVersion, targetVersion string, missi
 	return fmt.Sprintf("Promote %s%s", releaseName, versionChanged)
 }
 
+func getBranchName(sourceEnv, targetEnv string, promotedReleaseNames []string) string {
+	var releases string
+	if len(promotedReleaseNames) == 1 {
+		releases = promotedReleaseNames[0]
+	} else {
+		releases = fmt.Sprintf("%d-releases", len(promotedReleaseNames))
+	}
+	uniqueID := uuid.New().String()
+	name := fmt.Sprintf("promote-%s-from-%s-to-%s-%s", releases, sourceEnv, targetEnv, uniqueID)
+	if len(name) > 255 {
+		name = name[:255]
+	}
+	return name
+}
+
 // getCommitMessage computes the commit message for the whole promotion operation including all releases
-func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseCount int, messages []string) string {
+func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseNames []string, messages []string) string {
 	if len(messages) == 1 {
 		// Put details of single promotion on first and only line
 		return fmt.Sprintf("%s (%s -> %s)", messages[0], sourceEnv, targetEnv)
 	}
 
 	// Put details of individual promotions on subsequent lines
-	return fmt.Sprintf("Promote %d releases (%s -> %s)\n%s", promotedReleaseCount, sourceEnv, targetEnv, strings.Join(messages, "\n"))
+	return fmt.Sprintf("Promote %d releases (%s -> %s)\n%s", len(promotedReleaseNames), sourceEnv, targetEnv, strings.Join(messages, "\n"))
+}
+
+// getPRTitleAndBody computes the title and body for the pull request based on the commit message
+func getPRTitleAndBody(commitMessage string) (string, string) {
+	lines := strings.Split(commitMessage, "\n")
+	title := lines[0]
+	body := strings.Join(lines[1:], "\n")
+	return title, body
 }
 
 // promoteFile merges a specific source yaml release or values file onto an equivalent target file

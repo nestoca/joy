@@ -19,9 +19,6 @@ type Opts struct {
 	// Optional, defaults to prompting user.
 	Action string
 
-	// Whether to push changes after committing them.
-	Push bool
-
 	// Filter specifies releases to promote.
 	// Optional, defaults to prompting user.
 	Filter release.Filter
@@ -107,7 +104,7 @@ func Promote(opts Opts) error {
 				return nil
 			}
 		case ActionPromote:
-			err = perform(list, opts.Push)
+			err = perform(list)
 			if err != nil {
 				return fmt.Errorf("applying: %w", err)
 			}

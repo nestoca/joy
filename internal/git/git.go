@@ -21,6 +21,24 @@ func Run(args []string) error {
 	return nil
 }
 
+func Checkout(name string) error {
+	cmd := exec.Command("git", "checkout", name)
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("checkint out branch %s: %w", name, err)
+	}
+	return nil
+}
+
+func CreateBranch(name string) error {
+	cmd := exec.Command("git", "checkout", "-b", name)
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("creating branch %s: %w", name, err)
+	}
+	return nil
+}
+
 func Add(files []string) error {
 	args := append([]string{"add", "--"}, files...)
 	cmd := exec.Command("git", args...)
