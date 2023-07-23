@@ -32,6 +32,9 @@ func LoadCrossReleaseList(baseDir string, environments []*environment.Environmen
 	for _, env := range environments {
 		// Load releases for given environment
 		envDir := filepath.Join(baseDir, env.Name)
+		if _, err := os.Stat(envDir); os.IsNotExist(err) {
+			continue
+		}
 		envReleases, err := LoadAllInDir(envDir, releaseFilter)
 		if err != nil {
 			return nil, fmt.Errorf("loading releases in %s: %w", envDir, err)
@@ -129,16 +132,15 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 	for _, crossRelease := range r.SortedCrossReleases() {
 		// Check if releases and their values are synced across all environments
 		releasesSynced := crossRelease.AllReleasesSynced()
-		valuesSynced := crossRelease.AllValuesSynced()
 		dimmed := opts.IsPromoting && !crossRelease.Promotable()
 
-		row := []string{colorize(crossRelease.Name, releasesSynced, valuesSynced, dimmed)}
+		row := []string{colorize(crossRelease.Name, releasesSynced, dimmed)}
 		for _, rel := range crossRelease.Releases {
 			text := "-"
 			if rel != nil && !rel.Missing {
 				text = rel.Spec.Version
 			}
-			text = colorize(text, releasesSynced, valuesSynced, dimmed)
+			text = colorize(text, releasesSynced, dimmed)
 			row = append(row, text)
 		}
 		table.Append(row)
@@ -147,16 +149,12 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 	table.Render()
 }
 
-func colorize(text string, releasesSynced, valuesSynced, dimmed bool) string {
+func colorize(text string, releasesSynced, dimmed bool) string {
 	if dimmed {
 		return colors.InDarkGrey(text)
 	}
-	if !releasesSynced || !valuesSynced {
-		if !releasesSynced {
-			return color.InRed(text)
-		} else {
-			return color.InYellow(text)
-		}
+	if !releasesSynced {
+		return color.InRed(text)
 	}
 	return color.InGreen(text)
 }

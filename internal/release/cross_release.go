@@ -28,24 +28,8 @@ func (r *CrossRelease) AllReleasesSynced() bool {
 			return false
 		}
 		if hash == 0 {
-			hash = rel.ReleaseFile.Hash
-		} else if rel.ReleaseFile.Hash != hash {
-			return false
-		}
-	}
-	return true
-}
-
-// AllValuesSynced returns true if all values are synced across all environments.
-func (r *CrossRelease) AllValuesSynced() bool {
-	var hash uint64
-	for _, rel := range r.Releases {
-		if rel == nil || rel.Missing {
-			return false
-		}
-		if hash == 0 {
-			hash = rel.ValuesFile.Hash
-		} else if rel.ValuesFile.Hash != hash {
+			hash = rel.File.Hash
+		} else if rel.File.Hash != hash {
 			return false
 		}
 	}

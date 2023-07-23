@@ -67,7 +67,7 @@ func Promote(opts Opts) error {
 	}
 
 	// Print selected releases
-	fmt.Println(MajorSeparator)
+	fmt.Println(Separator)
 	list.Print(release.PrintOpts{IsPromoting: true})
 
 	// Show preview.

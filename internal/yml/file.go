@@ -10,8 +10,8 @@ import (
 // File represents a yaml file loaded into memory in different forms,
 // that can be round-tripped back to disk.
 type File struct {
-	// FilePath is the path to the yaml file.
-	FilePath string
+	// Path is the path to the yaml file.
+	Path string
 
 	// Yaml is the raw yaml of the yaml file.
 	Yaml []byte
@@ -33,11 +33,11 @@ func NewFile(filePath string, content []byte) (*File, error) {
 	}
 	hash := GetHash(&node)
 	return &File{
-		FilePath: filePath,
-		Yaml:     content,
-		Tree:     &node,
-		Hash:     hash,
-		Indent:   getIndentSize(string(content)),
+		Path:   filePath,
+		Yaml:   content,
+		Tree:   &node,
+		Hash:   hash,
+		Indent: getIndentSize(string(content)),
 	}, nil
 }
 
@@ -51,16 +51,16 @@ func (y *File) CopyWithNewTree(newTree *yaml.Node) (*File, error) {
 	}
 
 	return &File{
-		FilePath: y.FilePath,
-		Yaml:     buf.Bytes(),
-		Tree:     newTree,
-		Hash:     GetHash(newTree),
-		Indent:   y.Indent,
+		Path:   y.Path,
+		Yaml:   buf.Bytes(),
+		Tree:   newTree,
+		Hash:   GetHash(newTree),
+		Indent: y.Indent,
 	}, nil
 }
 
 func (y *File) Write() error {
-	return os.WriteFile(y.FilePath, y.Yaml, 0644)
+	return os.WriteFile(y.Path, y.Yaml, 0644)
 }
 
 func (y *File) ToYaml() (string, error) {

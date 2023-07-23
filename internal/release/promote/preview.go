@@ -12,8 +12,7 @@ import (
 	"strings"
 )
 
-var MajorSeparator = strings.Repeat("—", 80)
-var MinorSeparator = ""
+var Separator = strings.Repeat("—", 80)
 
 func preview(list *release.CrossReleaseList) error {
 	releases := list.SortedCrossReleases()
@@ -26,59 +25,38 @@ func preview(list *release.CrossReleaseList) error {
 			continue
 		}
 
-		// Check if releases and values are synced across all environments
+		// Skip releases that are synced across all environments
 		allReleasesSynced := rel.AllReleasesSynced()
-		allValuesSynced := rel.AllValuesSynced()
-		if allReleasesSynced && allValuesSynced {
+		if allReleasesSynced {
 			continue
 		}
 		anyUnsynced = true
-
-		// Print header
-		fmt.Println(MajorSeparator)
-		fmt.Printf("🚀 %s %s/%s\n",
-			color.InWhite("Release"),
-			colors.InDarkYellow(env.Name),
-			color.InBold(color.InYellow(rel.Name)))
-		fmt.Println(MinorSeparator)
 		source := rel.Releases[0]
 		target := rel.Releases[1]
 
 		// Determine operation
-		operation := "Update"
+		operation := "Update release"
 		if target.Missing {
-			operation = color.InBold("Create new")
+			operation = "Create new release"
 		}
-		operation = color.InYellow(operation)
 
 		// Print release diff
-		sections := 0
-		if !allReleasesSynced {
-			fmt.Printf("🕹  %s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
-			err := printDiff(source.ReleaseFile, target.ReleaseFile, target.Missing)
-			if err != nil {
-				return fmt.Errorf("printing release diff: %w", err)
-			}
-			sections++
-		}
-
-		// Print values diff
-		if !allValuesSynced {
-			if sections > 0 {
-				fmt.Println(MinorSeparator)
-			}
-			fmt.Printf("🎛  %s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
-			err := printDiff(source.ValuesFile, target.ValuesFile, target.Missing)
-			if err != nil {
-				return fmt.Errorf("printing values diff: %w", err)
-			}
+		fmt.Println(Separator)
+		fmt.Printf("🚀 %s %s/%s %s\n",
+			operation,
+			color.InGreen(env.Name),
+			color.InBold(color.InYellow(target.Name)),
+			colors.InDarkGrey("("+target.File.Path+")"))
+		err := printDiff(source.File, target.File, target.Missing)
+		if err != nil {
+			return fmt.Errorf("printing release diff: %w", err)
 		}
 	}
 
 	if !anyUnsynced {
 		fmt.Println("🎉 All releases are in sync!")
 	}
-	fmt.Println(MajorSeparator)
+	fmt.Println(Separator)
 	return nil
 }
 
