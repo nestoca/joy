@@ -1,8 +1,9 @@
-package environment
+package selection
 
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 	"sort"
@@ -20,15 +21,14 @@ func Select(configFilePath string) error {
 		return fmt.Errorf("loading config file %s: %w", configFilePath, err)
 	}
 
-	// Load environments
-	envs, err := LoadAll(DirName)
+	cat, err := catalog.Load(".", nil, nil)
 	if err != nil {
-		return fmt.Errorf("loading environments: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Create list of environment names
 	var envNames []string
-	for _, env := range envs {
+	for _, env := range cat.Environments {
 		envNames = append(envNames, env.Name)
 	}
 	sort.Strings(envNames)

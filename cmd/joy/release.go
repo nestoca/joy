@@ -6,6 +6,7 @@ import (
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
+	"github.com/nestoca/joy/internal/release/selection"
 	"github.com/spf13/cobra"
 )
 
@@ -100,7 +101,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 
 Only selected releases will be included in releases table and during promotion.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return release.Select(cfg.FilePath)
+			return selection.Select(cfg.FilePath)
 		},
 	}
 	return cmd

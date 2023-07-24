@@ -1,10 +1,10 @@
-package release
+package selection
 
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/git"
 	"sort"
 )
@@ -21,19 +21,15 @@ func Select(configFilePath string) error {
 		return fmt.Errorf("loading config file %s: %w", configFilePath, err)
 	}
 
-	// Load all releases across all environments
-	environments, err := environment.LoadAll(environment.DirName)
+	// Load catalog
+	cat, err := catalog.Load(".", nil, nil)
 	if err != nil {
-		return fmt.Errorf("loading environments: %w", err)
-	}
-	list, err := LoadCrossReleaseList(environment.DirName, environments, nil)
-	if err != nil {
-		return fmt.Errorf("loading cross-environment releases: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Create list of release names
 	var releaseNames []string
-	for _, rel := range list.Releases {
+	for _, rel := range cat.CrossReleases.Items {
 		releaseNames = append(releaseNames, rel.Name)
 	}
 	sort.Strings(releaseNames)

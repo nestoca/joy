@@ -3,7 +3,7 @@ package promote
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release"
 )
@@ -27,19 +27,14 @@ func Promote(opts Opts) error {
 		return err
 	}
 
-	// Load matching releases from given environments.
-	environments, err := environment.LoadAll(environment.DirName, opts.SourceEnv, opts.TargetEnv)
+	cat, err := catalog.Load(".", []string{opts.SourceEnv, opts.TargetEnv}, opts.Filter)
 	if err != nil {
-		return fmt.Errorf("loading environments: %w", err)
-	}
-	list, err := release.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
-	if err != nil {
-		return fmt.Errorf("loading cross-environment releases: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Keep only promotable releases.
-	list = list.OnlyPromotableReleases()
-	if len(list.Releases) == 0 {
+	list := cat.CrossReleases.OnlyPromotableReleases()
+	if len(list.Items) == 0 {
 		fmt.Println("🤷 No promotable releases found.")
 		return nil
 	}
@@ -50,7 +45,7 @@ func Promote(opts Opts) error {
 	}
 
 	// Count matching releases.
-	releaseCount := len(list.Releases)
+	releaseCount := len(list.Items)
 	if releaseCount == 0 {
 		if opts.Filter != nil {
 			fmt.Println("🤷 Given filter matched no releases.")

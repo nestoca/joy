@@ -1,17 +1,10 @@
 package promote
 
 import (
-	"errors"
 	"fmt"
-	"github.com/nestoca/joy/internal/environment"
+	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/yml"
-	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/fatih/color"
-	"github.com/kyokomi/emoji"
-	"gopkg.in/yaml.v3"
 )
 
 type Opts struct {
@@ -21,82 +14,46 @@ type Opts struct {
 }
 
 func Promote(opts Opts) error {
-	envReleasesDir := filepath.Join(environment.DirName, opts.Environment, "releases")
-
-	type promoteTarget struct {
-		File    os.FileInfo
-		Path    string
-		Release *yaml.Node
-	}
-	var targets []*promoteTarget
-
-	err := filepath.Walk(envReleasesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".yaml") {
-			return nil
-		}
-
-		file, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading release file: %w", err)
-		}
-
-		rel := &yaml.Node{}
-		err = yaml.Unmarshal(file, rel)
-		if err != nil {
-			return fmt.Errorf("parsing release file: %w", err)
-		}
-
-		releaseProject, err := yml.FindNode(rel, ".spec.project")
-		if err != nil {
-			return fmt.Errorf("reading release's project: %w", err)
-		}
-
-		if releaseProject != nil && opts.Project == releaseProject.Value {
-			targets = append(targets, &promoteTarget{
-				File:    info,
-				Release: rel,
-				Path:    path,
-			})
-		}
-		return nil
-	})
+	cat, err := catalog.Load(".", []string{opts.Environment}, nil)
 	if err != nil {
-		return fmt.Errorf("walking catalog directory: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	for _, target := range targets {
-		versionNode, err := yml.FindNode(target.Release, ".spec.version")
-		if err != nil {
-			return fmt.Errorf("updating release version: %w", err)
-		}
-		versionNode.Value = opts.Version
+	promotionCount := 0
+	for _, crossRelease := range cat.CrossReleases.Items {
+		release := crossRelease.Releases[0]
+		if release.Spec.Project == opts.Project {
+			// Find version node
+			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
+			if err != nil {
+				return fmt.Errorf("release %s has no version property: %w", release.Metadata.Name, err)
+			}
 
-		result, err := yml.EncodeYaml(target.Release)
-		if err != nil {
-			return fmt.Errorf("encoding updated release: %w", err)
-		}
-		err = os.WriteFile(target.Path, result, target.File.Mode())
-		if err != nil {
-			return fmt.Errorf("writing to release file: %w", err)
-		}
+			// Update version node
+			versionNode.Value = opts.Version
+			err = release.File.UpdateYamlFromTree()
+			if err != nil {
+				return fmt.Errorf("updating release yaml from node tree: %w", err)
+			}
 
-		releaseName, err := yml.FindNode(target.Release, ".metadata.name")
-		if err != nil {
-			return fmt.Errorf("reading release's name: %w", err)
+			// Write release file back
+			err = release.File.WriteYaml()
+			if err != nil {
+				return fmt.Errorf("writing release file: %w", err)
+			}
+			fmt.Printf("✅Promoted release %s to version %s\n", color.InGreen(release.Name), color.InYellow(opts.Version))
+			promotionCount++
 		}
-
-		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(opts.Version))
 	}
 
-	if len(targets) == 0 {
-		return errors.New(emoji.Sprintf(":warning:Did not find any releases for project %s\n", color.HiYellowString(opts.Project)))
+	// Print summary
+	if promotionCount == 0 {
+		return fmt.Errorf("no releases found for project %s", opts.Project)
 	}
-
-	_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(opts.Project), color.HiCyanString(opts.Environment), color.GreenString(opts.Version))
-
+	plural := ""
+	if promotionCount > 1 {
+		plural = "s"
+	}
+	fmt.Printf("🍺Promoted %d release%s of project %s in environment %s to version %s\n", promotionCount, plural, color.InGreen(opts.Project), color.InGreen(opts.Environment), color.InYellow(opts.Version))
 	return nil
 }

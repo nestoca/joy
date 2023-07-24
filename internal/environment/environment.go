@@ -3,11 +3,11 @@ package environment
 import (
 	"fmt"
 	"github.com/nestoca/joy/internal/yml"
-	"os"
+	"gopkg.in/yaml.v3"
 	"path/filepath"
 )
 
-const DirName = "environments"
+const Kind = "Environment"
 
 type Metadata struct {
 	// Name is the name of the environment.
@@ -17,6 +17,12 @@ type Metadata struct {
 type Spec struct {
 	// Order controls the display order of the environment.
 	Order int `yaml:"order,omitempty"`
+
+	// Cluster is the name of environment's cluster.
+	Cluster string `yaml:"cluster,omitempty"`
+
+	// Namespace is the name of environment's namespace within cluster.
+	Namespace string `yaml:"namespace,omitempty"`
 
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
@@ -39,64 +45,21 @@ type Environment struct {
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-"`
 
-	// Missing indicates whether the environment file is missing in the environment directory.
-	Missing bool `yaml:"-"`
-
 	// Dir is the path to the environment directory.
 	Dir string `yaml:"-"`
 }
 
-// New creates a new environment.
-func New(name string) *Environment {
-	return &Environment{
-		Metadata: Metadata{Name: name},
-	}
+func IsValid(apiVersion, kind string) bool {
+	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == Kind
 }
 
-func LoadAll(baseDir string, names ...string) ([]*Environment, error) {
-	// Ensure dir exists
-	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("directory %s does not exist", baseDir)
+// New creates a new environment from given yaml file.
+func New(file *yml.File) (*Environment, error) {
+	var env Environment
+	if err := yaml.Unmarshal(file.Yaml, &env); err != nil {
+		return nil, fmt.Errorf("unmarshalling environment: %w", err)
 	}
-
-	entries, err := os.ReadDir(baseDir)
-	if err != nil {
-		return nil, fmt.Errorf("reading directory %s: %w", baseDir, err)
-	}
-
-	var environments []*Environment
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// Skip if not in names
-			envName := entry.Name()
-			if len(names) > 0 {
-				found := false
-				for _, name := range names {
-					if name == envName {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Load environment
-			dir := filepath.Join(baseDir, envName)
-			environment, err := Load(dir)
-			if err != nil {
-				return nil, fmt.Errorf("loading environment from %q: %w", dir, err)
-			}
-			environments = append(environments, environment)
-		}
-	}
-
-	return environments, nil
-}
-
-func Load(dir string) (*Environment, error) {
-	environment := New(filepath.Base(dir))
-	environment.Dir = dir
-	return environment, nil
+	env.File = file
+	env.Dir = filepath.Dir(file.Path)
+	return &env, nil
 }

@@ -61,7 +61,7 @@ func perform(list *release.CrossReleaseList) error {
 
 	// Nothing promoted?
 	if len(promotedFiles) == 0 {
-		fmt.Println("🎉 Nothing to do, all releases already in sync!")
+		fmt.Println("🍺 Nothing to do, all releases already in sync!")
 		return nil
 	}
 
@@ -108,7 +108,7 @@ func perform(list *release.CrossReleaseList) error {
 	}
 	fmt.Println("✅ Checked out master branch")
 
-	fmt.Println("🎉 Promotion complete!")
+	fmt.Println("🍺 Promotion complete!")
 	return nil
 }
 
@@ -164,7 +164,7 @@ func promoteFile(source, target *yml.File) error {
 	if err != nil {
 		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
 	}
-	err = merged.Write()
+	err = merged.WriteYaml()
 	if err != nil {
 		return fmt.Errorf("writing merged file: %w", err)
 	}

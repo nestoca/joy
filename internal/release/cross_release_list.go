@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/utils"
 	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/olekukonko/tablewriter"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -15,44 +16,63 @@ import (
 // CrossReleaseList describes multiple releases across multiple environments
 type CrossReleaseList struct {
 	Environments []*environment.Environment
-	Releases     map[string]*CrossRelease
+	Items        []*CrossRelease
 }
 
 // NewCrossReleaseList creates a new CrossReleaseList
 func NewCrossReleaseList(environments []*environment.Environment) *CrossReleaseList {
 	return &CrossReleaseList{
 		Environments: environments,
-		Releases:     make(map[string]*CrossRelease),
 	}
 }
 
 // LoadCrossReleaseList loads all releases for given environments underneath the given base directory.
-func LoadCrossReleaseList(baseDir string, environments []*environment.Environment, releaseFilter Filter) (*CrossReleaseList, error) {
+func LoadCrossReleaseList(allFiles []*yml.File, environments []*environment.Environment, releaseFilter Filter) (*CrossReleaseList, error) {
 	crossReleases := NewCrossReleaseList(environments)
-	for _, env := range environments {
-		// Load releases for given environment
-		envDir := filepath.Join(baseDir, env.Name)
-		if _, err := os.Stat(envDir); os.IsNotExist(err) {
+	for _, file := range allFiles {
+		env := findEnvironmentForReleaseFile(environments, file)
+		if env == nil {
 			continue
 		}
-		envReleases, err := LoadAllInDir(envDir, releaseFilter)
+
+		rel, err := LoadRelease(file)
 		if err != nil {
-			return nil, fmt.Errorf("loading releases in %s: %w", envDir, err)
+			return nil, fmt.Errorf("loading release %s: %w", file.Path, err)
 		}
 
-		// Add releases to cross-release list
-		for _, rel := range envReleases {
-			err := crossReleases.AddRelease(rel, env)
-			if err != nil {
-				return nil, fmt.Errorf("adding release %s: %w", rel.Name, err)
-			}
+		// Filter out releases that don't match the filter
+		if releaseFilter != nil && !releaseFilter.Match(rel) {
+			continue
+		}
+
+		// Add release to cross-release list
+		err = crossReleases.addRelease(rel, env)
+		if err != nil {
+			return nil, fmt.Errorf("adding release %s to environment %s: %w", rel.Name, env.Name, err)
 		}
 	}
+
+	// Sort cross-releases by name
+	sort.Slice(crossReleases.Items, func(i, j int) bool {
+		return crossReleases.Items[i].Name < crossReleases.Items[j].Name
+	})
+
 	return crossReleases, nil
 }
 
-// GetEnvironmentIndex returns the index of the environment with the given name or -1 if not found.
-func (r *CrossReleaseList) GetEnvironmentIndex(name string) int {
+// findEnvironmentForReleaseFile returns the environment that contains the given release file.
+// Release files are assumed to be within the same directory (or any recursive subdirectory) as the environment file.
+func findEnvironmentForReleaseFile(environments []*environment.Environment, releaseFile *yml.File) *environment.Environment {
+	for _, env := range environments {
+		if strings.HasPrefix(releaseFile.Path, env.Dir) {
+			return env
+		}
+	}
+	return nil
+}
+
+// getEnvironmentIndex returns the index of the environment with the given name or -1 if not found.
+func (r *CrossReleaseList) getEnvironmentIndex(name string) int {
 	for i, env := range r.Environments {
 		if env.Name == name {
 			return i
@@ -61,25 +81,42 @@ func (r *CrossReleaseList) GetEnvironmentIndex(name string) int {
 	return -1
 }
 
-// AddRelease adds a release for given environment.
-func (r *CrossReleaseList) AddRelease(rel *Release, environment *environment.Environment) error {
-	index := r.GetEnvironmentIndex(environment.Name)
-	if index == -1 {
+// getReleaseIndex returns the index of the release with the given name or -1 if not found.
+func (r *CrossReleaseList) getReleaseIndex(name string) int {
+	for i, rel := range r.Items {
+		if rel.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+// addRelease adds a release to given environment.
+func (r *CrossReleaseList) addRelease(rel *Release, environment *environment.Environment) error {
+	// Find environment index
+	environmentIndex := r.getEnvironmentIndex(environment.Name)
+	if environmentIndex == -1 {
 		return fmt.Errorf("environment %s not found in list", environment.Name)
 	}
 
-	crossRelease, ok := r.Releases[rel.Name]
-	if !ok {
+	// Find or create cross-release
+	releaseIndex := r.getReleaseIndex(rel.Name)
+	var crossRelease *CrossRelease
+	if releaseIndex != -1 {
+		crossRelease = r.Items[releaseIndex]
+	} else {
 		crossRelease = NewCrossRelease(rel.Name, r.Environments)
-		r.Releases[rel.Name] = crossRelease
+		r.Items = append(r.Items, crossRelease)
 	}
-	crossRelease.Releases[index] = rel
+
+	// Add release to environment
+	crossRelease.Releases[environmentIndex] = rel
 	return nil
 }
 
 func (r *CrossReleaseList) SortedCrossReleases() []*CrossRelease {
 	var releases []*CrossRelease
-	for _, rel := range r.Releases {
+	for _, rel := range r.Items {
 		releases = append(releases, rel)
 	}
 	sort.Slice(releases, func(i, j int) bool {
@@ -91,17 +128,22 @@ func (r *CrossReleaseList) SortedCrossReleases() []*CrossRelease {
 // OnlySpecificReleases returns a subset of the releases in this list that match the given names.
 func (r *CrossReleaseList) OnlySpecificReleases(releases []string) *CrossReleaseList {
 	subset := NewCrossReleaseList(r.Environments)
-	for _, rel := range releases {
-		subset.Releases[rel] = r.Releases[rel]
+	for _, item := range r.Items {
+		if utils.SliceContainsString(releases, item.Name) {
+			subset.Items = append(subset.Items, item)
+		}
 	}
 	return subset
 }
 
+// OnlyPromotableReleases returns a subset of the releases in this list that are promotable.
+// This assumes that there are two and only two environments and that first one is the source
+// and the second one is the target.
 func (r *CrossReleaseList) OnlyPromotableReleases() *CrossReleaseList {
 	subset := NewCrossReleaseList(r.Environments)
-	for _, rel := range r.Releases {
-		if rel.Promotable() {
-			subset.Releases[rel.Name] = rel
+	for _, item := range r.Items {
+		if item.Promotable() {
+			subset.Items = append(subset.Items, item)
 		}
 	}
 	return subset
@@ -129,7 +171,7 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 	}
 	table.SetHeader(headers)
 
-	for _, crossRelease := range r.SortedCrossReleases() {
+	for _, crossRelease := range r.Items {
 		// Check if releases and their values are synced across all environments
 		releasesSynced := crossRelease.AllReleasesSynced()
 		dimmed := opts.IsPromoting && !crossRelease.Promotable()
