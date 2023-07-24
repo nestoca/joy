@@ -187,7 +187,7 @@ func setupPromoteTest(args setupPromoteTestArgs) (string, error) {
 
 	testReleaseFile := filepath.Join(
 		testReleaseDir,
-		"promote-build.release.yaml",
+		"promote-build.yaml",
 	)
 
 	if args.fileContents == "" {

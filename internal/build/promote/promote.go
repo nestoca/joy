@@ -35,7 +35,7 @@ func Promote(opts Opts) error {
 			return err
 		}
 
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".release.yaml") {
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
 

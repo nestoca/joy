@@ -43,11 +43,8 @@ type Release struct {
 	// Spec is the spec of the release.
 	Spec Spec `yaml:"spec,omitempty"`
 
-	// ReleaseFile represents the in-memory yaml file of the release.
-	ReleaseFile *yml.File `yaml:"-"`
-
-	// ValuesFile represents the in-memory yaml file of the values associated with the release.
-	ValuesFile *yml.File `yaml:"-"`
+	// File represents the in-memory yaml file of the release.
+	File *yml.File `yaml:"-"`
 
 	// Missing indicates whether the release is missing in the target environment. During a promotion,
 	// this allows to know whether the release will be created or updated.
@@ -58,9 +55,9 @@ type Release struct {
 func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 	dir = filepath.Join(dir, "releases")
 
-	// Ensure dir exists
+	// If directory does not exist, return empty list
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("directory %s does not exist", dir)
+		return nil, nil
 	}
 
 	files, err := os.ReadDir(dir)
@@ -70,17 +67,14 @@ func LoadAllInDir(dir string, releaseFilter Filter) ([]*Release, error) {
 
 	var releases []*Release
 	for _, file := range files {
-		fileName := file.Name()
-		if strings.HasSuffix(fileName, ".release.yaml") {
-			filePath := filepath.Join(dir, fileName)
-			rel, err := LoadRelease(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("loading release %s: %w", filePath, err)
-			}
+		filePath := filepath.Join(dir, file.Name())
+		rel, err := LoadRelease(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("loading release %s: %w", filePath, err)
+		}
 
-			if releaseFilter == nil || releaseFilter.Match(rel) {
-				releases = append(releases, rel)
-			}
+		if releaseFilter == nil || releaseFilter.Match(rel) {
+			releases = append(releases, rel)
 		}
 	}
 
@@ -100,24 +94,24 @@ func LoadRelease(filePath string) (*Release, error) {
 		return nil, fmt.Errorf("unmarshalling release file %s in structured form: %w", filePath, err)
 	}
 
+	// Validate
+	if rel.ApiVersion != "joy.nesto.ca/v1alpha1" {
+		return nil, fmt.Errorf("invalid apiVersion %s", rel.ApiVersion)
+	}
+	if rel.Kind != "Release" {
+		return nil, fmt.Errorf("invalid kind %s", rel.Kind)
+	}
+	fileNameWithoutExtension := strings.TrimSuffix(filepath.Base(filePath), ".yaml")
+	if rel.Name != fileNameWithoutExtension {
+		return nil, fmt.Errorf("release name %s does not match file name %s", rel.Name, fileNameWithoutExtension)
+	}
+
 	// Load in yaml file form
 	yamlFile, err := yml.NewFile(filePath, content)
 	if err != nil {
 		return nil, fmt.Errorf("creating yaml file for release file %s: %w", filePath, err)
 	}
-	rel.ReleaseFile = yamlFile
-
-	// Load values file
-	valuesFilePath := strings.TrimSuffix(filePath, ".release.yaml") + ".values.yaml"
-	valuesContent, err := os.ReadFile(valuesFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("reading values file %s: %w", valuesFilePath, err)
-	}
-	valuesYamlFile, err := yml.NewFile(valuesFilePath, valuesContent)
-	if err != nil {
-		return nil, fmt.Errorf("creating yaml file for values file %s: %w", valuesFilePath, err)
-	}
-	rel.ValuesFile = valuesYamlFile
+	rel.File = yamlFile
 
 	return &rel, nil
 }

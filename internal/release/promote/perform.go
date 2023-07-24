@@ -28,8 +28,7 @@ func perform(list *release.CrossReleaseList) error {
 	for _, crossRelease := range crossReleases {
 		// Check if releases and values are synced across all environments
 		allReleasesSynced := crossRelease.AllReleasesSynced()
-		allValuesSynced := crossRelease.AllValuesSynced()
-		if allReleasesSynced && allValuesSynced {
+		if allReleasesSynced {
 			continue
 		}
 		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
@@ -38,31 +37,22 @@ func perform(list *release.CrossReleaseList) error {
 		target := crossRelease.Releases[1]
 
 		// Determine operation
-		operation := "Updating"
+		operation := "Updating release"
 		if target.Missing {
-			operation = color.InBold("Creating new")
+			operation = "Creating new release"
 		}
-		operation = color.InYellow(operation)
 
 		// Promote release
-		if !allReleasesSynced {
-			fmt.Printf("🕹  %s %s %s\n", operation, color.InWhite("release file"), colors.InDarkGrey(target.ReleaseFile.FilePath))
-			err := promoteFile(source.ReleaseFile, target.ReleaseFile)
-			if err != nil {
-				return fmt.Errorf("promoting release file %q: %w", target.ReleaseFile.FilePath, err)
-			}
-			promotedFiles = append(promotedFiles, target.ReleaseFile.FilePath)
+		fmt.Printf("🚀 %s %s/%s %s\n",
+			operation,
+			color.InGreen(targetEnv.Name),
+			color.InBold(color.InYellow(target.Name)),
+			colors.InDarkGrey("("+target.File.Path+")"))
+		err := promoteFile(source.File, target.File)
+		if err != nil {
+			return fmt.Errorf("promoting release %q: %w", target.File.Path, err)
 		}
-
-		// Promote values
-		if !allValuesSynced {
-			fmt.Printf("🎛  %s %s %s\n", operation, color.InWhite("values file"), colors.InDarkGrey(target.ValuesFile.FilePath))
-			err := promoteFile(source.ValuesFile, target.ValuesFile)
-			if err != nil {
-				return fmt.Errorf("promoting values file %q: %w", target.ValuesFile.FilePath, err)
-			}
-			promotedFiles = append(promotedFiles, target.ValuesFile.FilePath)
-		}
+		promotedFiles = append(promotedFiles, target.File.Path)
 
 		// Determine release-specific message
 		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version, target.Missing)

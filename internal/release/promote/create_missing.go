@@ -30,10 +30,8 @@ func CreateMissingTargetReleases(crossReleases *release.CrossReleaseList) error 
 
 func createMissingRelease(source *release.Release, env *environment.Environment) *release.Release {
 	target := *source
-	target.ReleaseFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".release.yaml")
-	target.ValuesFile.FilePath = filepath.Join(env.Dir, "releases", source.Name+".values.yaml")
-	target.ReleaseFile.Tree = yml.Merge(source.ReleaseFile.Tree, nil)
-	target.ValuesFile.Tree = yml.Merge(source.ValuesFile.Tree, nil)
+	target.File.Path = filepath.Join(env.Dir, "releases", source.Name+".yaml")
+	target.File.Tree = yml.Merge(source.File.Tree, nil)
 	target.Missing = true
 	return &target
 }
