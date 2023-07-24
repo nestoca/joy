@@ -17,7 +17,7 @@ func CreateMissingTargetReleases(crossReleases *release.CrossReleaseList) error 
 	targetEnv := crossReleases.Environments[1]
 
 	// Iterate through promotable releases and create missing ones
-	for _, crossRelease := range crossReleases.Releases {
+	for _, crossRelease := range crossReleases.Items {
 		if crossRelease.Promotable() && crossRelease.Releases[1] == nil {
 			// Create release in target environment
 			srcRel := crossRelease.Releases[0]

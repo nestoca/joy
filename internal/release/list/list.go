@@ -2,7 +2,7 @@ package list
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release"
 )
@@ -22,16 +22,11 @@ func List(opts Opts) error {
 		return err
 	}
 
-	environments, err := environment.LoadAll(environment.DirName, opts.SelectedEnvs...)
+	cat, err := catalog.Load(".", opts.SelectedEnvs, opts.Filter)
 	if err != nil {
-		return fmt.Errorf("loading environments: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	list, err := release.LoadCrossReleaseList(environment.DirName, environments, opts.Filter)
-	if err != nil {
-		return fmt.Errorf("loading cross-environment releases: %w", err)
-	}
-
-	list.Print(release.PrintOpts{})
+	cat.CrossReleases.Print(release.PrintOpts{})
 	return nil
 }

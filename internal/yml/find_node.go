@@ -26,6 +26,14 @@ func FindNode(node *yaml.Node, path string) (resultNode *yaml.Node, err error) {
 	return resultNode, nil
 }
 
+func FindNodeValueOrDefault(node *yaml.Node, path string, defaultValue string) string {
+	resultNode, err := FindNode(node, path)
+	if err != nil {
+		return defaultValue
+	}
+	return resultNode.Value
+}
+
 func findNode(node *yaml.Node, pathSegments []string) (*yaml.Node, error) {
 	// Condition is i+1 < len(node.Content) as there always need to be at least 2 entries left in the node.Content for
 	// traversal to work, because each key and its associated value are stored in two consecutive nodes in the slice.

@@ -54,7 +54,7 @@ func preview(list *release.CrossReleaseList) error {
 	}
 
 	if !anyUnsynced {
-		fmt.Println("🎉 All releases are in sync!")
+		fmt.Println("🍺 All releases are in sync!")
 	}
 	fmt.Println(Separator)
 	return nil

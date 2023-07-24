@@ -37,7 +37,8 @@ func (r *CrossRelease) AllReleasesSynced() bool {
 }
 
 // Promotable returns whether release can be promoted. In other words, that it has a release in the first environment.
-// This assumes that there are two environments and that first one is the source and the second one is the target.
+// This assumes that there are two and only two environments and that first one is the source and the second one is the
+// target. Promotability is defined as having the release present at least in source environment.
 func (r *CrossRelease) Promotable() bool {
 	return len(r.Releases) == 2 && r.Releases[0] != nil
 }

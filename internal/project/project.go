@@ -1,6 +1,12 @@
 package project
 
-import "github.com/nestoca/joy/internal/yml"
+import (
+	"fmt"
+	"github.com/nestoca/joy/internal/yml"
+	"gopkg.in/yaml.v3"
+)
+
+const Kind = "Project"
 
 type Metadata struct {
 	// Name is the name of the project.
@@ -28,7 +34,18 @@ type Project struct {
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-"`
+}
 
-	// Missing indicates whether the project file is missing in the projects directory.
-	Missing bool `yaml:"-"`
+func IsValid(apiVersion, kind string) bool {
+	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == Kind
+}
+
+// New creates a new project from given yaml file.
+func New(file *yml.File) (*Project, error) {
+	var proj Project
+	if err := yaml.Unmarshal(file.Yaml, &proj); err != nil {
+		return nil, fmt.Errorf("unmarshalling project: %w", err)
+	}
+	proj.File = file
+	return &proj, nil
 }
