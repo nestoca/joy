@@ -17,6 +17,7 @@ This command requires the sealed-secrets kubeseal cli to be installed: https://g
 		GroupID: "core",
 	}
 	cmd.AddCommand(NewSecretImportCmd())
+	cmd.AddCommand(NewSecretSealCmd())
 	return cmd
 }
 
@@ -29,6 +30,22 @@ func NewSecretImportCmd() *cobra.Command {
 This command requires kubectl cli to be installed: https://kubernetes.io/docs/tasks/tools/#kubectl`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return secret.ImportCert()
+		},
+	}
+	return cmd
+}
+
+func NewSecretSealCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "seal",
+		Short: "Encrypt secret",
+		Long: `Encrypt secret using public certificate of given environment's sealed secrets controller.
+
+This command requires the sealed-secrets kubeseal cli to be installed: https://github.com/bitnami-labs/sealed-secrets
+The sealed secrets public certificate must also have been imported into the environment using 'joy secret import' command.
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return secret.Seal(cfg.Environments.Source)
 		},
 	}
 	return cmd

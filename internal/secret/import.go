@@ -25,7 +25,7 @@ func ImportCert() error {
 		return fmt.Errorf("selecting kube context: %w", err)
 	}
 
-	// Fetch sealed secret public certificate
+	// Fetch sealed secret certificate
 	cmd := exec.Command("kubectl",
 		"--context", context,
 		"get", "secret",
@@ -34,7 +34,7 @@ func ImportCert() error {
 		"-o", "jsonpath={@.items[0].data['tls\\.crt']}")
 	output, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("running kubectl command to fetch sealed secret public certificate: %w", err)
+		return fmt.Errorf("running kubectl command to fetch sealed secret certificate: %w", err)
 	}
 
 	// Decode base64 encoded certificate
@@ -54,7 +54,10 @@ func ImportCert() error {
 	}
 
 	// Select environment
-	selectedEnv, err := selectEnvironment(cat.Environments)
+	selectedEnv, err := environment.SelectSingle(
+		cat.Environments,
+		nil,
+		"Select environment to import sealed secrets certificate into")
 	if err != nil {
 		return fmt.Errorf("selecting environment: %w", err)
 	}
@@ -73,35 +76,12 @@ func ImportCert() error {
 		return fmt.Errorf("writing environment yaml: %w", err)
 	}
 
-	fmt.Printf(`✅ Imported sealed secrets public certificate from cluster %s into environment %s
+	fmt.Printf(`✅ Imported sealed secrets certificate from cluster %s into environment %s
 Make sure to commit and push those changes to git.
 `,
 		color.InYellow(context),
 		color.InYellow(selectedEnv.Name))
 	return nil
-}
-
-func selectEnvironment(environments []*environment.Environment) (*environment.Environment, error) {
-	// Create list of environment names
-	var envNames []string
-	for _, env := range environments {
-		envNames = append(envNames, env.Name)
-	}
-
-	// Prompt user to select environment
-	var selectedIndex int
-	err := survey.AskOne(&survey.Select{
-		Message: "Select environment to import sealed secrets public certificate into",
-		Options: envNames,
-	},
-		&selectedIndex,
-		survey.WithPageSize(10),
-		survey.WithValidator(survey.Required),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("prompting for environment: %w", err)
-	}
-	return environments[selectedIndex], nil
 }
 
 func selectKubeContext() (string, error) {
@@ -116,7 +96,7 @@ func selectKubeContext() (string, error) {
 	// Prompt user to select a context
 	var selectedIndex int
 	err = survey.AskOne(&survey.Select{
-		Message: "Select kube context of cluster to fetch seal secrets public certificate from",
+		Message: "Select kube context of cluster to fetch seal secrets certificate from",
 		Options: contexts,
 	},
 		&selectedIndex,
