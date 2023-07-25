@@ -27,6 +27,10 @@ type Spec struct {
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty"`
+
+	// SealedSecretsCert is the public certificate of the Sealed Secrets controller for this environment
+	// that can be used to encrypt secrets targeted to this environment using the `joy secret seal` command.
+	SealedSecretsCert string `yaml:"sealedSecretsCert,omitempty"`
 }
 
 type Environment struct {
