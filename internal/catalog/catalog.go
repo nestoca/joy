@@ -19,11 +19,25 @@ type Catalog struct {
 	Files         []*yml.File
 }
 
-func Load(dir string, envNames []string, releaseFilter release.Filter) (*Catalog, error) {
+type LoadOpts struct {
+	// Dir is the directory to load catalog from.
+	Dir string
+
+	// EnvNames is the list of environment names to load.
+	EnvNames []string
+
+	// SortEnvsByOrder controls whether environments should be sorted by their spec.order property.
+	SortEnvsByOrder bool
+
+	// ReleaseFilter allows to specify which releases to load.
+	// Optional, defaults to loading all releases.
+	ReleaseFilter release.Filter
+}
+
+func Load(opts LoadOpts) (*Catalog, error) {
 	// Get absolute and clean path of directory, so we can determine whether a release belongs to an environment
 	// by simply comparing the beginning of their paths.
-	var err error
-	dir, err = filepath.Abs(dir)
+	dir, err := filepath.Abs(opts.Dir)
 	if err != nil {
 		return nil, fmt.Errorf("getting absolute path of %s: %w", dir, err)
 	}
@@ -50,9 +64,16 @@ func Load(dir string, envNames []string, releaseFilter release.Filter) (*Catalog
 	}
 
 	// Load environments
-	c.Environments, err = c.loadEnvironments(envNames...)
+	c.Environments, err = c.loadEnvironments(opts.EnvNames...)
 	if err != nil {
 		return nil, fmt.Errorf("loading environments: %w", err)
+	}
+
+	// Sort environments by order
+	if opts.SortEnvsByOrder {
+		sort.Slice(c.Environments, func(i, j int) bool {
+			return c.Environments[i].Spec.Order < c.Environments[j].Spec.Order
+		})
 	}
 
 	// Load projects
@@ -63,7 +84,7 @@ func Load(dir string, envNames []string, releaseFilter release.Filter) (*Catalog
 
 	// Load cross-releases
 	allReleaseFiles := c.GetFilesByKind(release.Kind)
-	c.CrossReleases, err = release.LoadCrossReleaseList(allReleaseFiles, c.Environments, releaseFilter)
+	c.CrossReleases, err = release.LoadCrossReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
 	if err != nil {
 		return nil, fmt.Errorf("loading cross-environment releases: %w", err)
 	}
@@ -104,13 +125,6 @@ func (c *Catalog) loadEnvironments(names ...string) ([]*environment.Environment,
 			return nil, fmt.Errorf("loading environment from %s: %w", file.Path, err)
 		}
 		envs = append(envs, env)
-	}
-
-	// Sort environments by name if no explicit names were given
-	if len(names) == 0 {
-		sort.Slice(envs, func(i, j int) bool {
-			return envs[i].Name < envs[j].Name
-		})
 	}
 
 	return envs, nil

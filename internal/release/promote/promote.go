@@ -27,7 +27,13 @@ func Promote(opts Opts) error {
 		return err
 	}
 
-	cat, err := catalog.Load(".", []string{opts.SourceEnv, opts.TargetEnv}, opts.Filter)
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		EnvNames:        []string{opts.SourceEnv, opts.TargetEnv},
+		SortEnvsByOrder: false,
+		ReleaseFilter:   opts.Filter,
+	}
+	cat, err := catalog.Load(loadOpts)
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

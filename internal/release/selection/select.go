@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-func Select(configFilePath string) error {
+func Select(configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -21,8 +21,19 @@ func Select(configFilePath string) error {
 		return fmt.Errorf("loading config file %s: %w", configFilePath, err)
 	}
 
+	// Select all releases without prompting user?
+	if all {
+		cfg.Releases.Selected = nil
+		err = cfg.Save()
+		if err != nil {
+			return fmt.Errorf("saving config file %s: %w", configFilePath, err)
+		}
+		fmt.Println("✅ Selected all releases.")
+		return nil
+	}
+
 	// Load catalog
-	cat, err := catalog.Load(".", nil, nil)
+	cat, err := catalog.Load(catalog.LoadOpts{})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

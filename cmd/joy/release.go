@@ -93,6 +93,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
+	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
 		Aliases: []string{"sel"},
@@ -101,8 +102,9 @@ func NewReleaseSelectCmd() *cobra.Command {
 
 Only selected releases will be included in releases table and during promotion.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return selection.Select(cfg.FilePath)
+			return selection.Select(cfg.FilePath, allFlag)
 		},
 	}
+	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
 	return cmd
 }

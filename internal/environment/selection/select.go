@@ -6,10 +6,9 @@ import (
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
-	"sort"
 )
 
-func Select(configFilePath string) error {
+func Select(configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -21,7 +20,22 @@ func Select(configFilePath string) error {
 		return fmt.Errorf("loading config file %s: %w", configFilePath, err)
 	}
 
-	cat, err := catalog.Load(".", nil, nil)
+	// Select all environments without prompting user?
+	if all {
+		cfg.Environments.Selected = nil
+		err = cfg.Save()
+		if err != nil {
+			return fmt.Errorf("saving config file %s: %w", configFilePath, err)
+		}
+		fmt.Println("✅ Selected all environments.")
+		return nil
+	}
+
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		SortEnvsByOrder: true,
+	}
+	cat, err := catalog.Load(loadOpts)
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
@@ -31,7 +45,6 @@ func Select(configFilePath string) error {
 	for _, env := range cat.Environments {
 		envNames = append(envNames, env.Name)
 	}
-	sort.Strings(envNames)
 
 	// Prompt user to select environments
 	defaultSelected := cfg.Environments.Selected

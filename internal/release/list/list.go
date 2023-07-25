@@ -22,7 +22,13 @@ func List(opts Opts) error {
 		return err
 	}
 
-	cat, err := catalog.Load(".", opts.SelectedEnvs, opts.Filter)
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		EnvNames:        opts.SelectedEnvs,
+		SortEnvsByOrder: true,
+		ReleaseFilter:   opts.Filter,
+	}
+	cat, err := catalog.Load(loadOpts)
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
