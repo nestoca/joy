@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
@@ -21,6 +22,7 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleaseListCmd())
 	cmd.AddCommand(NewReleasePromoteCmd())
 	cmd.AddCommand(NewReleaseSelectCmd())
+	cmd.AddCommand(NewReleasePeopleCmd())
 	return cmd
 }
 
@@ -106,5 +108,26 @@ Only selected releases will be included in releases table and during promotion.`
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
+	return cmd
+}
+
+func NewReleasePeopleCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "people",
+		Short: "List people owning a release's project via jac cli",
+		Long: `List people owning a release's project via jac cli.
+
+Calls 'jac people --group <owner1>,<owner2>...' with the owners of the release's project.
+
+All extra arguments and flags are passed to jac cli as is.
+
+This command requires the jac cli: https://github.com/nestoca/jac
+`,
+		Args:               cobra.ArbitraryArgs,
+		DisableFlagParsing: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return jac.ListReleasePeople(args)
+		},
+	}
 	return cmd
 }

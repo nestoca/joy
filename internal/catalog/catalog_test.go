@@ -12,6 +12,9 @@ func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	assert.NoError(t, err)
 	loadOpts := LoadOpts{
 		Dir:             catalogDir,
+		LoadEnvs:        true,
+		LoadReleases:    true,
+		LoadProjects:    true,
 		SortEnvsByOrder: true,
 	}
 	cat, err := Load(loadOpts)
