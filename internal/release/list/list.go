@@ -24,6 +24,8 @@ func List(opts Opts) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		LoadEnvs:        true,
+		LoadReleases:    true,
 		EnvNames:        opts.SelectedEnvs,
 		SortEnvsByOrder: true,
 		ReleaseFilter:   opts.Filter,

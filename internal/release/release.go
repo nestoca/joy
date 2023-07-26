@@ -2,6 +2,8 @@ package release
 
 import (
 	"fmt"
+	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 )
@@ -48,6 +50,12 @@ type Release struct {
 	// Missing indicates whether the release is missing in the target environment. During a promotion,
 	// this allows to know whether the release will be created or updated.
 	Missing bool `yaml:"-"`
+
+	// Project is the project that the release belongs to.
+	Project *project.Project `yaml:"-"`
+
+	// Environment is the environment that the release is deployed to.
+	Environment *environment.Environment `yaml:"-"`
 }
 
 func IsValid(apiVersion, kind string) bool {

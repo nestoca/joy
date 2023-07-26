@@ -29,6 +29,8 @@ func Promote(opts Opts) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		LoadEnvs:        true,
+		LoadReleases:    true,
 		EnvNames:        []string{opts.SourceEnv, opts.TargetEnv},
 		SortEnvsByOrder: false,
 		ReleaseFilter:   opts.Filter,

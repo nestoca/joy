@@ -27,7 +27,7 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 
 Only selected environments will be included in releases table columns.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return selection.Select(cfg.FilePath, allFlag)
+			return selection.SelectCurrentEnvironments(cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")

@@ -33,7 +33,11 @@ func Select(configFilePath string, all bool) error {
 	}
 
 	// Load catalog
-	cat, err := catalog.Load(catalog.LoadOpts{})
+	loadOpts := catalog.LoadOpts{
+		LoadEnvs:     true,
+		LoadReleases: true,
+	}
+	cat, err := catalog.Load(loadOpts)
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

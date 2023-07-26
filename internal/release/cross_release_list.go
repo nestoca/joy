@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/internal/utils"
 	"github.com/nestoca/joy/internal/utils/colors"
 	"github.com/nestoca/joy/internal/yml"
@@ -189,6 +190,42 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 	}
 
 	table.Render()
+}
+
+func (r *CrossReleaseList) ResolveProjectRefs(projects []*project.Project) error {
+	for _, crossRelease := range r.Items {
+		for _, rel := range crossRelease.Releases {
+			if rel == nil || rel.Spec.Project == "" {
+				continue
+			}
+			proj := findProjectForRelease(projects, rel)
+			if proj == nil {
+				return fmt.Errorf("project %s not found for release %s", rel.Spec.Project, rel.Name)
+			}
+			rel.Project = proj
+		}
+	}
+	return nil
+}
+
+func (r *CrossReleaseList) ResolveEnvRefs(environments []*environment.Environment) error {
+	for _, crossRelease := range r.Items {
+		for i, rel := range crossRelease.Releases {
+			if rel != nil {
+				rel.Environment = environments[i]
+			}
+		}
+	}
+	return nil
+}
+
+func findProjectForRelease(projects []*project.Project, rel *Release) *project.Project {
+	for _, proj := range projects {
+		if proj.Name == rel.Spec.Project {
+			return proj
+		}
+	}
+	return nil
 }
 
 func colorize(text string, releasesSynced, dimmed bool) string {

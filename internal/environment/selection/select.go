@@ -8,7 +8,7 @@ import (
 	"github.com/nestoca/joy/internal/git"
 )
 
-func Select(configFilePath string, all bool) error {
+func SelectCurrentEnvironments(configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -33,6 +33,7 @@ func Select(configFilePath string, all bool) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		LoadEnvs:        true,
 		SortEnvsByOrder: true,
 	}
 	cat, err := catalog.Load(loadOpts)

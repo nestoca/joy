@@ -2,6 +2,7 @@ package environment
 
 import (
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 	"path/filepath"
@@ -27,6 +28,10 @@ type Spec struct {
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty"`
+
+	// SealedSecretsCert is the public certificate of the Sealed Secrets controller for this environment
+	// that can be used to encrypt secrets targeted to this environment using the `joy secret seal` command.
+	SealedSecretsCert string `yaml:"sealedSecretsCert,omitempty"`
 }
 
 type Environment struct {
@@ -62,4 +67,45 @@ func New(file *yml.File) (*Environment, error) {
 	env.File = file
 	env.Dir = filepath.Dir(file.Path)
 	return &env, nil
+}
+
+func SelectSingle(environments []*Environment, current *Environment, message string) (*Environment, error) {
+	// Create list of environment names
+	var envNames []string
+	for _, env := range environments {
+		envNames = append(envNames, env.Name)
+	}
+
+	// Find index of current environment
+	var selectedIndex int
+	for i, env := range environments {
+		if env == current {
+			selectedIndex = i
+			break
+		}
+	}
+
+	// Prompt user to select environment
+	err := survey.AskOne(&survey.Select{
+		Message: message,
+		Options: envNames,
+		Default: selectedIndex,
+	},
+		&selectedIndex,
+		survey.WithPageSize(10),
+		survey.WithValidator(survey.Required),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("prompting for environment: %w", err)
+	}
+	return environments[selectedIndex], nil
+}
+
+func FindByName(environments []*Environment, name string) *Environment {
+	for _, env := range environments {
+		if env.Name == name {
+			return env
+		}
+	}
+	return nil
 }

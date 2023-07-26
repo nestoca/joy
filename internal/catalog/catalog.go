@@ -19,19 +19,32 @@ type Catalog struct {
 	Files         []*yml.File
 }
 
+// LoadOpts controls how to load catalog and what to load in it.
 type LoadOpts struct {
 	// Dir is the directory to load catalog from.
 	Dir string
 
+	// LoadEnvs controls whether to load environments.
+	LoadEnvs bool
+
 	// EnvNames is the list of environment names to load.
 	EnvNames []string
 
-	// SortEnvsByOrder controls whether environments should be sorted by their spec.order property.
+	// SortByOrder controls whether environments should be sorted by their spec.order property.
 	SortEnvsByOrder bool
+
+	// LoadReleases controls whether to load releases.
+	LoadReleases bool
 
 	// ReleaseFilter allows to specify which releases to load.
 	// Optional, defaults to loading all releases.
 	ReleaseFilter release.Filter
+
+	// LoadProjects controls whether to load projects.
+	LoadProjects bool
+
+	// ResolveRefs controls whether to resolve references.
+	ResolveRefs bool
 }
 
 func Load(opts LoadOpts) (*Catalog, error) {
@@ -63,30 +76,55 @@ func Load(opts LoadOpts) (*Catalog, error) {
 		}
 	}
 
-	// Load environments
-	c.Environments, err = c.loadEnvironments(opts.EnvNames...)
-	if err != nil {
-		return nil, fmt.Errorf("loading environments: %w", err)
-	}
+	if opts.LoadEnvs {
+		// Load environments
+		c.Environments, err = c.loadEnvironments(opts.EnvNames...)
+		if err != nil {
+			return nil, fmt.Errorf("loading environments: %w", err)
+		}
 
-	// Sort environments by order
-	if opts.SortEnvsByOrder {
-		sort.Slice(c.Environments, func(i, j int) bool {
-			return c.Environments[i].Spec.Order < c.Environments[j].Spec.Order
-		})
+		// Sort environments by order
+		if opts.SortEnvsByOrder {
+			sort.Slice(c.Environments, func(i, j int) bool {
+				return c.Environments[i].Spec.Order < c.Environments[j].Spec.Order
+			})
+		}
 	}
 
 	// Load projects
-	c.Projects, err = c.loadProjects()
-	if err != nil {
-		return nil, fmt.Errorf("loading projects: %w", err)
+	if opts.LoadProjects {
+		c.Projects, err = c.loadProjects()
+		if err != nil {
+			return nil, fmt.Errorf("loading projects: %w", err)
+		}
 	}
 
 	// Load cross-releases
-	allReleaseFiles := c.GetFilesByKind(release.Kind)
-	c.CrossReleases, err = release.LoadCrossReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
-	if err != nil {
-		return nil, fmt.Errorf("loading cross-environment releases: %w", err)
+	if opts.LoadReleases {
+		allReleaseFiles := c.GetFilesByKind(release.Kind)
+		c.CrossReleases, err = release.LoadCrossReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
+		if err != nil {
+			return nil, fmt.Errorf("loading cross-environment releases: %w", err)
+		}
+	}
+
+	// Resolve references
+	if opts.ResolveRefs && opts.LoadReleases {
+		// Resolve references from releases to projects
+		if opts.LoadProjects {
+			err = c.CrossReleases.ResolveProjectRefs(c.Projects)
+			if err != nil {
+				return nil, fmt.Errorf("resolving project references: %w", err)
+			}
+		}
+
+		// Resolve references from releases to environments
+		if opts.LoadEnvs {
+			err = c.CrossReleases.ResolveEnvRefs(c.Environments)
+			if err != nil {
+				return nil, fmt.Errorf("resolving environment references: %w", err)
+			}
+		}
 	}
 
 	return c, nil
