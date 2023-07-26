@@ -1,6 +1,7 @@
-package yml
+package yml_test
 
 import (
+	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 	"testing"
 )
@@ -43,7 +44,7 @@ foo:
 			}
 
 			// Perform a deep copy of the node and its descendants
-			clone := DeepCopyNode(&node)
+			clone := yml.DeepCopyNode(&node)
 
 			// Verify that the cloned nodes are not mere references
 			verifyNoReference(&node, clone, t)

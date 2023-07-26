@@ -1,6 +1,7 @@
-package catalog
+package catalog_test
 
 import (
+	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
@@ -10,14 +11,14 @@ import (
 func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	catalogDir, err := filepath.Abs("testdata/freeform")
 	assert.NoError(t, err)
-	loadOpts := LoadOpts{
+	loadOpts := catalog.LoadOpts{
 		Dir:             catalogDir,
 		LoadEnvs:        true,
 		LoadReleases:    true,
 		LoadProjects:    true,
 		SortEnvsByOrder: true,
 	}
-	cat, err := Load(loadOpts)
+	cat, err := catalog.Load(loadOpts)
 	assert.NoError(t, err)
 
 	// Environments

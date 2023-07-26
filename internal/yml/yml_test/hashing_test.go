@@ -1,6 +1,7 @@
-package yml
+package yml_test
 
 import (
+	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 	"testing"
 )
@@ -80,7 +81,7 @@ c:
 				t.Fatalf("Error unmarshalling YAML: %v", err)
 			}
 
-			hash := GetHash(&doc)
+			hash := yml.GetHash(&doc)
 			if hash != test.expected {
 				t.Errorf("Expected hash code: %x, but got: %x", test.expected, hash)
 			}
@@ -176,8 +177,8 @@ c:
 				t.Fatalf("Error unmarshalling YAML: %v", err)
 			}
 
-			hash1 := GetHash(&doc1)
-			hash2 := GetHash(&doc2)
+			hash1 := yml.GetHash(&doc1)
+			hash2 := yml.GetHash(&doc2)
 
 			if hash1 != hash2 {
 				t.Errorf("Expected same hash codes for %s, but got different values.\nHash1: %x\nHash2: %x", test.name, hash1, hash2)

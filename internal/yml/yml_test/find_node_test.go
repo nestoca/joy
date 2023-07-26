@@ -1,6 +1,7 @@
-package yml
+package yml_test
 
 import (
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"testing"
@@ -29,7 +30,7 @@ func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.NoError(t, err)
 
-	node, err := FindNode(yamlNode, ".spec.chart.name")
+	node, err := yml.FindNode(yamlNode, ".spec.chart.name")
 	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
@@ -44,7 +45,7 @@ func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 	mappingNode := yamlNode.Content[0]
 	assert.Equal(t, yaml.MappingNode, mappingNode.Kind)
 
-	node, err := FindNode(mappingNode, ".spec.chart.name")
+	node, err := yml.FindNode(mappingNode, ".spec.chart.name")
 	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
@@ -56,7 +57,7 @@ func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.NoError(t, err)
 
-	node, err := FindNode(yamlNode, "spec.chart.name.foobar")
+	node, err := yml.FindNode(yamlNode, "spec.chart.name.foobar")
 	assert.NotNil(t, err)
 	assert.Nil(t, node)
 
@@ -86,7 +87,7 @@ spec:
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
 	assert.NoError(t, err)
 
-	node, err := FindNode(yamlNode, ".spec.version")
+	node, err := yml.FindNode(yamlNode, ".spec.version")
 	assert.NoError(t, err)
 	assert.NotNil(t, node)
 	assert.Equal(t, "1.0.0-avvvvvvd", node.Value)
@@ -104,10 +105,10 @@ func TestSetOrAddNodeValue_AddMissingNodesAndValue(t *testing.T) {
 
 	key := "metadata.annotations.abc.def"
 	value := "test value"
-	err = SetOrAddNodeValue(yamlNode, key, value)
+	err = yml.SetOrAddNodeValue(yamlNode, key, value)
 	assert.NoError(t, err)
 
-	actualValue := FindNodeValueOrDefault(yamlNode, key, "")
+	actualValue := yml.FindNodeValueOrDefault(yamlNode, key, "")
 	assert.NoError(t, err)
 	assert.Equal(t, value, actualValue)
 }
@@ -119,10 +120,10 @@ func TestSetOrAddNodeValue_SetValueOfExistingNode(t *testing.T) {
 
 	key := "metadata.name"
 	value := "test value"
-	err = SetOrAddNodeValue(yamlNode, key, value)
+	err = yml.SetOrAddNodeValue(yamlNode, key, value)
 	assert.NoError(t, err)
 
-	actualValue := FindNodeValueOrDefault(yamlNode, key, "")
+	actualValue := yml.FindNodeValueOrDefault(yamlNode, key, "")
 	assert.NoError(t, err)
 	assert.Equal(t, value, actualValue)
 }
