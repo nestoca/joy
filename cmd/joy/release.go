@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/release/selection"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cfg.Environments.Source == "" || cfg.Environments.Target == "" {
-				fmt.Printf("🙏 Please run %s to specify source and target promotion environments.", color.InWhite("joy env select"))
+				fmt.Printf("🙏 Please run %s to specify source and target promotion environments.", style.Code("joy env select"))
 				return nil
 			}
 

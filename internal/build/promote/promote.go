@@ -2,8 +2,8 @@ package promote
 
 import (
 	"fmt"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/catalog"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -46,7 +46,7 @@ func Promote(opts Opts) error {
 			if err != nil {
 				return fmt.Errorf("writing release file: %w", err)
 			}
-			fmt.Printf("✅ Promoted release %s to version %s\n", color.InGreen(release.Name), color.InYellow(opts.Version))
+			fmt.Printf("✅ Promoted release %s to version %s\n", style.Resource(release.Name), style.Version(opts.Version))
 			promotionCount++
 		}
 	}
@@ -59,6 +59,6 @@ func Promote(opts Opts) error {
 	if promotionCount > 1 {
 		plural = "s"
 	}
-	fmt.Printf("🍺 Promoted %d release%s of project %s in environment %s to version %s\n", promotionCount, plural, color.InGreen(opts.Project), color.InGreen(opts.Environment), color.InYellow(opts.Version))
+	fmt.Printf("🍺 Promoted %d release%s of project %s in environment %s to version %s\n", promotionCount, plural, style.Resource(opts.Project), style.Resource(opts.Environment), style.Version(opts.Version))
 	return nil
 }

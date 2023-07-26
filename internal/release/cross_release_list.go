@@ -2,11 +2,10 @@ package release
 
 import (
 	"fmt"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/project"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/utils"
-	"github.com/nestoca/joy/internal/utils/colors"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/olekukonko/tablewriter"
 	"os"
@@ -177,13 +176,13 @@ func (r *CrossReleaseList) Print(opts PrintOpts) {
 		releasesSynced := crossRelease.AllReleasesSynced()
 		dimmed := opts.IsPromoting && !crossRelease.Promotable()
 
-		row := []string{colorize(crossRelease.Name, releasesSynced, dimmed)}
+		row := []string{stylize(crossRelease.Name, releasesSynced, dimmed)}
 		for _, rel := range crossRelease.Releases {
 			text := "-"
 			if rel != nil && !rel.Missing {
 				text = rel.Spec.Version
 			}
-			text = colorize(text, releasesSynced, dimmed)
+			text = stylize(text, releasesSynced, dimmed)
 			row = append(row, text)
 		}
 		table.Append(row)
@@ -228,12 +227,12 @@ func findProjectForRelease(projects []*project.Project, rel *Release) *project.P
 	return nil
 }
 
-func colorize(text string, releasesSynced, dimmed bool) string {
+func stylize(text string, releasesSynced, dimmed bool) string {
 	if dimmed {
-		return colors.InDarkGrey(text)
+		return style.SecondaryInfo(text)
 	}
 	if !releasesSynced {
-		return color.InRed(text)
+		return style.Warning(text)
 	}
-	return color.InGreen(text)
+	return style.OK(text)
 }

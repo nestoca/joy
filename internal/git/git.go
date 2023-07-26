@@ -3,7 +3,7 @@ package git
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"strings"
@@ -113,7 +113,7 @@ func Reset() error {
 	}
 
 	// Ask for confirmation
-	fmt.Printf("🔥Uncommitted changes detected:\n%s", color.InRed(output))
+	fmt.Printf("🔥Uncommitted changes detected:\n%s", style.Warning(output))
 	confirm := false
 	prompt := &survey.Confirm{
 		Message: "Are you sure you want discard all uncommitted changes?",

@@ -3,10 +3,9 @@ package secret
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/environment"
-	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"strings"
@@ -39,7 +38,7 @@ func Seal(env string) error {
 	// Get sealed secrets certificate
 	cert := selectedEnv.Spec.SealedSecretsCert
 	if cert == "" {
-		fmt.Printf("🤷 Environment %s has no sealed secrets certificate configured, please run `joy secrets import` first.\n", color.InYellow(selectedEnv.Name))
+		fmt.Printf("🤷 Environment %s has no sealed secrets certificate configured, please run `joy secrets import` first.\n", style.Resource(selectedEnv.Name))
 		return nil
 	}
 
@@ -93,7 +92,7 @@ func Seal(env string) error {
 
 	// Print sealed secret
 	fmt.Println("🔒 Sealed secret:")
-	fmt.Println(colors.InDarkYellow(string(output)))
+	fmt.Println(style.Code(string(output)))
 	return nil
 }
 

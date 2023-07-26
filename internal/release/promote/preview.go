@@ -2,12 +2,11 @@ package promote
 
 import (
 	"fmt"
-	"github.com/TwiN/go-color"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
 	"github.com/nestoca/joy/internal/release"
-	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
@@ -44,9 +43,9 @@ func preview(list *release.CrossReleaseList) error {
 		fmt.Println(Separator)
 		fmt.Printf("🚀 %s %s/%s %s\n",
 			operation,
-			color.InGreen(env.Name),
-			color.InBold(color.InYellow(target.Name)),
-			colors.InDarkGrey("("+target.File.Path+")"))
+			style.ResourceEnvPrefix(env.Name),
+			style.Resource(target.Name),
+			style.SecondaryInfo("("+target.File.Path+")"))
 		err := printDiff(source.File, target.File, target.Missing)
 		if err != nil {
 			return fmt.Errorf("printing release diff: %w", err)
@@ -97,9 +96,9 @@ func formatDiff(diff string) string {
 			continue
 		}
 		if strings.HasPrefix(line, "-") {
-			coloredDiff.WriteString(color.InRed(line))
+			coloredDiff.WriteString(style.DiffBefore(line))
 		} else if strings.HasPrefix(line, "+") {
-			coloredDiff.WriteString(color.InGreen(line))
+			coloredDiff.WriteString(style.DiffAfter(line))
 		} else {
 			coloredDiff.WriteString(line)
 		}

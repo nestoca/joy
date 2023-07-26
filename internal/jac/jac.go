@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"strings"
@@ -81,13 +81,13 @@ func ListReleasePeople(extraArgs []string) error {
 		}
 	}
 	if proj == nil {
-		fmt.Printf("🤷 Release %s has no associated project, please set %s property.\n", color.InYellow(selectedCrossRelease.Name), color.InYellow("spec.project"))
+		fmt.Printf("🤷 Release %s has no associated project, please set %s property.\n", style.Resource(selectedCrossRelease.Name), style.Code("spec.project"))
 		return nil
 	}
 
 	// List owners
 	if len(proj.Spec.Owners) == 0 {
-		fmt.Printf("🤷 Project %s has no associated owners, please set %s property.\n", color.InYellow(proj.Name), color.InYellow("spec.owners"))
+		fmt.Printf("🤷 Project %s has no associated owners, please set %s property.\n", style.Resource(proj.Name), style.Code("spec.owners"))
 		return nil
 	}
 	return listPeopleWithGroups(proj.Spec.Owners, extraArgs)

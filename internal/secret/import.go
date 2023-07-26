@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"os/exec"
 	"strings"
@@ -79,8 +79,8 @@ func ImportCert() error {
 	fmt.Printf(`✅ Imported sealed secrets certificate from cluster %s into environment %s
 Make sure to commit and push those changes to git.
 `,
-		color.InYellow(context),
-		color.InYellow(selectedEnv.Name))
+		style.Resource(context),
+		style.Resource(selectedEnv.Name))
 	return nil
 }
 

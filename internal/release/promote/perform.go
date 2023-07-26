@@ -2,12 +2,11 @@ package promote
 
 import (
 	"fmt"
-	"github.com/TwiN/go-color"
 	"github.com/google/uuid"
 	"github.com/nestoca/joy/internal/gh"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release"
-	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
@@ -45,9 +44,9 @@ func perform(list *release.CrossReleaseList) error {
 		// Promote release
 		fmt.Printf("🚀 %s %s/%s %s\n",
 			operation,
-			color.InGreen(targetEnv.Name),
-			color.InBold(color.InYellow(target.Name)),
-			colors.InDarkGrey("("+target.File.Path+")"))
+			style.ResourceEnvPrefix(targetEnv.Name),
+			style.Resource(target.Name),
+			style.SecondaryInfo("("+target.File.Path+")"))
 		err := promoteFile(source.File, target.File)
 		if err != nil {
 			return fmt.Errorf("promoting release %q: %w", target.File.Path, err)

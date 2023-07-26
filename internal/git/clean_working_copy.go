@@ -3,7 +3,7 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"github.com/TwiN/go-color"
+	"github.com/nestoca/joy/internal/style"
 	"os/exec"
 	"strings"
 )
@@ -17,7 +17,7 @@ func EnsureCleanAndUpToDateWorkingCopy() error {
 
 	output := strings.TrimSpace(string(outputBytes))
 	if len(output) > 0 {
-		return fmt.Errorf("uncommitted changes detected:\n%s", color.InRed(output))
+		return fmt.Errorf("uncommitted changes detected:\n%s", style.Warning(output))
 	}
 
 	buf := bytes.Buffer{}

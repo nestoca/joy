@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
-	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/internal/release"
-	"github.com/nestoca/joy/internal/utils/colors"
+	"github.com/nestoca/joy/internal/style"
 	"strings"
 	"text/tabwriter"
 )
@@ -19,10 +18,10 @@ func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList)
 	env := list.Environments[1]
 	for _, rel := range sortedCrossReleases {
 		rel := fmt.Sprintf("%s/%s\t%s\t>\t%s",
-			colors.InDarkYellow(env.Name),
-			color.InBold(color.InYellow(rel.Name)),
-			color.InRed(GetReleaseVersion(rel.Releases[1])),
-			color.InGreen(GetReleaseVersion(rel.Releases[0])))
+			style.ResourceEnvPrefix(env.Name),
+			style.Resource(rel.Name),
+			style.DiffBefore(GetReleaseVersion(rel.Releases[1])),
+			style.DiffAfter(GetReleaseVersion(rel.Releases[0])))
 		choices = append(choices, rel)
 	}
 	choices = AlignColumns(choices)
@@ -39,10 +38,9 @@ func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList)
 
 	// Prompt user to select releases to promote.
 	prompt := &survey.MultiSelect{
-		Message: fmt.Sprintf("Select releases to promote from %s %s %s",
-			color.InBold(color.InWhite(sourceEnv)),
-			color.InBold("to"),
-			color.InBold(color.InWhite(targetEnv))),
+		Message: fmt.Sprintf("Select releases to promote from %s to %s",
+			style.Resource(sourceEnv),
+			style.Resource(targetEnv)),
 		Options: choices,
 	}
 	questions := []*survey.Question{{
