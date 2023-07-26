@@ -57,7 +57,7 @@ func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	assert.NoError(t, err)
 
 	node, err := FindNode(yamlNode, "spec.chart.name.foobar")
-	assert.NoError(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, node)
 
 	assert.EqualError(t, err, "node not found for path 'spec.chart.name.foobar': key 'name' does not exist")
