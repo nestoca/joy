@@ -23,6 +23,7 @@ spec:
     version: 1.2.3
   project: %s
   version: %s # This is a line comment
+  versionKey: image.tag
 `
 
 const environmentTemplate = `apiVersion: joy.nesto.ca/v1alpha1

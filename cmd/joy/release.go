@@ -61,7 +61,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cfg.Environments.Source == "" || cfg.Environments.Target == "" {
-				fmt.Printf("🙏Please run %s to specify source and target promotion environments.", color.InWhite("joy env select"))
+				fmt.Printf("🙏 Please run %s to specify source and target promotion environments.", color.InWhite("joy env select"))
 				return nil
 			}
 
