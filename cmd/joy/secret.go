@@ -7,8 +7,8 @@ import (
 
 func NewSecretCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "secret",
-		Aliases: []string{"secrets", "sec"},
+		Use:     "sealed-secret",
+		Aliases: []string{"sealed-secrets", "secrets", "secret", "sec"},
 		Short:   "Manage sealed secrets",
 		Long: `Manage sealed secrets, such as sealing (encrypting) secrets and importing public certificate from cluster.
 
