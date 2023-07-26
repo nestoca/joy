@@ -27,10 +27,10 @@ spec:
 func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	node, err := FindNode(yamlNode, ".spec.chart.name")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
 	assert.Equal(t, "podinfo", node.Value)
@@ -39,13 +39,13 @@ func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	mappingNode := yamlNode.Content[0]
 	assert.Equal(t, yaml.MappingNode, mappingNode.Kind)
 
 	node, err := FindNode(mappingNode, ".spec.chart.name")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
 	assert.Equal(t, "podinfo", node.Value)
@@ -54,10 +54,10 @@ func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	node, err := FindNode(yamlNode, "spec.chart.name.foobar")
-	assert.NotNil(t, err)
+	assert.NoError(t, err)
 	assert.Nil(t, node)
 
 	assert.EqualError(t, err, "node not found for path 'spec.chart.name.foobar': key 'name' does not exist")
@@ -84,10 +84,10 @@ spec:
 
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	node, err := FindNode(yamlNode, ".spec.version")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 	assert.Equal(t, "1.0.0-avvvvvvd", node.Value)
 
@@ -95,4 +95,34 @@ spec:
 
 	rawBytes, err := yaml.Marshal(yamlNode)
 	assert.Equal(t, expected, string(rawBytes))
+}
+
+func TestSetOrAddNodeValue_AddMissingNodesAndValue(t *testing.T) {
+	yamlNode := &yaml.Node{}
+	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
+	assert.NoError(t, err)
+
+	key := "metadata.annotations.abc.def"
+	value := "test value"
+	err = SetOrAddNodeValue(yamlNode, key, value)
+	assert.NoError(t, err)
+
+	actualValue := FindNodeValueOrDefault(yamlNode, key, "")
+	assert.NoError(t, err)
+	assert.Equal(t, value, actualValue)
+}
+
+func TestSetOrAddNodeValue_SetValueOfExistingNode(t *testing.T) {
+	yamlNode := &yaml.Node{}
+	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
+	assert.NoError(t, err)
+
+	key := "metadata.name"
+	value := "test value"
+	err = SetOrAddNodeValue(yamlNode, key, value)
+	assert.NoError(t, err)
+
+	actualValue := FindNodeValueOrDefault(yamlNode, key, "")
+	assert.NoError(t, err)
+	assert.Equal(t, value, actualValue)
 }

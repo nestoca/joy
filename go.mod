@@ -37,3 +37,5 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/AlecAivazis/survey/v2 => github.com/silphid/survey/v2 v2.3.8
