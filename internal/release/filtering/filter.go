@@ -1,9 +1,12 @@
-package release
+package filtering
 
-import "strings"
+import (
+	"github.com/nestoca/joy/api/v1alpha1"
+	"strings"
+)
 
 type Filter interface {
-	Match(rel *Release) bool
+	Match(rel *v1alpha1.Release) bool
 }
 
 type NamePatternFilter struct {
@@ -16,9 +19,9 @@ func NewNamePatternFilter(pattern string) *NamePatternFilter {
 	}
 }
 
-func (f *NamePatternFilter) Match(rel *Release) bool {
+func (f *NamePatternFilter) Match(rel *v1alpha1.Release) bool {
 	for _, name := range f.ReleaseNames {
-		if rel.Metadata.Name == name {
+		if rel.Name == name {
 			return true
 		}
 	}
@@ -35,7 +38,7 @@ func NewSpecificReleasesFilter(releaseNames []string) *SpecificReleasesFilter {
 	}
 }
 
-func (f *SpecificReleasesFilter) Match(rel *Release) bool {
+func (f *SpecificReleasesFilter) Match(rel *v1alpha1.Release) bool {
 	for _, name := range f.ReleaseNames {
 		if rel.Name == name {
 			return true

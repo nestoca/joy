@@ -1,21 +1,20 @@
-package environment
+package v1alpha1
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
 	"path/filepath"
 )
 
-const Kind = "Environment"
+const EnvironmentKind = "Environment"
 
-type Metadata struct {
+type EnvironmentMetadata struct {
 	// Name is the name of the environment.
 	Name string `yaml:"name,omitempty"`
 }
 
-type Spec struct {
+type EnvironmentSpec struct {
 	// Order controls the display order of the environment.
 	Order int `yaml:"order,omitempty"`
 
@@ -41,11 +40,11 @@ type Environment struct {
 	// Kind is the kind of the environment.
 	Kind string `yaml:"kind,omitempty"`
 
-	// Metadata is the metadata of the environment.
-	Metadata `yaml:"metadata,omitempty"`
+	// EnvironmentMetadata is the metadata of the environment.
+	EnvironmentMetadata `yaml:"metadata,omitempty"`
 
 	// Spec is the spec of the environment.
-	Spec Spec `yaml:"spec,omitempty"`
+	Spec EnvironmentSpec `yaml:"spec,omitempty"`
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-"`
@@ -54,12 +53,12 @@ type Environment struct {
 	Dir string `yaml:"-"`
 }
 
-func IsValid(apiVersion, kind string) bool {
-	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == Kind
+func IsValidEnvironment(apiVersion, kind string) bool {
+	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == EnvironmentKind
 }
 
-// New creates a new environment from given yaml file.
-func New(file *yml.File) (*Environment, error) {
+// NewEnvironment creates a new environment from given yaml file.
+func NewEnvironment(file *yml.File) (*Environment, error) {
 	var env Environment
 	if err := yaml.Unmarshal(file.Yaml, &env); err != nil {
 		return nil, fmt.Errorf("unmarshalling environment: %w", err)
@@ -67,45 +66,4 @@ func New(file *yml.File) (*Environment, error) {
 	env.File = file
 	env.Dir = filepath.Dir(file.Path)
 	return &env, nil
-}
-
-func SelectSingle(environments []*Environment, current *Environment, message string) (*Environment, error) {
-	// Create list of environment names
-	var envNames []string
-	for _, env := range environments {
-		envNames = append(envNames, env.Name)
-	}
-
-	// Find index of current environment
-	var selectedIndex int
-	for i, env := range environments {
-		if env == current {
-			selectedIndex = i
-			break
-		}
-	}
-
-	// Prompt user to select environment
-	err := survey.AskOne(&survey.Select{
-		Message: message,
-		Options: envNames,
-		Default: selectedIndex,
-	},
-		&selectedIndex,
-		survey.WithPageSize(10),
-		survey.WithValidator(survey.Required),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("prompting for environment: %w", err)
-	}
-	return environments[selectedIndex], nil
-}
-
-func FindByName(environments []*Environment, name string) *Environment {
-	for _, env := range environments {
-		if env.Name == name {
-			return env
-		}
-	}
-	return nil
 }

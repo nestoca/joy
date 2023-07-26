@@ -2,7 +2,7 @@ package catalog_test
 
 import (
 	"github.com/nestoca/joy/internal/catalog"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"
@@ -34,14 +34,14 @@ func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	assert.Equal(t, "project2", projects[1].Name)
 
 	// Cross-releases
-	rels := cat.CrossReleases.Items
+	rels := cat.Releases.Items
 	assert.Equal(t, 3, len(rels))
 	AssertRelease(t, rels[0], "common-release", "1.2.4", "1.2.3")
 	AssertRelease(t, rels[1], "dev-release", "2.2.2", "")
 	AssertRelease(t, rels[2], "production-release", "", "1.1.1")
 }
 
-func AssertRelease(t *testing.T, crossRelease *release.CrossRelease, name string, devVersion string, prodVersion string) {
+func AssertRelease(t *testing.T, crossRelease *cross.Release, name string, devVersion string, prodVersion string) {
 	assert.Equal(t, name, crossRelease.Name)
 	devRelease := crossRelease.Releases[0]
 	prodRelease := crossRelease.Releases[1]

@@ -1,4 +1,4 @@
-package selection
+package release
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-func Select(configFilePath string, all bool) error {
+func ConfigureSelection(configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func Select(configFilePath string, all bool) error {
 
 	// Create list of release names
 	var releaseNames []string
-	for _, rel := range cat.CrossReleases.Items {
+	for _, rel := range cat.Releases.Items {
 		releaseNames = append(releaseNames, rel.Name)
 	}
 	sort.Strings(releaseNames)
@@ -56,7 +56,7 @@ func Select(configFilePath string, all bool) error {
 	}
 	var selected []string
 	err = survey.AskOne(&survey.MultiSelect{
-		Message: "Select releases to work with:",
+		Message: "ConfigureSelection releases to work with:",
 		Options: releaseNames,
 		Default: defaultSelected,
 	},

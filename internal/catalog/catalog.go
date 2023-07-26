@@ -2,9 +2,9 @@ package catalog
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/environment"
-	"github.com/nestoca/joy/internal/project"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
 	"golang.org/x/exp/slices"
 	"gopkg.in/godo.v2/glob"
@@ -13,9 +13,9 @@ import (
 )
 
 type Catalog struct {
-	Environments  []*environment.Environment
-	CrossReleases *release.CrossReleaseList
-	Projects      []*project.Project
+	Environments []*v1alpha1.Environment
+	Releases     *cross.ReleaseList
+	Projects     []*v1alpha1.Project
 	Files         []*yml.File
 }
 
@@ -38,7 +38,7 @@ type LoadOpts struct {
 
 	// ReleaseFilter allows to specify which releases to load.
 	// Optional, defaults to loading all releases.
-	ReleaseFilter release.Filter
+	ReleaseFilter filtering.Filter
 
 	// LoadProjects controls whether to load projects.
 	LoadProjects bool
@@ -101,8 +101,8 @@ func Load(opts LoadOpts) (*Catalog, error) {
 
 	// Load cross-releases
 	if opts.LoadReleases {
-		allReleaseFiles := c.GetFilesByKind(release.Kind)
-		c.CrossReleases, err = release.LoadCrossReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
+		allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
+		c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
 		if err != nil {
 			return nil, fmt.Errorf("loading cross-environment releases: %w", err)
 		}
@@ -112,7 +112,7 @@ func Load(opts LoadOpts) (*Catalog, error) {
 	if opts.ResolveRefs && opts.LoadReleases {
 		// Resolve references from releases to projects
 		if opts.LoadProjects {
-			err = c.CrossReleases.ResolveProjectRefs(c.Projects)
+			err = c.Releases.ResolveProjectRefs(c.Projects)
 			if err != nil {
 				return nil, fmt.Errorf("resolving project references: %w", err)
 			}
@@ -120,7 +120,7 @@ func Load(opts LoadOpts) (*Catalog, error) {
 
 		// Resolve references from releases to environments
 		if opts.LoadEnvs {
-			err = c.CrossReleases.ResolveEnvRefs(c.Environments)
+			err = c.Releases.ResolveEnvRefs(c.Environments)
 			if err != nil {
 				return nil, fmt.Errorf("resolving environment references: %w", err)
 			}
@@ -131,9 +131,9 @@ func Load(opts LoadOpts) (*Catalog, error) {
 }
 
 func isValid(file *yml.File) bool {
-	return environment.IsValid(file.ApiVersion, file.Kind) ||
-		release.IsValid(file.ApiVersion, file.Kind) ||
-		project.IsValid(file.ApiVersion, file.Kind)
+	return v1alpha1.IsValidEnvironment(file.ApiVersion, file.Kind) ||
+		v1alpha1.IsValidRelease(file.ApiVersion, file.Kind) ||
+		v1alpha1.IsValidProject(file.ApiVersion, file.Kind)
 }
 
 // GetFilesByKind returns all files of the given kind.
@@ -147,10 +147,10 @@ func (c *Catalog) GetFilesByKind(kind string) []*yml.File {
 	return files
 }
 
-func (c *Catalog) loadEnvironments(names ...string) ([]*environment.Environment, error) {
-	files := c.GetFilesByKind(environment.Kind)
+func (c *Catalog) loadEnvironments(names ...string) ([]*v1alpha1.Environment, error) {
+	files := c.GetFilesByKind(v1alpha1.EnvironmentKind)
 
-	var envs []*environment.Environment
+	var envs []*v1alpha1.Environment
 	for _, file := range files {
 		// Skip if not in names
 		if len(names) > 0 && !slices.Contains(names, file.MetadataName) {
@@ -158,7 +158,7 @@ func (c *Catalog) loadEnvironments(names ...string) ([]*environment.Environment,
 		}
 
 		// Load environment
-		env, err := environment.New(file)
+		env, err := v1alpha1.NewEnvironment(file)
 		if err != nil {
 			return nil, fmt.Errorf("loading environment from %s: %w", file.Path, err)
 		}
@@ -168,12 +168,12 @@ func (c *Catalog) loadEnvironments(names ...string) ([]*environment.Environment,
 	return envs, nil
 }
 
-func (c *Catalog) loadProjects() ([]*project.Project, error) {
-	files := c.GetFilesByKind(project.Kind)
+func (c *Catalog) loadProjects() ([]*v1alpha1.Project, error) {
+	files := c.GetFilesByKind(v1alpha1.ProjectKind)
 
-	var projects []*project.Project
+	var projects []*v1alpha1.Project
 	for _, file := range files {
-		proj, err := project.New(file)
+		proj, err := v1alpha1.NewProject(file)
 		if err != nil {
 			return nil, fmt.Errorf("loading project from %s: %w", file.Path, err)
 		}

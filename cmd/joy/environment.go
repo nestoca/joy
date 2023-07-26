@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/environment/selection"
+	"github.com/nestoca/joy/internal/environment"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 
 Only selected environments will be included in releases table columns.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return selection.SelectCurrentEnvironments(cfg.FilePath, allFlag)
+			return environment.ConfigureSelection(cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")

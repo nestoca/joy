@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/build/promote"
+	"github.com/nestoca/joy/internal/build"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ Usage: joy build promote <env> <project> <version>`,
 			project := args[1]
 			version := args[2]
 
-			return promote.Promote(promote.Opts{
+			return build.Promote(build.Opts{
 				Environment: env,
 				Project:     project,
 				Version:     version,

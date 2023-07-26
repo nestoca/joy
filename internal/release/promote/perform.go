@@ -5,14 +5,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/nestoca/joy/internal/gh"
 	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
 
 // perform performs the promotion of all releases in given list.
-func perform(list *release.CrossReleaseList) error {
+func perform(list *cross.ReleaseList) error {
 	if len(list.Environments) != 2 {
 		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}

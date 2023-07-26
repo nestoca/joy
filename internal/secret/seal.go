@@ -3,6 +3,7 @@ package secret
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/style"
@@ -23,7 +24,7 @@ func Seal(env string) error {
 	}
 
 	// Select environment
-	var selectedEnv *environment.Environment
+	var selectedEnv *v1alpha1.Environment
 	if env != "" {
 		selectedEnv = environment.FindByName(cat.Environments, env)
 	}

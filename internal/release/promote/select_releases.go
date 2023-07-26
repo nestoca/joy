@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"strings"
 	"text/tabwriter"
 )
 
-func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList) (*release.CrossReleaseList, error) {
+func SelectReleases(sourceEnv, targetEnv string, list *cross.ReleaseList) (*cross.ReleaseList, error) {
 	// Format releases for user selection.
 	var choices []string
 	sortedCrossReleases := list.SortedCrossReleases()
@@ -38,7 +39,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList)
 
 	// Prompt user to select releases to promote.
 	prompt := &survey.MultiSelect{
-		Message: fmt.Sprintf("Select releases to promote from %s to %s",
+		Message: fmt.Sprintf("ConfigureSelection releases to promote from %s to %s",
 			style.Resource(sourceEnv),
 			style.Resource(targetEnv)),
 		Options: choices,
@@ -65,7 +66,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *release.CrossReleaseList)
 	return list.OnlySpecificReleases(selectedReleaseNames), nil
 }
 
-func GetReleaseVersion(rel *release.Release) string {
+func GetReleaseVersion(rel *v1alpha1.Release) string {
 	if rel == nil || rel.Missing {
 		return "-"
 	}

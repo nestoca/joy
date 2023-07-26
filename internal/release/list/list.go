@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/release/filtering"
 )
 
 type Opts struct {
@@ -13,7 +14,7 @@ type Opts struct {
 
 	// Filter specifies releases to list.
 	// Optional, defaults to listing all releases.
-	Filter release.Filter
+	Filter filtering.Filter
 }
 
 func List(opts Opts) error {
@@ -35,6 +36,6 @@ func List(opts Opts) error {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	cat.CrossReleases.Print(release.PrintOpts{})
+	cat.Releases.Print(cross.PrintOpts{})
 	return nil
 }

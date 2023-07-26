@@ -1,4 +1,4 @@
-package selection
+package environment
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/nestoca/joy/internal/git"
 )
 
-func SelectCurrentEnvironments(configFilePath string, all bool) error {
+func ConfigureSelection(configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err

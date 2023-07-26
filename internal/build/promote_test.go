@@ -1,4 +1,4 @@
-package promote
+package build
 
 import (
 	"fmt"

@@ -5,7 +5,7 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"strings"
@@ -13,7 +13,7 @@ import (
 
 var Separator = strings.Repeat("—", 80)
 
-func preview(list *release.CrossReleaseList) error {
+func preview(list *cross.ReleaseList) error {
 	releases := list.SortedCrossReleases()
 	env := list.Environments[1]
 	anyUnsynced := false

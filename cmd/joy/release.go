@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
-	"github.com/nestoca/joy/internal/release/selection"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/spf13/cobra"
 )
@@ -34,11 +34,11 @@ func NewReleaseListCmd() *cobra.Command {
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Filtering
-			var filter release.Filter
+			var filter filtering.Filter
 			if releases != "" {
-				filter = release.NewNamePatternFilter(releases)
+				filter = filtering.NewNamePatternFilter(releases)
 			} else if len(cfg.Releases.Selected) > 0 {
-				filter = release.NewSpecificReleasesFilter(cfg.Releases.Selected)
+				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
 			return list.List(list.Opts{
@@ -66,11 +66,11 @@ func NewReleasePromoteCmd() *cobra.Command {
 			}
 
 			// Filtering
-			var filter release.Filter
+			var filter filtering.Filter
 			if releases != "" {
-				filter = release.NewNamePatternFilter(releases)
+				filter = filtering.NewNamePatternFilter(releases)
 			} else if len(cfg.Releases.Selected) > 0 {
-				filter = release.NewSpecificReleasesFilter(cfg.Releases.Selected)
+				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
 			// Options
@@ -82,7 +82,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 			// Filter
 			if releases != "" {
-				opts.Filter = release.NewNamePatternFilter(releases)
+				opts.Filter = filtering.NewNamePatternFilter(releases)
 			}
 
 			return promote.Promote(opts)
@@ -104,10 +104,10 @@ func NewReleaseSelectCmd() *cobra.Command {
 
 Only selected releases will be included in releases table and during promotion.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return selection.Select(cfg.FilePath, allFlag)
+			return release.ConfigureSelection(cfg.FilePath, allFlag)
 		},
 	}
-	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
+	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "ConfigureSelection all releases")
 	return cmd
 }
 

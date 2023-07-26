@@ -5,7 +5,8 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/release/filtering"
 )
 
 type Opts struct {
@@ -17,7 +18,7 @@ type Opts struct {
 
 	// Filter specifies releases to promote.
 	// Optional, defaults to prompting user.
-	Filter release.Filter
+	Filter filtering.Filter
 }
 
 // Promote prepares a promotion, shows a preview to user and asks for confirmation before performing it.
@@ -41,7 +42,7 @@ func Promote(opts Opts) error {
 	}
 
 	// Keep only promotable releases.
-	list := cat.CrossReleases.OnlyPromotableReleases()
+	list := cat.Releases.OnlyPromotableReleases()
 	if len(list.Items) == 0 {
 		fmt.Println("🤷 No promotable releases found.")
 		return nil
@@ -71,7 +72,7 @@ func Promote(opts Opts) error {
 
 	// Print selected releases
 	fmt.Println(Separator)
-	list.Print(release.PrintOpts{IsPromoting: true})
+	list.Print(cross.PrintOpts{IsPromoting: true})
 
 	// Show preview.
 	err = preview(list)

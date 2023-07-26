@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/project"
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
@@ -67,13 +67,13 @@ func ListReleasePeople(extraArgs []string) error {
 	}
 
 	// Select cross-release
-	selectedCrossRelease, err := selectCrossRelease(cat.CrossReleases.Items)
+	selectedCrossRelease, err := selectCrossRelease(cat.Releases.Items)
 	if err != nil {
 		return err
 	}
 
 	// Find project of first release within cross-release that has a project
-	var proj *project.Project
+	var proj *v1alpha1.Project
 	for _, rel := range selectedCrossRelease.Releases {
 		if rel != nil && rel.Project != nil {
 			proj = rel.Project
@@ -117,10 +117,10 @@ func ensureJacCliInstalled() error {
 	return nil
 }
 
-func selectProject(projects []*project.Project) (*project.Project, error) {
+func selectProject(projects []*v1alpha1.Project) (*v1alpha1.Project, error) {
 	var selectedIndex int
 	err := survey.AskOne(&survey.Select{
-		Message: "Select project:",
+		Message: "ConfigureSelection project:",
 		Options: projectNames(projects),
 	},
 		&selectedIndex,
@@ -133,7 +133,7 @@ func selectProject(projects []*project.Project) (*project.Project, error) {
 	return projects[selectedIndex], nil
 }
 
-func projectNames(projects []*project.Project) []string {
+func projectNames(projects []*v1alpha1.Project) []string {
 	var projectNames []string
 	for _, project := range projects {
 		projectNames = append(projectNames, project.Name)
@@ -141,10 +141,10 @@ func projectNames(projects []*project.Project) []string {
 	return projectNames
 }
 
-func selectCrossRelease(releases []*release.CrossRelease) (*release.CrossRelease, error) {
+func selectCrossRelease(releases []*cross.Release) (*cross.Release, error) {
 	var selectedIndex int
 	err := survey.AskOne(&survey.Select{
-		Message: "Select release:",
+		Message: "ConfigureSelection release:",
 		Options: releaseNames(releases),
 	},
 		&selectedIndex,
@@ -157,7 +157,7 @@ func selectCrossRelease(releases []*release.CrossRelease) (*release.CrossRelease
 	return releases[selectedIndex], nil
 }
 
-func releaseNames(releases []*release.CrossRelease) []string {
+func releaseNames(releases []*cross.Release) []string {
 	var releaseNames []string
 	for _, release := range releases {
 		releaseNames = append(releaseNames, release.Name)

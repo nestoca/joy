@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/nestoca/joy/internal/jac"
-	"github.com/nestoca/joy/internal/project/list"
+	"github.com/nestoca/joy/internal/project"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ func NewProjectListCmd() *cobra.Command {
 		},
 		Long: `List projects and their owners.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list.List()
+			return project.List()
 		},
 	}
 	return cmd

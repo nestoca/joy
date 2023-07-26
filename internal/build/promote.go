@@ -1,4 +1,4 @@
-package promote
+package build
 
 import (
 	"fmt"
@@ -25,13 +25,13 @@ func Promote(opts Opts) error {
 	}
 
 	promotionCount := 0
-	for _, crossRelease := range cat.CrossReleases.Items {
+	for _, crossRelease := range cat.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release.Spec.Project == opts.Project {
 			// Find version node
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
-				return fmt.Errorf("release %s has no version property: %w", release.Metadata.Name, err)
+				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
 			}
 
 			// Update version node
