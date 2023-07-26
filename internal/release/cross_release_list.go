@@ -5,9 +5,9 @@ import (
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/internal/style"
-	"github.com/nestoca/joy/internal/utils"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/olekukonko/tablewriter"
+	"golang.org/x/exp/slices"
 	"os"
 	"sort"
 	"strings"
@@ -129,7 +129,7 @@ func (r *CrossReleaseList) SortedCrossReleases() []*CrossRelease {
 func (r *CrossReleaseList) OnlySpecificReleases(releases []string) *CrossReleaseList {
 	subset := NewCrossReleaseList(r.Environments)
 	for _, item := range r.Items {
-		if utils.SliceContainsString(releases, item.Name) {
+		if slices.Contains(releases, item.Name) {
 			subset.Items = append(subset.Items, item)
 		}
 	}

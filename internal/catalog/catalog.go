@@ -5,8 +5,8 @@ import (
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/internal/release"
-	"github.com/nestoca/joy/internal/utils"
 	"github.com/nestoca/joy/internal/yml"
+	"golang.org/x/exp/slices"
 	"gopkg.in/godo.v2/glob"
 	"path/filepath"
 	"sort"
@@ -153,7 +153,7 @@ func (c *Catalog) loadEnvironments(names ...string) ([]*environment.Environment,
 	var envs []*environment.Environment
 	for _, file := range files {
 		// Skip if not in names
-		if len(names) > 0 && !utils.SliceContainsString(names, file.MetadataName) {
+		if len(names) > 0 && !slices.Contains(names, file.MetadataName) {
 			continue
 		}
 
