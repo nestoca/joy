@@ -1,8 +1,7 @@
-package build_test
+package build
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/build"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -23,53 +22,55 @@ spec:
     repoUrl: https://repo.echo-chart.example
     version: 1.2.3
   project: %s
-  version: %s # This is an line comment
+  version: %s # This is a line comment
   versionKey: image.tag
 `
 
+const environmentTemplate = `apiVersion: joy.nesto.ca/v1alpha1
+kind: Environment
+metadata:
+  name: %s
+`
+
 func TestPromote(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
-	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir: testArgs.CatalogDir,
-		env:        testArgs.Environment,
-		project:    testArgs.Project,
+	testReleaseFile, err := setup(setupOpts{
+		env:     opts.Environment,
+		project: opts.Project,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.Nil(t, err)
 
 	result, err := os.ReadFile(testReleaseFile)
 	assert.Nil(t, err)
 
 	assert.Equal(t,
-		fmt.Sprintf(releaseTemplate, "promote-build-release", testArgs.Project, testArgs.Version),
+		fmt.Sprintf(releaseTemplate, "promote-build-release", opts.Project, opts.Version),
 		string(result),
 	)
 }
 
 func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
-	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir: testArgs.CatalogDir,
-		env:        testArgs.Environment,
-		project:    "other-project",
+	testReleaseFile, err := setup(setupOpts{
+		env:     opts.Environment,
+		project: "other-project",
 	})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 
 	result, err := os.ReadFile(testReleaseFile)
@@ -83,23 +84,21 @@ func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 }
 
 func TestPromoteWhenCatalogDirNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  "/foo/bar",
 	}
 
-	err := build.Promote(testArgs)
+	err := Promote(opts)
 	assert.NotNil(t, err)
 }
 
 func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	fileContents := `some:
@@ -108,18 +107,17 @@ func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
   document: bar
 `
 
-	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir:   testArgs.CatalogDir,
-		env:          testArgs.Environment,
+	testReleaseFile, err := setup(setupOpts{
+		env:          opts.Environment,
 		fileContents: fileContents,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 	assert.EqualError(t,
 		err,
-		"walking catalog directory: reading release's project: node not found for path '.spec.project': key 'spec' does not exist",
+		"no releases found for project promote-build",
 	)
 
 	result, err := os.ReadFile(testReleaseFile)
@@ -133,11 +131,10 @@ func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
 }
 
 func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
-	testArgs := build.PromoteArgs{
+	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
 		Version:     "1.0.0-updated",
-		CatalogDir:  t.TempDir(),
 	}
 
 	fileContents := `spec:
@@ -147,18 +144,17 @@ func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
   document: bar
 `
 
-	testReleaseFile, err := setupPromoteTest(setupPromoteTestArgs{
-		catalogDir:   testArgs.CatalogDir,
-		env:          testArgs.Environment,
+	testReleaseFile, err := setup(setupOpts{
+		env:          opts.Environment,
 		fileContents: fileContents,
 	})
 	assert.Nil(t, err)
 
-	err = build.Promote(testArgs)
+	err = Promote(opts)
 	assert.NotNil(t, err)
 	assert.EqualError(t,
 		err,
-		"updating release version: node not found for path '.spec.version': key 'version' does not exist",
+		"no releases found for project promote-build",
 	)
 
 	result, err := os.ReadFile(testReleaseFile)
@@ -171,42 +167,37 @@ func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
 	)
 }
 
-type setupPromoteTestArgs struct {
-	catalogDir   string
+type setupOpts struct {
 	env          string
 	project      string
 	fileContents string
 }
 
-func setupPromoteTest(args setupPromoteTestArgs) (string, error) {
-	testReleaseDir := filepath.Join(
-		args.catalogDir,
-		"environments",
-		args.env,
-		"releases",
-	)
-	err := os.MkdirAll(testReleaseDir, 0755)
+func setup(opts setupOpts) (string, error) {
+	// Create temp catalog dir
+	tempDir, err := os.MkdirTemp("", "promote-test-")
+	if err != nil {
+		return "", fmt.Errorf("creating temp dir: %w", err)
+	}
+	os.Chdir(tempDir)
+
+	// Create environment file
+	environmentFile := filepath.Join(tempDir, "env.yaml")
+	environmentContent := fmt.Sprintf(environmentTemplate, opts.env)
+	err = os.WriteFile(environmentFile, []byte(environmentContent), 0644)
+	if err != nil {
+		return "", fmt.Errorf("writing environment file: %w", err)
+	}
+
+	// Create release file
+	releaseFile := filepath.Join(tempDir, "promote-build.yaml")
+	if opts.fileContents == "" {
+		opts.fileContents = fmt.Sprintf(releaseTemplate, "promote-build-release", opts.project, "0.0.1")
+	}
+	err = os.WriteFile(releaseFile, []byte(opts.fileContents), 0644)
 	if err != nil {
 		return "", err
 	}
 
-	testReleaseFile := filepath.Join(
-		testReleaseDir,
-		"promote-build.release.yaml",
-	)
-
-	if args.fileContents == "" {
-		args.fileContents = fmt.Sprintf(releaseTemplate, "promote-build-release", args.project, "0.0.1")
-	}
-
-	err = os.WriteFile(
-		testReleaseFile,
-		[]byte(args.fileContents),
-		0644,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	return testReleaseFile, nil
+	return releaseFile, nil
 }

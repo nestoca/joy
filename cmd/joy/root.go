@@ -2,72 +2,64 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/utils"
-	"github.com/spf13/viper"
-	"os"
-	"strings"
-
-	"github.com/nestoca/joy/cmd/joy/build"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/spf13/cobra"
+	"os"
 )
 
+var cfg *config.Config
+
 func main() {
-	err := createCLI().Execute()
+
+	rootCmd := NewRootCmd()
+	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-// RootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "joy",
-	Short: "CLI for managing Joy resources",
-	// TODO: Long description
-	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-		return initConfig(cmd.Flag("config").Value.String())
-	},
-}
+func NewRootCmd() *cobra.Command {
+	var configDir, catalogDir string
+	cmd := &cobra.Command{
+		Use:          "joy",
+		Short:        "Manages project, environment and release resources as code",
+		SilenceUsage: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			cfg, err = config.Load(configDir, catalogDir)
+			if err != nil {
+				return fmt.Errorf("loading config: %w", err)
+			}
 
-func createCLI() *cobra.Command {
-	// Add subcommands here
-	rootCmd.AddCommand(build.Cmd)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringP("config", "c", "~/.joy/config.yaml", "Configuration for the joy containing overrides for the default settings")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	return rootCmd
-}
-
-func initConfig(path string) error {
-	configFile, err := utils.ResolvePath(path)
-	if err != nil {
-		return fmt.Errorf("failed resolve config file path: %w", err)
+			// Make catalog dir the current directory, as all commands
+			// need to be run from there for loading catalog and executing
+			// git commands.
+			err = os.Chdir(cfg.CatalogDir)
+			if err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
+			}
+			return nil
+		},
 	}
+	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
+	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
 
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(configFile)
+	// Core commands
+	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})
+	cmd.AddCommand(NewEnvironmentCmd())
+	cmd.AddCommand(NewReleaseCmd())
+	cmd.AddCommand(NewProjectCmd())
+	cmd.AddCommand(NewBuildCmd())
 
-	// Overrides can be set using env vars and take precedence over the config file. Useful for CI
-	// Will look for env vars prefixed with `JOY_` followed by the config name.
-	// Ex: `catalog-dir`'s value would be set to the value of JOY_CATALOG_DIR
-	viper.SetEnvPrefix("joy")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
+	// Git-oriented commands
+	cmd.AddGroup(&cobra.Group{ID: "git", Title: "Git-oriented commands"})
+	cmd.AddCommand(NewGitCmd())
+	cmd.AddCommand(NewPullCmd())
+	cmd.AddCommand(NewPushCmd())
+	cmd.AddCommand(NewResetCmd())
 
-	viper.SetDefault("catalog-dir", "~/.joy/catalog")
+	// Other commands
+	cmd.AddCommand(NewSecretCmd())
 
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return fmt.Errorf("failed to read config: %w", err)
-		}
-	}
-
-	return nil
+	return cmd
 }

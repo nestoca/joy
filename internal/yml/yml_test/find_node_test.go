@@ -1,7 +1,7 @@
-package utils_test
+package yml_test
 
 import (
-	"github.com/nestoca/joy/internal/utils"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"testing"
@@ -28,10 +28,10 @@ spec:
 func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	node, err := utils.FindNode(yamlNode, ".spec.chart.name")
-	assert.Nil(t, err)
+	node, err := yml.FindNode(yamlNode, ".spec.chart.name")
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
 	assert.Equal(t, "podinfo", node.Value)
@@ -40,13 +40,13 @@ func TestFindNodeInDocumentNodeWhenPathExists(t *testing.T) {
 func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	mappingNode := yamlNode.Content[0]
 	assert.Equal(t, yaml.MappingNode, mappingNode.Kind)
 
-	node, err := utils.FindNode(mappingNode, ".spec.chart.name")
-	assert.Nil(t, err)
+	node, err := yml.FindNode(mappingNode, ".spec.chart.name")
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 
 	assert.Equal(t, "podinfo", node.Value)
@@ -55,9 +55,9 @@ func TestFindNodeInMappingNodeWhenPathExists(t *testing.T) {
 func TestFindNodeWhenPathDoesNotExist(t *testing.T) {
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	node, err := utils.FindNode(yamlNode, "spec.chart.name.foobar")
+	node, err := yml.FindNode(yamlNode, "spec.chart.name.foobar")
 	assert.NotNil(t, err)
 	assert.Nil(t, node)
 
@@ -85,10 +85,10 @@ spec:
 
 	yamlNode := &yaml.Node{}
 	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	node, err := utils.FindNode(yamlNode, ".spec.version")
-	assert.Nil(t, err)
+	node, err := yml.FindNode(yamlNode, ".spec.version")
+	assert.NoError(t, err)
 	assert.NotNil(t, node)
 	assert.Equal(t, "1.0.0-avvvvvvd", node.Value)
 
@@ -96,4 +96,34 @@ spec:
 
 	rawBytes, err := yaml.Marshal(yamlNode)
 	assert.Equal(t, expected, string(rawBytes))
+}
+
+func TestSetOrAddNodeValue_AddMissingNodesAndValue(t *testing.T) {
+	yamlNode := &yaml.Node{}
+	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
+	assert.NoError(t, err)
+
+	key := "metadata.annotations.abc.def"
+	value := "test value"
+	err = yml.SetOrAddNodeValue(yamlNode, key, value)
+	assert.NoError(t, err)
+
+	actualValue := yml.FindNodeValueOrDefault(yamlNode, key, "")
+	assert.NoError(t, err)
+	assert.Equal(t, value, actualValue)
+}
+
+func TestSetOrAddNodeValue_SetValueOfExistingNode(t *testing.T) {
+	yamlNode := &yaml.Node{}
+	err := yaml.Unmarshal([]byte(yamlString), yamlNode)
+	assert.NoError(t, err)
+
+	key := "metadata.name"
+	value := "test value"
+	err = yml.SetOrAddNodeValue(yamlNode, key, value)
+	assert.NoError(t, err)
+
+	actualValue := yml.FindNodeValueOrDefault(yamlNode, key, "")
+	assert.NoError(t, err)
+	assert.Equal(t, value, actualValue)
 }

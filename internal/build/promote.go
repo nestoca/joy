@@ -1,102 +1,64 @@
 package build
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/fatih/color"
-	"github.com/kyokomi/emoji"
-	"github.com/nestoca/joy/internal/utils"
-	"gopkg.in/yaml.v3"
+	"github.com/nestoca/joy/internal/catalog"
+	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/internal/yml"
 )
 
-type PromoteArgs struct {
+type Opts struct {
 	Environment string
 	Project     string
 	Version     string
-	CatalogDir  string
 }
 
-func Promote(args PromoteArgs) error {
-	envReleasesDir := filepath.Join(args.CatalogDir, "environments", args.Environment, "releases")
-
-	type promoteTarget struct {
-		File    os.FileInfo
-		Path    string
-		Release *yaml.Node
+func Promote(opts Opts) error {
+	loadOpts := catalog.LoadOpts{
+		LoadEnvs:     true,
+		LoadReleases: true,
+		EnvNames:     []string{opts.Environment},
 	}
-	var targets []*promoteTarget
-
-	err := filepath.Walk(envReleasesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".release.yaml") {
-			return nil
-		}
-
-		file, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading release file: %w", err)
-		}
-
-		release := &yaml.Node{}
-		err = yaml.Unmarshal(file, release)
-		if err != nil {
-			return fmt.Errorf("parsing release file: %w", err)
-		}
-
-		releaseProject, err := utils.FindNode(release, ".spec.project")
-		if err != nil {
-			return fmt.Errorf("reading release's project: %w", err)
-		}
-
-		if releaseProject != nil && args.Project == releaseProject.Value {
-			targets = append(targets, &promoteTarget{
-				File:    info,
-				Release: release,
-				Path:    path,
-			})
-		}
-		return nil
-	})
+	cat, err := catalog.Load(loadOpts)
 	if err != nil {
-		return fmt.Errorf("walking catalog directory: %w", err)
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	for _, target := range targets {
-		versionNode, err := utils.FindNode(target.Release, ".spec.version")
-		if err != nil {
-			return fmt.Errorf("updating release version: %w", err)
-		}
-		versionNode.Value = args.Version
+	promotionCount := 0
+	for _, crossRelease := range cat.Releases.Items {
+		release := crossRelease.Releases[0]
+		if release.Spec.Project == opts.Project {
+			// Find version node
+			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
+			if err != nil {
+				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
+			}
 
-		result, err := utils.EncodeYaml(target.Release)
-		if err != nil {
-			return fmt.Errorf("encoding updated release: %w", err)
-		}
-		err = os.WriteFile(target.Path, result, target.File.Mode())
-		if err != nil {
-			return fmt.Errorf("writing to release file: %w", err)
-		}
+			// Update version node
+			versionNode.Value = opts.Version
+			err = release.File.UpdateYamlFromTree()
+			if err != nil {
+				return fmt.Errorf("updating release yaml from node tree: %w", err)
+			}
 
-		releaseName, err := utils.FindNode(target.Release, ".metadata.name")
-		if err != nil {
-			return fmt.Errorf("reading release's name: %w", err)
+			// Write release file back
+			err = release.File.WriteYaml()
+			if err != nil {
+				return fmt.Errorf("writing release file: %w", err)
+			}
+			fmt.Printf("✅ Promoted release %s to version %s\n", style.Resource(release.Name), style.Version(opts.Version))
+			promotionCount++
 		}
-
-		_, _ = emoji.Printf(":check_mark:Promoted release %s to version %s\n", color.HiBlueString(releaseName.Value), color.GreenString(args.Version))
 	}
 
-	if len(targets) == 0 {
-		return errors.New(emoji.Sprintf(":warning:Did not find any releases for project %s\n", color.HiYellowString(args.Project)))
+	// Print summary
+	if promotionCount == 0 {
+		return fmt.Errorf("no releases found for project %s", opts.Project)
 	}
-
-	_, _ = emoji.Printf("\n:beer:Done! Promoted releases of project %s in environment %s to version %s\n", color.HiCyanString(args.Project), color.HiCyanString(args.Environment), color.GreenString(args.Version))
-
+	plural := ""
+	if promotionCount > 1 {
+		plural = "s"
+	}
+	fmt.Printf("🍺 Promoted %d release%s of project %s in environment %s to version %s\n", promotionCount, plural, style.Resource(opts.Project), style.Resource(opts.Environment), style.Version(opts.Version))
 	return nil
 }

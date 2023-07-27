@@ -1,0 +1,4 @@
+apiVersion: joy.nesto.ca/v1alpha1
+kind: Project
+metadata:
+  name: project2
