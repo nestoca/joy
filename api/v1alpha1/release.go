@@ -14,6 +14,12 @@ type ReleaseMetadata struct {
 }
 
 type ReleaseChart struct {
+	// Name is the name of the chart.
+	Name string `yaml:"name,omitempty"`
+
+	// RepoUrl is the url of the chart repository.
+	RepoUrl string `yaml:"repoUrl,omitempty"`
+
 	// Version of the chart.
 	Version string `yaml:"version,omitempty"`
 }
@@ -27,6 +33,9 @@ type ReleaseSpec struct {
 
 	// Chart is the chart that the release is based on.
 	Chart ReleaseChart `yaml:"chart,omitempty"`
+
+	// Values is the values to use to render the chart.
+	Values map[string]interface{} `yaml:"values,omitempty"`
 }
 
 type Release struct {
