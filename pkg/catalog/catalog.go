@@ -43,7 +43,11 @@ type LoadOpts struct {
 	// LoadProjects controls whether to load projects.
 	LoadProjects bool
 
-	// ResolveRefs controls whether to resolve references.
+	// ResolveRefs controls whether to resolve references to related resources. Requires that all referenced resources
+	// are loaded in the catalog.
+	//
+	// For example, if ResolveRefs and LoadEnvs are enabled, the release.Environment field will be resolved to the
+	// actual environment object.
 	ResolveRefs bool
 }
 
