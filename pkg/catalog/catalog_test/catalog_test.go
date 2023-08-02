@@ -1,8 +1,8 @@
 package catalog_test
 
 import (
-	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"
