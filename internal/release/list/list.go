@@ -2,10 +2,10 @@ package list
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 type Opts struct {

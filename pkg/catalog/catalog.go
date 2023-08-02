@@ -16,7 +16,7 @@ type Catalog struct {
 	Environments []*v1alpha1.Environment
 	Releases     *cross.ReleaseList
 	Projects     []*v1alpha1.Project
-	Files         []*yml.File
+	Files        []*yml.File
 }
 
 // LoadOpts controls how to load catalog and what to load in it.

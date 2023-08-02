@@ -2,8 +2,8 @@ package project
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"strings"

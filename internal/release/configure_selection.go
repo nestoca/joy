@@ -3,9 +3,9 @@ package release
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/nestoca/joy/internal/catalog"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/pkg/catalog"
 	"sort"
 )
 
