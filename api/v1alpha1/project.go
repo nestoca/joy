@@ -10,30 +10,30 @@ const ProjectKind = "Project"
 
 type ProjectMetadata struct {
 	// Name is the name of the project.
-	Name string `yaml:"name,omitempty"`
+	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 }
 
 type ProjectSpec struct {
 	// Owners is the list of identifiers of owners of the project.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
-	Owners []string `yaml:"owners,omitempty"`
+	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 }
 
 type Project struct {
 	// ApiVersion is the API version of the project.
-	ApiVersion string `yaml:"apiVersion,omitempty"`
+	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 
 	// Kind is the kind of the project.
-	Kind string `yaml:"kind,omitempty"`
+	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// ProjectMetadata is the metadata of the project.
-	ProjectMetadata `yaml:"metadata,omitempty"`
+	ProjectMetadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
 
 	// Spec is the spec of the project.
-	Spec ProjectSpec `yaml:"spec,omitempty"`
+	Spec ProjectSpec `yaml:"spec,omitempty" json:"spec,omitempty"`
 
 	// File represents the in-memory yaml file of the project.
-	File *yml.File `yaml:"-"`
+	File *yml.File `yaml:"-" json:"-"`
 }
 
 func IsValidProject(apiVersion, kind string) bool {
