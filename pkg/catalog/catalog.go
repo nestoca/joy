@@ -46,7 +46,7 @@ type LoadOpts struct {
 	// ResolveRefs controls whether to resolve references to related resources. Requires that all referenced resources
 	// are loaded in the catalog.
 	//
-	// For example, if ResolveRefs and LoadEnvs are enabled, the release.Environment field will be resolved to the
+	// For example, if ResolveRefs, LoadReleases and LoadEnvs are all enabled, the release.Environment field will be resolved to the
 	// actual environment object.
 	ResolveRefs bool
 }
