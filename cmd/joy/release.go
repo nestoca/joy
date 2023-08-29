@@ -107,7 +107,7 @@ Only selected releases will be included in releases table and during promotion.`
 			return release.ConfigureSelection(cfg.FilePath, allFlag)
 		},
 	}
-	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "ConfigureSelection all releases")
+	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
 	return cmd
 }
 
