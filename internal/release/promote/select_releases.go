@@ -39,7 +39,7 @@ func SelectReleases(sourceEnv, targetEnv string, list *cross.ReleaseList) (*cros
 
 	// Prompt user to select releases to promote.
 	prompt := &survey.MultiSelect{
-		Message: fmt.Sprintf("ConfigureSelection releases to promote from %s to %s",
+		Message: fmt.Sprintf("Select releases to promote from %s to %s",
 			style.Resource(sourceEnv),
 			style.Resource(targetEnv)),
 		Options: choices,

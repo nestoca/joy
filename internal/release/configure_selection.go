@@ -56,7 +56,7 @@ func ConfigureSelection(configFilePath string, all bool) error {
 	}
 	var selected []string
 	err = survey.AskOne(&survey.MultiSelect{
-		Message: "ConfigureSelection releases to work with:",
+		Message: "Select releases to work with:",
 		Options: releaseNames,
 		Default: defaultSelected,
 	},

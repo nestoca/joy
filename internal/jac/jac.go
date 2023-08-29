@@ -120,7 +120,7 @@ func ensureJacCliInstalled() error {
 func selectProject(projects []*v1alpha1.Project) (*v1alpha1.Project, error) {
 	var selectedIndex int
 	err := survey.AskOne(&survey.Select{
-		Message: "ConfigureSelection project:",
+		Message: "Select project:",
 		Options: projectNames(projects),
 	},
 		&selectedIndex,
@@ -144,7 +144,7 @@ func projectNames(projects []*v1alpha1.Project) []string {
 func selectCrossRelease(releases []*cross.Release) (*cross.Release, error) {
 	var selectedIndex int
 	err := survey.AskOne(&survey.Select{
-		Message: "ConfigureSelection release:",
+		Message: "Select release:",
 		Options: releaseNames(releases),
 	},
 		&selectedIndex,
