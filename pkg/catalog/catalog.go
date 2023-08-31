@@ -10,6 +10,7 @@ import (
 	"gopkg.in/godo.v2/glob"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type Catalog struct {
@@ -80,18 +81,11 @@ func Load(opts LoadOpts) (*Catalog, error) {
 		}
 	}
 
+	// Load environments
 	if opts.LoadEnvs {
-		// Load environments
-		c.Environments, err = c.loadEnvironments(opts.EnvNames...)
+		c.Environments, err = c.loadEnvironments(opts.EnvNames, opts.SortEnvsByOrder)
 		if err != nil {
 			return nil, fmt.Errorf("loading environments: %w", err)
-		}
-
-		// Sort environments by order
-		if opts.SortEnvsByOrder {
-			sort.Slice(c.Environments, func(i, j int) bool {
-				return c.Environments[i].Spec.Order < c.Environments[j].Spec.Order
-			})
 		}
 	}
 
@@ -151,14 +145,36 @@ func (c *Catalog) GetFilesByKind(kind string) []*yml.File {
 	return files
 }
 
-func (c *Catalog) loadEnvironments(names ...string) ([]*v1alpha1.Environment, error) {
+func (c *Catalog) loadEnvironments(names []string, sortByOrder bool) ([]*v1alpha1.Environment, error) {
+	// Load all environment files
 	files := c.GetFilesByKind(v1alpha1.EnvironmentKind)
 
+	// If names is empty, load all environments
+	explicitEnvs := len(names) > 0
 	var envs []*v1alpha1.Environment
+	if explicitEnvs {
+		envs = make([]*v1alpha1.Environment, len(names))
+	}
+
+	remainingNames := slices.Clone(names)
+	currentIndex := 0
 	for _, file := range files {
 		// Skip if not in names
-		if len(names) > 0 && !slices.Contains(names, file.MetadataName) {
+		envName := file.MetadataName
+		if explicitEnvs && !slices.Contains(names, envName) {
 			continue
+		}
+
+		// Determine environment index
+		var index int
+		if explicitEnvs {
+			// Use index of explicitly requested environment
+			index = slices.Index(names, envName)
+
+			// Skip non-requested environments
+			if index == -1 {
+				continue
+			}
 		}
 
 		// Load environment
@@ -166,7 +182,27 @@ func (c *Catalog) loadEnvironments(names ...string) ([]*v1alpha1.Environment, er
 		if err != nil {
 			return nil, fmt.Errorf("loading environment from %s: %w", file.Path, err)
 		}
-		envs = append(envs, env)
+
+		// Add environment to list
+		if explicitEnvs {
+			envs[index] = env
+		} else {
+			envs = append(envs, env)
+		}
+		remainingNames = slices.DeleteFunc(remainingNames, func(x string) bool { return x == envName })
+		currentIndex++
+	}
+
+	// Ensure we found all requested environments
+	if len(remainingNames) > 0 {
+		return nil, fmt.Errorf("environments not found: %s", strings.Join(remainingNames, ", "))
+	}
+
+	// Sort environments by order
+	if sortByOrder {
+		sort.Slice(envs, func(i, j int) bool {
+			return envs[i].Spec.Order < envs[j].Spec.Order
+		})
 	}
 
 	return envs, nil
