@@ -20,7 +20,7 @@ Joy dramatically reduces the cognitive load on developers when it comes to deplo
 
 It also provides the DevOps/platform engineers with a layer of abstraction to manage the more intricate deployment details, such as ArgoCD Applications and Helm charts.
 
-What makes joy releases so useful and powerful:
+What makes joy releases useful and powerful:
 - They only contain the high-level information that is relevant to developers, providing a very simple, visual and intuitive interface to the deployment process.
 - Portions of the release that are environment-specific can be locked with a special `# lock` comment to prevent them from being carried over from environment to environment during promotions. 
 - They tie together all the deployment configuration that needs to travel with a given build, such as:
