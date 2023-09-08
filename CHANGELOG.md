@@ -1,3 +1,12 @@
+# [0.9.0](https://github.com/nestoca/joy/compare/v0.8.2...v0.9.0) (2023-09-08)
+
+
+### Features
+
+* pretending to add a feature ([#21](https://github.com/nestoca/joy/issues/21)) ([62dd5af](https://github.com/nestoca/joy/commit/62dd5af86e34b7971db17fe3b53838b4bce3d44c))
+
+
+
 ## [0.8.2](https://github.com/nestoca/joy/compare/v0.8.1...v0.8.2) (2023-09-07)
 
 
