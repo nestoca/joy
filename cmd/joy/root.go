@@ -49,6 +49,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(NewEnvironmentCmd())
 	cmd.AddCommand(NewReleaseCmd())
 	cmd.AddCommand(NewProjectCmd())
+	cmd.AddCommand(NewPRCmd())
 	cmd.AddCommand(NewBuildCmd())
 
 	// Git-oriented commands
