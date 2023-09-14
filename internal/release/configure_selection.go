@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-func ConfigureSelection(configFilePath string, all bool) error {
+func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -34,6 +34,7 @@ func ConfigureSelection(configFilePath string, all bool) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		Dir:          catalogDir,
 		LoadEnvs:     true,
 		LoadReleases: true,
 	}

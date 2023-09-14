@@ -8,6 +8,7 @@ import (
 )
 
 type Opts struct {
+	CatalogDir  string
 	Environment string
 	Project     string
 	Version     string
@@ -15,6 +16,7 @@ type Opts struct {
 
 func Promote(opts Opts) error {
 	loadOpts := catalog.LoadOpts{
+		Dir:          opts.CatalogDir,
 		LoadEnvs:     true,
 		LoadReleases: true,
 		EnvNames:     []string{opts.Environment},
