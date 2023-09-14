@@ -32,6 +32,7 @@ Usage: joy build promote <env> <project> <version>`,
 			version := args[2]
 
 			return build.Promote(build.Opts{
+				CatalogDir:  cfg.CatalogDir,
 				Environment: env,
 				Project:     project,
 				Version:     version,

@@ -3,6 +3,7 @@ package promote
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/internal/style"
 )
 
 type SurveyPrompt struct {
@@ -23,6 +24,9 @@ func (s *SurveyPrompt) WhetherToCreateMissingPullRequest() (bool, error) {
 
 func (s *SurveyPrompt) WhichEnvironmentToPromoteTo(environments []string, preSelectedEnv string) (string, error) {
 	none := "[none]"
+	if preSelectedEnv == "" {
+		preSelectedEnv = none
+	}
 	options := append([]string{none}, environments...)
 	prompt := &survey.Select{
 		Message: "Select environment to auto-promote builds of pull request to:",
@@ -41,7 +45,7 @@ func (s *SurveyPrompt) WhichEnvironmentToPromoteTo(environments []string, preSel
 }
 
 func (s *SurveyPrompt) PrintMasterBranchPromotion() {
-	fmt.Println("🚫 Cannot promote builds of master/main branch, please create a feature branch and try again.")
+	fmt.Printf("🚫 Cannot promote builds of %s/%s branch, please create a feature branch and try again.\n", style.Resource("master"), style.Resource("main"))
 }
 
 func (s *SurveyPrompt) PrintNotCreatingPullRequest() {
@@ -49,9 +53,9 @@ func (s *SurveyPrompt) PrintNotCreatingPullRequest() {
 }
 
 func (s *SurveyPrompt) PrintPromotionConfigured(branch string, env string) {
-	fmt.Printf("✅ Configured promotion for builds of branch %s PR to %s environment.", branch, env)
+	fmt.Printf("✅ Configured promotion of branch %s pull request to %s environment.\n", style.Resource(branch), style.Resource(env))
 }
 
 func (s *SurveyPrompt) PrintPromotionDisabled(branch string) {
-	fmt.Printf("🛑 Disabled promotion for builds of branch %s PR.", branch)
+	fmt.Printf("🛑 Disabled promotion of branch %s pull request.\n", style.Resource(branch))
 }

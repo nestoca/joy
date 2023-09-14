@@ -30,14 +30,6 @@ func NewRootCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
 			}
-
-			// Make catalog dir the current directory, as all commands
-			// need to be run from there for loading catalog and executing
-			// git commands.
-			err = os.Chdir(cfg.CatalogDir)
-			if err != nil {
-				return fmt.Errorf("changing to catalog directory: %w", err)
-			}
 			return nil
 		},
 	}

@@ -104,7 +104,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 
 Only selected releases will be included in releases table and during promotion.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return release.ConfigureSelection(cfg.FilePath, allFlag)
+			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
@@ -126,7 +126,7 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return jac.ListReleasePeople(args)
+			return jac.ListReleasePeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd

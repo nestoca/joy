@@ -27,6 +27,7 @@ func NewPRPromoteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
 				LoadEnvs:        true,
 				SortEnvsByOrder: true,
 			}
