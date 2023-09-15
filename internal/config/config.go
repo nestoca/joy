@@ -1,10 +1,12 @@
 package config
 
 import (
+	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 const joyrcFile = ".joyrc"
@@ -97,14 +99,23 @@ func Load(configDir, catalogDir string) (*Config, error) {
 }
 
 func LoadFile(file string) (*Config, error) {
-	content, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("loading config %s: %w", file, err)
+	cfg := &Config{}
+
+	if _, err := os.Stat(file); err == nil {
+		// Load config from file if it exists
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("loading config %s: %w", file, err)
+		}
+		if err := yaml.Unmarshal(content, &cfg); err != nil {
+			return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		// It's ok if config file does not exist, but not any other errors.
+		return nil, fmt.Errorf("checking for config file %s: %w", file, err)
 	}
-	var cfg *Config
-	if err := yaml.Unmarshal(content, &cfg); err != nil {
-		return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
-	}
+
+	// Saving file location
 	cfg.FilePath = file
 	return cfg, nil
 }
