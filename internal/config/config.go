@@ -63,19 +63,9 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	// Load config from .joyrc in configDir
 	var cfg *Config
 	joyrcPath := filepath.Join(configDir, joyrcFile)
-	_, err = os.Stat(joyrcPath)
+	cfg, err = LoadFile(joyrcPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			// It's ok if config file does not exist, we'll use default values
-			cfg = &Config{}
-		} else {
-			return nil, fmt.Errorf("checking for %s: %w", joyrcPath, err)
-		}
-	} else {
-		cfg, err = LoadFile(joyrcPath)
-		if err != nil {
-			return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
-		}
+		return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
 	}
 
 	// Set defaults and in-memory values
@@ -101,7 +91,8 @@ func Load(configDir, catalogDir string) (*Config, error) {
 func LoadFile(file string) (*Config, error) {
 	cfg := &Config{}
 
-	if _, err := os.Stat(file); err == nil {
+	_, err := os.Stat(file)
+	if err == nil {
 		// Load config from file if it exists
 		content, err := os.ReadFile(file)
 		if err != nil {
