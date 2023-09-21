@@ -1,10 +1,10 @@
 package promote_test
 
 import (
-	"github.com/golang/mock/gomock"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"testing"
 )
 

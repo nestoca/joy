@@ -3,9 +3,9 @@ package promote_test
 import (
 	"bytes"
 	"github.com/go-test/deep"
-	"github.com/golang/mock/gomock"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"golang.org/x/exp/slices"
 	"os"
 	"os/exec"

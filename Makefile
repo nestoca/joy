@@ -5,9 +5,11 @@ run:
 	@echo "Ex: 'go run ./cmd/joy help'"
 
 setup:
+	@go install go.uber.org/mock/mockgen@latest
 	@go mod download
 
 build:
+	@go generate ./...
 	@go build -o ./out/joy ./cmd/joy
 
 vet:
