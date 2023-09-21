@@ -8,17 +8,19 @@ setup:
 	@go install go.uber.org/mock/mockgen@latest
 	@go mod download
 
-build:
-	@go generate ./...
+build: generate
 	@go build -o ./out/joy ./cmd/joy
 
 vet:
 	@go vet ./...
 
-test: vet
+generate:
+	@go generate ./...
+
+test: generate vet
 	@go test ./...
 
-test-cov: vet
+test-cov: generate vet
 	@mkdir -p ./reports
 	@go test ./... -coverprofile ./reports/coverage.out -covermode count
 	@go tool cover -func ./reports/coverage.out
