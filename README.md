@@ -28,6 +28,37 @@ What makes joy releases useful and powerful:
   - Helm chart+version
   - Helm values for deploying the container
 
+# Installing joy
+
+## Installing with homebrew
+
+```bash
+$ brew tap nestoca/public
+$ brew install joy
+```
+
+Upgrade with:
+```
+$ brew update
+$ brew upgrade joy
+```
+
+## Installing manually
+
+Download from GitHub [releases](https://github.com/nestoca/joy/releases/latest) and put the binary somewhere in your $PATH.
+
+## Cloning your catalog repo
+
+```
+$ git clone git@github.com:<OWNER>/<CATALOG>.git ~/.joy
+```
+
+That is the default location where joy will look for your catalog repo. If you want to clone your catalog in a different location for convenience, create a `~/.joy/config.yaml` file with the following content to redirect joy to it:
+
+```yaml
+catalog-dir: /absolute/path/to/your/catalog
+```
+
 # How does it work?
 
 - DevOps/platform engineers create a "joy catalog" git repo, defining different `Environment` resources.
