@@ -13,7 +13,7 @@ import (
 type GitHubPullRequestProvider struct {
 }
 
-var labelRegex = regexp.MustCompile(`^promote:\s*(\S+)$`)
+var labelRegex = regexp.MustCompile(`^promote:(.+)$`)
 
 type pullRequest struct {
 	HeadRefName string `json:"headRefName"`
@@ -35,19 +35,14 @@ func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
 }
 
 func (g *GitHubPullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
-	prs, err := getAll()
+	prs, err := getAllWithLabel(fmt.Sprintf("promote:%s", env))
 	if err != nil {
 		return nil, fmt.Errorf("getting pull requests: %w", err)
 	}
 
 	var branches []string
 	for _, pr := range prs {
-		for _, label := range pr.Labels {
-			if labelRegex.MatchString(label.Name) && labelRegex.FindStringSubmatch(label.Name)[1] == env {
-				branches = append(branches, pr.HeadRefName)
-				break
-			}
-		}
+		branches = append(branches, pr.HeadRefName)
 	}
 	return branches, nil
 }
@@ -118,7 +113,7 @@ func (g *GitHubPullRequestProvider) SetPromotionEnvironment(branch string, env s
 
 func get(branch string) (*pullRequest, error) {
 	// List pull requests for branch
-	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "headRefName,labels")
+	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--state", "open", "--json", "headRefName,labels")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("listing pull requests for branch %s: %s", branch, output)
@@ -137,9 +132,9 @@ func get(branch string) (*pullRequest, error) {
 	return &prs[0], nil
 }
 
-func getAll() ([]pullRequest, error) {
+func getAllWithLabel(label string) ([]pullRequest, error) {
 	// List pull requests for branch
-	cmd := exec.Command("gh", "pr", "list", "--json", "headRefName,labels")
+	cmd := exec.Command("gh", "pr", "list", "--label", label, "--state", "open", "--json", "headRefName")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("listing pull requests: %s", output)
