@@ -36,13 +36,11 @@ func EnsureInstalledAndAuthorized() error {
 		return errors.New("missing gh cli dependency")
 	}
 
+	// Check if user is logged in
 	cmd = exec.Command("gh", "auth", "status")
-	output, _ := cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
-
-	// Check if authorized
-	tokenRegex := regexp.MustCompile(`Token: .+`)
-	if !tokenRegex.MatchString(outputStr) {
+	if err != nil {
 		fmt.Printf("🔐 Please run %s to authorize the gh cli.\n", style.Code("gh auth login"))
 		return errors.New("gh cli not authorized")
 	}
