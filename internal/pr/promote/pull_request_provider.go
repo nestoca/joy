@@ -5,6 +5,10 @@ type PullRequestProvider interface {
 	// Exists returns whether a pull request exists for given branch.
 	Exists(branch string) (bool, error)
 
+	// GetBranchesPromotingToEnvironment returns the branches with pull requests configured for auto-promotion
+	// to given environment.
+	GetBranchesPromotingToEnvironment(env string) ([]string, error)
+
 	// CreateInteractively prompts user to create a pull request for given branch.
 	CreateInteractively(branch string) error
 

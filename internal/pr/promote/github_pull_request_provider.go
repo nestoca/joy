@@ -14,30 +14,10 @@ type GitHubPullRequestProvider struct {
 var labelRegex = regexp.MustCompile(`^promote:\s*(\w+)$`)
 
 type pullRequest struct {
-	Labels []struct {
+	HeadRefName string `json:"headRefName"`
+	Labels      []struct {
 		Name string `json:"name"`
-	}
-}
-
-func get(branch string) (*pullRequest, error) {
-	// List pull requests for branch
-	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "labels")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("listing pull requests for branch %s: %s", branch, output)
-	}
-
-	// Unmarshal JSON
-	var prs []pullRequest
-	if err := json.Unmarshal(output, &prs); err != nil {
-		return nil, fmt.Errorf("unmarshaling pull request list: %w", err)
-	}
-
-	// We can safely assume that there is either none or only one PR for a given branch
-	if len(prs) == 0 {
-		return nil, nil
-	}
-	return &prs[0], nil
+	} `json:"labels"`
 }
 
 func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
@@ -46,6 +26,24 @@ func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
 		return false, fmt.Errorf("getting pull request for branch %s: %w", branch, err)
 	}
 	return pr != nil, nil
+}
+
+func (g *GitHubPullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
+	prs, err := getAll()
+	if err != nil {
+		return nil, fmt.Errorf("getting pull requests: %w", err)
+	}
+
+	var branches []string
+	for _, pr := range prs {
+		for _, label := range pr.Labels {
+			if labelRegex.MatchString(label.Name) && labelRegex.FindStringSubmatch(label.Name)[1] == env {
+				branches = append(branches, pr.HeadRefName)
+				break
+			}
+		}
+	}
+	return branches, nil
 }
 
 func (g *GitHubPullRequestProvider) CreateInteractively(branch string) error {
@@ -110,6 +108,44 @@ func (g *GitHubPullRequestProvider) SetPromotionEnvironment(branch string, env s
 		}
 	}
 	return nil
+}
+
+func get(branch string) (*pullRequest, error) {
+	// List pull requests for branch
+	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "headRefName,labels")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("listing pull requests for branch %s: %s", branch, output)
+	}
+
+	// Unmarshal JSON
+	var prs []pullRequest
+	if err := json.Unmarshal(output, &prs); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request list: %w", err)
+	}
+
+	// We can safely assume that there is either none or only one PR for a given branch
+	if len(prs) == 0 {
+		return nil, nil
+	}
+	return &prs[0], nil
+}
+
+func getAll() ([]pullRequest, error) {
+	// List pull requests for branch
+	cmd := exec.Command("gh", "pr", "list", "--json", "headRefName,labels")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("listing pull requests: %s", output)
+	}
+
+	// Unmarshal JSON
+	var prs []pullRequest
+	if err := json.Unmarshal(output, &prs); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request list: %w", err)
+	}
+
+	return prs, nil
 }
 
 func removeLabel(branch string, label string) error {

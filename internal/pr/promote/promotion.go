@@ -13,14 +13,14 @@ type Promotion struct {
 	PullRequestProvider PullRequestProvider
 
 	// Prompt is the prompt to use for user interaction.
-	Prompt PromptProvider
+	PromptProvider PromptProvider
 }
 
 func NewPromotion(branchProvider BranchProvider, pullRequestProvider PullRequestProvider, prompt PromptProvider) *Promotion {
 	return &Promotion{
 		BranchProvider:      branchProvider,
 		PullRequestProvider: pullRequestProvider,
-		Prompt:              prompt,
+		PromptProvider:      prompt,
 	}
 }
 
@@ -41,7 +41,7 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 	}
 
 	if branch == "master" || branch == "main" {
-		p.Prompt.PrintMasterBranchPromotion()
+		p.PromptProvider.PrintBranchDoesNotSupportAutoPromotion(branch)
 		return nil
 	}
 
@@ -51,12 +51,12 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 	}
 
 	if !exists {
-		shouldCreate, err := p.Prompt.WhetherToCreateMissingPullRequest()
+		shouldCreate, err := p.PromptProvider.WhetherToCreateMissingPullRequest()
 		if err != nil {
 			return fmt.Errorf("prompting user to create pull request: %w", err)
 		}
 		if !shouldCreate {
-			p.Prompt.PrintNotCreatingPullRequest()
+			p.PromptProvider.PrintNotCreatingPullRequest()
 			return nil
 		}
 
@@ -72,18 +72,42 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 	}
 
 	promotableEnvironmentNames := getPromotableEnvironmentNames(environments)
-	env, err = p.Prompt.WhichEnvironmentToPromoteTo(promotableEnvironmentNames, env)
+	env, err = p.PromptProvider.WhichEnvironmentToPromoteTo(promotableEnvironmentNames, env)
 	if err != nil {
 		return fmt.Errorf("prompting user to select promotion environment: %w", err)
+	}
+
+	// Disable auto-promotion on other pull requests promoting to same environment
+	branchesPromotingToEnv, err := p.PullRequestProvider.GetBranchesPromotingToEnvironment(env)
+	if err != nil {
+		return fmt.Errorf("getting branches configured for auto-promotion to %q environment: %w", env, err)
+	}
+	for _, branchPromotingToEnv := range branchesPromotingToEnv {
+		if branchPromotingToEnv == branch {
+			p.PromptProvider.PrintPromotionAlreadyConfigured(branch, env)
+			return nil
+		}
+		shouldDisable, err := p.PromptProvider.ConfirmDisablingPromotionOnOtherPullRequest(branchPromotingToEnv, env)
+		if err != nil {
+			return fmt.Errorf("prompting user to confirm disabling promotion on other pull request: %w", err)
+		}
+		if shouldDisable {
+			if err := p.PullRequestProvider.SetPromotionEnvironment(branchPromotingToEnv, ""); err != nil {
+				return fmt.Errorf("disabling promotion for branch %s pull request: %w", branchPromotingToEnv, err)
+			}
+		} else {
+			p.PromptProvider.PrintPromotionNotConfigured(branch, env)
+			return nil
+		}
 	}
 
 	if err := p.PullRequestProvider.SetPromotionEnvironment(branch, env); err != nil {
 		return fmt.Errorf("setting promotion for branch %s pull request to %q environment: %w", branch, env, err)
 	}
 	if env != "" {
-		p.Prompt.PrintPromotionConfigured(branch, env)
+		p.PromptProvider.PrintPromotionConfigured(branch, env)
 	} else {
-		p.Prompt.PrintPromotionDisabled(branch)
+		p.PromptProvider.PrintPromotionDisabled(branch)
 	}
 	return nil
 }

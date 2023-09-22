@@ -2,11 +2,11 @@ package promote_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/go-test/deep"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"golang.org/x/exp/slices"
 	"os"
 	"os/exec"
 	"sort"
@@ -20,12 +20,13 @@ var possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
 
 func TestPromotePRs(t *testing.T) {
 	testCases := []struct {
-		name     string
-		branch   string
-		oldEnv   string
-		newEnv   string
-		oldLabel string
-		newLabel string
+		name                               string
+		branch                             string
+		oldEnv                             string
+		newEnv                             string
+		oldLabel                           string
+		newLabel                           string
+		otherBranchesAutoPromotingToNewEnv []string
 	}{
 		{
 			name:     "Change promotion of existing PR from none to staging",
@@ -34,6 +35,9 @@ func TestPromotePRs(t *testing.T) {
 			newEnv:   "staging",
 			oldLabel: "",
 			newLabel: "promote:staging",
+			otherBranchesAutoPromotingToNewEnv: []string{
+				"branch-with-pr-promoting-to-staging",
+			},
 		},
 		{
 			name:     "Change promotion of existing PR from staging to demo",
@@ -62,11 +66,19 @@ func TestPromotePRs(t *testing.T) {
 
 			// Preparation and clean-up
 			checkOut(t, tc.branch)
-			setExclusivePromotionLabel(t, tc.oldLabel)
-			defer setExclusivePromotionLabel(t, tc.oldLabel)
+			setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
+			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
+				setExclusivePromotionLabel(t, otherBranch, tc.newLabel)
+			}
+			defer setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
 
 			// Set expectations
 			prompt.EXPECT().WhichEnvironmentToPromoteTo(promotableEnvs, tc.oldEnv).Return(tc.newEnv, nil)
+			if len(tc.otherBranchesAutoPromotingToNewEnv) > 0 {
+				for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
+					prompt.EXPECT().ConfirmDisablingPromotionOnOtherPullRequest(otherBranch, tc.newEnv).Return(true, nil)
+				}
+			}
 			if tc.newEnv != "" {
 				prompt.EXPECT().PrintPromotionConfigured(tc.branch, tc.newEnv)
 			} else {
@@ -79,31 +91,40 @@ func TestPromotePRs(t *testing.T) {
 
 			// Check results
 			assert.NoError(t, err)
-			assertLabel(t, tc.newLabel)
+			assertLabel(t, tc.branch, tc.newLabel)
+			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
+				assertLabel(t, otherBranch, "")
+			}
 		})
 	}
 }
 
-func addLabels(t *testing.T, labels ...string) {
+func addLabels(t *testing.T, branch string, labels ...string) {
 	t.Helper()
-	cmd := exec.Command("gh", "pr", "edit", "--add-label", strings.Join(labels, ","))
+	cmd := exec.Command("gh", "pr", "edit", branch, "--add-label", strings.Join(labels, ","))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	assert.NoError(t, err, "adding labels %v", labels)
 }
 
-func removeLabels(t *testing.T, labels ...string) {
+func removeLabels(t *testing.T, branch string, labels ...string) {
 	t.Helper()
-	cmd := exec.Command("gh", "pr", "edit", "--remove-label", strings.Join(labels, ","))
+	cmd := exec.Command("gh", "pr", "edit", branch, "--remove-label", strings.Join(labels, ","))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	assert.NoError(t, err, "remove labels %v", labels)
 }
 
-func assertLabel(t *testing.T, expectedLabel string) {
-	cmd := exec.Command("gh", "pr", "view", "--json", "labels", "-q", ".labels[].name")
+type pullRequest struct {
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
+}
+
+func assertLabel(t *testing.T, branch, expectedLabel string) {
+	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "labels")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -115,8 +136,21 @@ func assertLabel(t *testing.T, expectedLabel string) {
 		expectedLabels = append(expectedLabels, expectedLabel)
 	}
 
+	// Unmarshal JSON
+	var prs []pullRequest
+	if err := json.Unmarshal(out.Bytes(), &prs); err != nil {
+		t.Error(err)
+	}
+
+	// Extract labels
+	var actualLabels []string
+	for _, pr := range prs {
+		for _, label := range pr.Labels {
+			actualLabels = append(actualLabels, label.Name)
+		}
+	}
+
 	// Ensure we got exactly expected labels
-	actualLabels := strings.Split(strings.TrimSpace(out.String()), "\n")
 	sort.Strings(expectedLabels)
 	sort.Strings(actualLabels)
 	if diff := deep.Equal(expectedLabels, actualLabels); diff != nil {
@@ -124,12 +158,12 @@ func assertLabel(t *testing.T, expectedLabel string) {
 	}
 }
 
-func setExclusivePromotionLabel(t *testing.T, labels ...string) {
-	for _, label := range possiblePromotionLabels {
-		if slices.Contains(labels, label) {
-			addLabels(t, label)
+func setExclusivePromotionLabel(t *testing.T, branch, label string) {
+	for _, possibleLabel := range possiblePromotionLabels {
+		if possibleLabel == label {
+			addLabels(t, branch, possibleLabel)
 		} else {
-			removeLabels(t, label)
+			removeLabels(t, branch, possibleLabel)
 		}
 	}
 }
