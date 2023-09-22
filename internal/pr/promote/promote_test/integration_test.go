@@ -3,7 +3,9 @@ package promote_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/go-test/deep"
+	"github.com/google/uuid"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -99,7 +101,27 @@ func TestPromotePRs(t *testing.T) {
 	}
 }
 
-func addLabels(t *testing.T, branch string, labels ...string) {
+func TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t *testing.T) {
+	branch := "branch-with-pr"
+	guid, err := uuid.NewRandom()
+	assert.NoError(t, err)
+	expectedEnv := guid.String()
+	checkOut(t, branch)
+	prProvider := promote.GitHubPullRequestProvider{}
+
+	err = prProvider.SetPromotionEnvironment(branch, expectedEnv)
+	assert.NoError(t, err)
+	t.Cleanup(func() {
+		_ = prProvider.SetPromotionEnvironment(branch, "")
+		deletePromotionLabelFromRepo(t, expectedEnv)
+	})
+
+	actualEnv, err := prProvider.GetPromotionEnvironment(branch)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedEnv, actualEnv)
+}
+
+func addLabel(t *testing.T, branch string, labels ...string) {
 	t.Helper()
 	cmd := exec.Command("gh", "pr", "edit", branch, "--add-label", strings.Join(labels, ","))
 	cmd.Stdout = os.Stdout
@@ -108,13 +130,23 @@ func addLabels(t *testing.T, branch string, labels ...string) {
 	assert.NoError(t, err, "adding labels %v", labels)
 }
 
-func removeLabels(t *testing.T, branch string, labels ...string) {
+func removeLabel(t *testing.T, branch string, labels ...string) {
 	t.Helper()
 	cmd := exec.Command("gh", "pr", "edit", branch, "--remove-label", strings.Join(labels, ","))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	assert.NoError(t, err, "remove labels %v", labels)
+}
+
+func deletePromotionLabelFromRepo(t *testing.T, env string) {
+	t.Helper()
+	label := fmt.Sprintf("promote:%s", env)
+	cmd := exec.Command("gh", "label", "delete", label, "--yes")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	assert.NoError(t, err, "delete label %s from repo", label)
 }
 
 type pullRequest struct {
@@ -161,9 +193,9 @@ func assertLabel(t *testing.T, branch, expectedLabel string) {
 func setExclusivePromotionLabel(t *testing.T, branch, label string) {
 	for _, possibleLabel := range possiblePromotionLabels {
 		if possibleLabel == label {
-			addLabels(t, branch, possibleLabel)
+			addLabel(t, branch, possibleLabel)
 		} else {
-			removeLabels(t, branch, possibleLabel)
+			removeLabel(t, branch, possibleLabel)
 		}
 	}
 }

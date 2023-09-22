@@ -7,12 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 )
 
 type GitHubPullRequestProvider struct {
 }
 
-var labelRegex = regexp.MustCompile(`^promote:\s*(\w+)$`)
+var labelRegex = regexp.MustCompile(`^promote:\s*(\S+)$`)
 
 type pullRequest struct {
 	HeadRefName string `json:"headRefName"`
@@ -163,8 +164,18 @@ func removeLabel(branch string, label string) error {
 }
 
 func addLabel(branch string, label string) error {
-	cmd := exec.Command("gh", "pr", "edit", branch, "--add-label", label)
+	// Ensure label exists in repo
+	cmd := exec.Command("gh", "label", "create", label)
 	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if !strings.Contains(string(output), "already exists") {
+			return fmt.Errorf("creating label %s: %s", label, output)
+		}
+	}
+
+	// Add label to PR
+	cmd = exec.Command("gh", "pr", "edit", branch, "--add-label", label)
+	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("adding label %s to branch %s: %s", label, branch, output)
 	}
