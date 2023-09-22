@@ -1,7 +1,7 @@
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package promote
 
-type Prompt interface {
+type PromptProvider interface {
 	// WhetherToCreateMissingPullRequest prompts user to create a pull request for current branch.
 	WhetherToCreateMissingPullRequest() (bool, error)
 

@@ -6,10 +6,10 @@ import (
 	"github.com/nestoca/joy/internal/style"
 )
 
-type SurveyPrompt struct {
+type InteractivePromptProvider struct {
 }
 
-func (s *SurveyPrompt) WhetherToCreateMissingPullRequest() (bool, error) {
+func (s *InteractivePromptProvider) WhetherToCreateMissingPullRequest() (bool, error) {
 	prompt := &survey.Confirm{
 		Message: "No pull request found for current branch, create one?",
 		Default: true,
@@ -22,7 +22,7 @@ func (s *SurveyPrompt) WhetherToCreateMissingPullRequest() (bool, error) {
 	return shouldCreate, nil
 }
 
-func (s *SurveyPrompt) WhichEnvironmentToPromoteTo(environments []string, preSelectedEnv string) (string, error) {
+func (s *InteractivePromptProvider) WhichEnvironmentToPromoteTo(environments []string, preSelectedEnv string) (string, error) {
 	none := "[none]"
 	if preSelectedEnv == "" {
 		preSelectedEnv = none
@@ -44,18 +44,18 @@ func (s *SurveyPrompt) WhichEnvironmentToPromoteTo(environments []string, preSel
 	return selectedEnv, nil
 }
 
-func (s *SurveyPrompt) PrintMasterBranchPromotion() {
+func (s *InteractivePromptProvider) PrintMasterBranchPromotion() {
 	fmt.Printf("🚫 Cannot promote builds of %s/%s branch, please create a feature branch and try again.\n", style.Resource("master"), style.Resource("main"))
 }
 
-func (s *SurveyPrompt) PrintNotCreatingPullRequest() {
+func (s *InteractivePromptProvider) PrintNotCreatingPullRequest() {
 	fmt.Println("👋 Alright, so long my friend!")
 }
 
-func (s *SurveyPrompt) PrintPromotionConfigured(branch string, env string) {
+func (s *InteractivePromptProvider) PrintPromotionConfigured(branch string, env string) {
 	fmt.Printf("✅ Configured promotion of branch %s pull request to %s environment.\n", style.Resource(branch), style.Resource(env))
 }
 
-func (s *SurveyPrompt) PrintPromotionDisabled(branch string) {
+func (s *InteractivePromptProvider) PrintPromotionDisabled(branch string) {
 	fmt.Printf("🛑 Disabled promotion of branch %s pull request.\n", style.Resource(branch))
 }

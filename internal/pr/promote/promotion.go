@@ -13,10 +13,10 @@ type Promotion struct {
 	PullRequestProvider PullRequestProvider
 
 	// Prompt is the prompt to use for user interaction.
-	Prompt Prompt
+	Prompt PromptProvider
 }
 
-func NewPromotion(branchProvider BranchProvider, pullRequestProvider PullRequestProvider, prompt Prompt) *Promotion {
+func NewPromotion(branchProvider BranchProvider, pullRequestProvider PullRequestProvider, prompt PromptProvider) *Promotion {
 	return &Promotion{
 		BranchProvider:      branchProvider,
 		PullRequestProvider: pullRequestProvider,
@@ -28,7 +28,7 @@ func NewDefaultPromotion() *Promotion {
 	return NewPromotion(
 		&GitBranchProvider{},
 		&GitHubPullRequestProvider{},
-		&SurveyPrompt{},
+		&InteractivePromptProvider{},
 	)
 }
 

@@ -58,7 +58,7 @@ func TestPromotePRs(t *testing.T) {
 			// Create mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			prompt := promote.NewMockPrompt(ctrl)
+			prompt := promote.NewMockPromptProvider(ctrl)
 
 			// Preparation and clean-up
 			checkOut(t, tc.branch)

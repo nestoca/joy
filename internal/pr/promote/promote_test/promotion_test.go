@@ -33,18 +33,18 @@ func newEnvironments() []*v1alpha1.Environment {
 func TestPromotion(t *testing.T) {
 	cases := []struct {
 		name            string
-		setExpectations func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt)
+		setExpectations func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider)
 	}{
 		{
 			name: "master branch",
-			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt) {
+			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				branchProvider.EXPECT().GetCurrentBranch().Return("master", nil)
 				prompt.EXPECT().PrintMasterBranchPromotion()
 			},
 		},
 		{
 			name: "branch with no PR and user opting out from creating PR",
-			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt) {
+			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				someBranch := "some-branch"
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(false, nil)
@@ -54,7 +54,7 @@ func TestPromotion(t *testing.T) {
 		},
 		{
 			name: "branch with no PR",
-			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt) {
+			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				someBranch := "some-branch"
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := ""
@@ -71,7 +71,7 @@ func TestPromotion(t *testing.T) {
 		},
 		{
 			name: "branch with existing PR but no promotion env",
-			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt) {
+			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				someBranch := "some-branch"
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := ""
@@ -86,7 +86,7 @@ func TestPromotion(t *testing.T) {
 		},
 		{
 			name: "branch with existing PR and promotion env",
-			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPrompt) {
+			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				someBranch := "some-branch"
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := "demo"
@@ -107,7 +107,7 @@ func TestPromotion(t *testing.T) {
 			defer ctrl.Finish()
 			branchProvider := promote.NewMockBranchProvider(ctrl)
 			prProvider := promote.NewMockPullRequestProvider(ctrl)
-			prompt := promote.NewMockPrompt(ctrl)
+			prompt := promote.NewMockPromptProvider(ctrl)
 
 			// Set case-specific expectations
 			c.setExpectations(branchProvider, prProvider, prompt)
