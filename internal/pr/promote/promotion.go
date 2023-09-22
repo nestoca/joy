@@ -35,6 +35,10 @@ func NewDefaultPromotion() *Promotion {
 // Promote prompts user to create a pull request for current branch and to select environment to auto-promote builds
 // of pull request to, and then configures the pull request accordingly.
 func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
+	if err := p.PullRequestProvider.EnsureInstalledAndAuthorized(); err != nil {
+		return nil
+	}
+
 	branch, err := p.BranchProvider.GetCurrentBranch()
 	if err != nil {
 		return fmt.Errorf("getting current branch: %w", err)

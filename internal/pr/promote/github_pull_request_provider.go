@@ -3,6 +3,7 @@ package promote
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nestoca/joy/internal/gh"
 	"os"
 	"os/exec"
 	"regexp"
@@ -18,6 +19,10 @@ type pullRequest struct {
 	Labels      []struct {
 		Name string `json:"name"`
 	} `json:"labels"`
+}
+
+func (g *GitHubPullRequestProvider) EnsureInstalledAndAuthorized() error {
+	return gh.EnsureInstalledAndAuthorized()
 }
 
 func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
