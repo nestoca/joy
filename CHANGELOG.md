@@ -1,3 +1,12 @@
+## [0.9.1](https://github.com/nestoca/joy/compare/v0.9.0...v0.9.1) (2023-09-25)
+
+
+### Bug Fixes
+
+* **config:** handle missing config file gracefully ([#25](https://github.com/nestoca/joy/issues/25)) ([ae73f97](https://github.com/nestoca/joy/commit/ae73f976acebc123f4e37d38be775cf134c9bcf0))
+
+
+
 # [0.9.0](https://github.com/nestoca/joy/compare/v0.8.2...v0.9.0) (2023-09-08)
 
 
