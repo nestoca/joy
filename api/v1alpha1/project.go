@@ -2,8 +2,10 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/yml"
+
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 const ProjectKind = "Project"
@@ -17,6 +19,12 @@ type ProjectSpec struct {
 	// Owners is the list of identifiers of owners of the project.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
+
+	// Git repository of the project.
+	Repository string `yaml:"repository,omitempty" json:"repository,omitempty"`
+
+	// Location of the project in the repository. Should be empty if the whole repository is the project.
+	RepositorySubdirectory string `yaml:"repositorySubdirectory,omitempty" json:"repositorySubdirectory,omitempty"`
 }
 
 type Project struct {
