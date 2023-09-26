@@ -1,3 +1,12 @@
+# [0.10.0](https://github.com/nestoca/joy/compare/v0.9.1...v0.10.0) (2023-09-26)
+
+
+### Features
+
+* add repository details to project ([#24](https://github.com/nestoca/joy/issues/24)) ([03350d7](https://github.com/nestoca/joy/commit/03350d78658579dbed4510858c80795d9065deb5)), closes [#discussion_r13262817](https://github.com/nestoca/joy/issues/discussion_r13262817)
+
+
+
 ## [0.9.1](https://github.com/nestoca/joy/compare/v0.9.0...v0.9.1) (2023-09-25)
 
 
