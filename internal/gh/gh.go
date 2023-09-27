@@ -29,7 +29,7 @@ func CreatePullRequest(args ...string) error {
 }
 
 func EnsureInstalledAndAuthenticated() error {
-	cmd := exec.Command("which", "gh")
+	cmd := exec.Command("command", "-v", "gh")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("🤓 This command requires the gh cli.\nSee: https://github.com/cli/cli")

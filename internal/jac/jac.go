@@ -110,7 +110,7 @@ func listPeopleWithGroups(groups []string, extraArgs []string) error {
 }
 
 func ensureJacCliInstalled() error {
-	cmd := exec.Command("which", "jac")
+	cmd := exec.Command("command", "-v", "jac")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("🤓 This command requires the jac cli.\nSee: https://github.com/nestoca/jac")
