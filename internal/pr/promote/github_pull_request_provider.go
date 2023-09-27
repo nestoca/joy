@@ -22,8 +22,8 @@ type pullRequest struct {
 	} `json:"labels"`
 }
 
-func (g *GitHubPullRequestProvider) EnsureInstalledAndAuthorized() error {
-	return gh.EnsureInstalledAndAuthorized()
+func (g *GitHubPullRequestProvider) EnsureInstalledAndAuthenticated() error {
+	return gh.EnsureInstalledAndAuthenticated()
 }
 
 func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {

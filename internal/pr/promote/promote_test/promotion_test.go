@@ -38,7 +38,7 @@ func TestPromotion(t *testing.T) {
 		{
 			name: "master branch",
 			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return("master", nil)
 				prompt.EXPECT().PrintBranchDoesNotSupportAutoPromotion("master")
 			},
@@ -47,7 +47,7 @@ func TestPromotion(t *testing.T) {
 			name: "branch with no PR and user opting out from creating PR",
 			setExpectations: func(branchProvider *promote.MockBranchProvider, prProvider *promote.MockPullRequestProvider, prompt *promote.MockPromptProvider) {
 				someBranch := "some-branch"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(false, nil)
 				prompt.EXPECT().WhetherToCreateMissingPullRequest().Return(false, nil)
@@ -61,7 +61,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := ""
 				selectedPromotionEnv := "staging"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(false, nil)
 				prompt.EXPECT().WhetherToCreateMissingPullRequest().Return(true, nil)
@@ -80,7 +80,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := ""
 				selectedPromotionEnv := "staging"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(true, nil)
 				prProvider.EXPECT().GetPromotionEnvironment(someBranch).Return(currentPromotionEnv, nil)
@@ -97,7 +97,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := "demo"
 				selectedPromotionEnv := "demo"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(true, nil)
 				prProvider.EXPECT().GetPromotionEnvironment(someBranch).Return(currentPromotionEnv, nil)
@@ -113,7 +113,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := "demo"
 				selectedPromotionEnv := "staging"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(true, nil)
 				prProvider.EXPECT().GetPromotionEnvironment(someBranch).Return(currentPromotionEnv, nil)
@@ -131,7 +131,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := "demo"
 				selectedPromotionEnv := "staging"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(true, nil)
 				prProvider.EXPECT().GetPromotionEnvironment(someBranch).Return(currentPromotionEnv, nil)
@@ -153,7 +153,7 @@ func TestPromotion(t *testing.T) {
 				promotableEnvNames := []string{"staging", "demo"}
 				currentPromotionEnv := "demo"
 				selectedPromotionEnv := "staging"
-				prProvider.EXPECT().EnsureInstalledAndAuthorized().Return(nil)
+				prProvider.EXPECT().EnsureInstalledAndAuthenticated().Return(nil)
 				branchProvider.EXPECT().GetCurrentBranch().Return(someBranch, nil)
 				prProvider.EXPECT().Exists(someBranch).Return(true, nil)
 				prProvider.EXPECT().GetPromotionEnvironment(someBranch).Return(currentPromotionEnv, nil)

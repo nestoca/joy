@@ -2,8 +2,8 @@
 package promote
 
 type PullRequestProvider interface {
-	// EnsureInstalledAndAuthorized ensures the pull request provider is installed and authorized.
-	EnsureInstalledAndAuthorized() error
+	// EnsureInstalledAndAuthenticated ensures the pull request provider is installed and authorized.
+	EnsureInstalledAndAuthenticated() error
 
 	// Exists returns whether a pull request exists for given branch.
 	Exists(branch string) (bool, error)

@@ -12,7 +12,7 @@ import (
 
 // CreatePullRequest creates a pull request.
 func CreatePullRequest(args ...string) error {
-	err := EnsureInstalledAndAuthorized()
+	err := EnsureInstalledAndAuthenticated()
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func CreatePullRequest(args ...string) error {
 	return nil
 }
 
-func EnsureInstalledAndAuthorized() error {
+func EnsureInstalledAndAuthenticated() error {
 	cmd := exec.Command("which", "gh")
 	err := cmd.Run()
 	if err != nil {
@@ -41,8 +41,8 @@ func EnsureInstalledAndAuthorized() error {
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
 	if err != nil {
-		fmt.Printf("🔐 Please run %s to authorize the gh cli.\n", style.Code("gh auth login"))
-		return errors.New("gh cli not authorized")
+		fmt.Printf("🔐 Please run %s to authenticate the gh cli.\n", style.Code("gh auth login"))
+		return errors.New("gh cli not authenticated")
 	}
 
 	// Check if user has required scopes
