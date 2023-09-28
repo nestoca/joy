@@ -14,9 +14,16 @@ type EnvironmentMetadata struct {
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 }
 
+type Promotion struct {
+	FromPullRequests bool `yaml:"fromPullRequests,omitempty" json:"fromPullRequests,omitempty"`
+}
+
 type EnvironmentSpec struct {
 	// Order controls the display order of the environment.
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
+
+	// Promotion controls the promotion of releases to this environment.
+	Promotion Promotion `yaml:"promotion,omitempty" json:"promotion,omitempty"`
 
 	// Cluster is the name of environment's cluster.
 	Cluster string `yaml:"cluster,omitempty" json:"cluster,omitempty"`

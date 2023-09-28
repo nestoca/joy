@@ -63,8 +63,9 @@ func Commit(message string) error {
 	return nil
 }
 
-func Push() error {
-	cmd := exec.Command("git", "push")
+func Push(args ...string) error {
+	args = append([]string{"push"}, args...)
+	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -86,8 +87,9 @@ func PushNewBranch(name string) error {
 	return nil
 }
 
-func Pull() error {
-	cmd := exec.Command("git", "pull")
+func Pull(args ...string) error {
+	args = append([]string{"pull"}, args...)
+	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -108,12 +110,12 @@ func Reset() error {
 	}
 	outputText := strings.TrimSpace(string(output))
 	if len(outputText) == 0 {
-		fmt.Println("🤷No uncommitted changes were found")
+		fmt.Println("🤷 No uncommitted changes were found")
 		return nil
 	}
 
 	// Ask for confirmation
-	fmt.Printf("🔥Uncommitted changes detected:\n%s", style.Warning(output))
+	fmt.Printf("🔥 Uncommitted changes detected:\n%s", style.Warning(string(output)))
 	confirm := false
 	prompt := &survey.Confirm{
 		Message: "Are you sure you want discard all uncommitted changes?",
@@ -124,7 +126,7 @@ func Reset() error {
 		return fmt.Errorf("asking for confirmation: %w", err)
 	}
 	if !confirm {
-		fmt.Println("❌Reset cancelled by user")
+		fmt.Println("❌ Reset cancelled by user")
 		return nil
 	}
 
@@ -135,6 +137,6 @@ func Reset() error {
 		fmt.Println(string(output))
 		return fmt.Errorf("resetting changes: %w", err)
 	}
-	fmt.Println("✅Uncommitted changes discarded successfully!")
+	fmt.Println("✅ Uncommitted changes discarded successfully!")
 	return nil
 }

@@ -110,7 +110,7 @@ func selectKubeContext() (string, error) {
 }
 
 func ensureKubectlInstalled() error {
-	cmd := exec.Command("which", "kubectl")
+	cmd := exec.Command("command", "-v", "kubectl")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("🤓 This command requires kubectl cli to be installed: https://kubernetes.io/docs/tasks/tools/#kubectl")

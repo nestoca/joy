@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func ListProjectPeople(extraArgs []string) error {
+func ListProjectPeople(catalogDir string, extraArgs []string) error {
 	err := ensureJacCliInstalled()
 	if err != nil {
 		return err
@@ -27,6 +27,7 @@ func ListProjectPeople(extraArgs []string) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		Dir:          catalogDir,
 		LoadProjects: true,
 	}
 	cat, err := catalog.Load(loadOpts)
@@ -43,7 +44,7 @@ func ListProjectPeople(extraArgs []string) error {
 	return listPeopleWithGroups(selectedProject.Spec.Owners, extraArgs)
 }
 
-func ListReleasePeople(extraArgs []string) error {
+func ListReleasePeople(catalogDir string, extraArgs []string) error {
 	err := ensureJacCliInstalled()
 	if err != nil {
 		return err
@@ -56,6 +57,7 @@ func ListReleasePeople(extraArgs []string) error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		Dir:          catalogDir,
 		LoadEnvs:     true,
 		LoadReleases: true,
 		LoadProjects: true,
@@ -108,7 +110,7 @@ func listPeopleWithGroups(groups []string, extraArgs []string) error {
 }
 
 func ensureJacCliInstalled() error {
-	cmd := exec.Command("which", "jac")
+	cmd := exec.Command("command", "-v", "jac")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("🤓 This command requires the jac cli.\nSee: https://github.com/nestoca/jac")

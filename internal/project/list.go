@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func List() error {
+func List(catalogDir string) error {
 	err := git.EnsureCleanAndUpToDateWorkingCopy()
 	if err != nil {
 		return err
@@ -17,6 +17,7 @@ func List() error {
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		Dir:          catalogDir,
 		LoadProjects: true,
 	}
 	cat, err := catalog.Load(loadOpts)

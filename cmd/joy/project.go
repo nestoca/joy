@@ -34,7 +34,7 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return jac.ListProjectPeople(args)
+			return jac.ListProjectPeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -49,7 +49,7 @@ func NewProjectListCmd() *cobra.Command {
 		},
 		Long: `List projects and their owners.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return project.List()
+			return project.List(cfg.CatalogDir)
 		},
 	}
 	return cmd

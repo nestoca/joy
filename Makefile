@@ -5,20 +5,24 @@ run:
 	@echo "Ex: 'go run ./cmd/joy help'"
 
 setup:
+	@go install go.uber.org/mock/mockgen@latest
 	@go mod download
 
-build:
+build: generate
 	@go build -o ./out/joy ./cmd/joy
 
 vet:
 	@go vet ./...
 
-test: vet
-	@go test ./...
+generate:
+	@go generate ./...
 
-test-cov: vet
+test: generate vet
+	@go test -v ./...
+
+test-cov: generate vet
 	@mkdir -p ./reports
-	@go test ./... -coverprofile ./reports/coverage.out -covermode count
+	@go test -v ./... -coverprofile ./reports/coverage.out -covermode count
 	@go tool cover -func ./reports/coverage.out
 
 clean:
