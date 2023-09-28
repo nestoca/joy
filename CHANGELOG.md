@@ -1,3 +1,12 @@
+# [0.11.0](https://github.com/nestoca/joy/compare/v0.10.0...v0.11.0) (2023-09-28)
+
+
+### Features
+
+* **devops-1262:** add `joy pr promote` command ([#22](https://github.com/nestoca/joy/issues/22)) ([d3de039](https://github.com/nestoca/joy/commit/d3de0399da39b5502a12e756e518a906482a2bca))
+
+
+
 # [0.10.0](https://github.com/nestoca/joy/compare/v0.9.1...v0.10.0) (2023-09-26)
 
 
