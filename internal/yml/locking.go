@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var lockMarkerRegex = regexp.MustCompile(`(?m)^#+\s*lock\s*$`)
+var lockMarkerRegex = regexp.MustCompile(`(?i)(?m)^#+\s*lock\s*$`)
 
 func IsLocked(keyNode, valueNode *yaml.Node) bool {
 	isKeyNodeMarkedAsLocked :=
