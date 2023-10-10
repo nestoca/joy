@@ -1,3 +1,13 @@
+# [0.12.0](https://github.com/nestoca/joy/compare/v0.11.0...v0.12.0) (2023-10-10)
+
+
+### Features
+
+* lock, handle both # lock and ## lock ([6b8e53d](https://github.com/nestoca/joy/commit/6b8e53d3af61365429e4a00e02c0e87ceebd32bd))
+* make lock case insensitive ([6448ad1](https://github.com/nestoca/joy/commit/6448ad17d680efb05c581fd8d631acc6a2e729fa))
+
+
+
 # [0.11.0](https://github.com/nestoca/joy/compare/v0.10.0...v0.11.0) (2023-09-28)
 
 
