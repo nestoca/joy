@@ -10,9 +10,9 @@ import (
 
 func EnsureCleanAndUpToDateWorkingCopy() error {
 	cmd := exec.Command("git", "status", "--porcelain")
-	outputBytes, err := cmd.Output()
+	outputBytes, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("checking git status: %s", string(outputBytes))
 	}
 
 	output := strings.TrimSpace(string(outputBytes))
