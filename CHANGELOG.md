@@ -1,3 +1,12 @@
+## [0.12.1](https://github.com/nestoca/joy/compare/v0.12.0...v0.12.1) (2023-10-13)
+
+
+### Bug Fixes
+
+* preserve order of locked elements ([#28](https://github.com/nestoca/joy/issues/28)) ([372806d](https://github.com/nestoca/joy/commit/372806dd381e04458d862c7f30e6d045c745b430))
+
+
+
 # [0.12.0](https://github.com/nestoca/joy/compare/v0.11.0...v0.12.0) (2023-10-10)
 
 
