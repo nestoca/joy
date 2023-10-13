@@ -86,7 +86,14 @@ func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
 				src.Content[srcIndex+1] = subtree
 			} else {
 				// We are adding a new node
-				src.Content = append(src.Content, destKeyNode, subtree)
+				insertIndex := findInsertionIndex(src, dest, key)
+				if insertIndex != -1 {
+					// Insert at correct position
+					src.Content = append(src.Content[:insertIndex], append([]*yaml.Node{destKeyNode, subtree}, src.Content[insertIndex:]...)...)
+				} else {
+					// Append at the end
+					src.Content = append(src.Content, destKeyNode, subtree)
+				}
 			}
 		}
 	}
@@ -96,6 +103,33 @@ func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
 		return src
 	}
 	return nil
+}
+
+func findInsertionIndex(src, dest *yaml.Node, key string) int {
+	// Look at all keys in dest that come before the key we are looking for
+	// and find the first index in src that comes after them.
+	index := -1
+	for i := 0; i < len(dest.Content)-1; i += 2 {
+		// Read dest key
+		destKeyNode := dest.Content[i]
+		if destKeyNode.Kind != yaml.ScalarNode {
+			continue
+		}
+		destKey := destKeyNode.Value
+
+		// We've reached the key we are looking for, we're done
+		if destKey == key {
+			break
+		}
+
+		// Look in src for the key
+		srcIndex := findKey(src, destKey)
+		if srcIndex != -1 {
+			// We should insert _at_least_ after that key
+			index = srcIndex + 2
+		}
+	}
+	return index
 }
 
 // setLockedScalarValuesAsTodo sets all scalar values in locked subtrees to "TODO" to remind developers to manually

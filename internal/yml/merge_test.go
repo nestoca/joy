@@ -380,3 +380,34 @@ e:
 		t.Errorf("Mismatch (-expected +actual):\n%s", diff)
 	}
 }
+
+func TestMergeLockedElementOnlyPresentInTargetAndNotLastOfHisSiblingsPreservesItsOrder(t *testing.T) {
+	aContent := `
+a: b
+c: d
+e:
+  f: g
+  l: m
+`
+	bContent := `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j: k
+  l: m
+`
+	expectedContent := `
+a: b
+c: d
+e:
+  f: g
+  ## lock
+  j: k
+  l: m
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
