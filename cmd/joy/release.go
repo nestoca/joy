@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
-	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/spf13/cobra"
+	"regexp"
+	"strings"
 )
 
 func NewReleaseCmd() *cobra.Command {
@@ -54,18 +57,14 @@ func NewReleaseListCmd() *cobra.Command {
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var releases string
+	var sourceEnv, targetEnv string
 
 	cmd := &cobra.Command{
-		Use:     "promote",
+		Use:     "promote [flags] [releases]",
 		Aliases: []string{"prom"},
-		Short:   "Promote releases from one environment to another",
-		Args:    cobra.NoArgs,
+		Short:   "Promote releases across environments",
+		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if cfg.Environments.Source == "" || cfg.Environments.Target == "" {
-				fmt.Printf("🙏 Please run %s to specify source and target promotion environments.", style.Code("joy env select"))
-				return nil
-			}
-
 			// Filtering
 			var filter filtering.Filter
 			if releases != "" {
@@ -114,9 +113,21 @@ func NewReleasePromoteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to promote (comma-separated with wildcards, defaults to prompting user)")
+	cmd.Flags().StringVarP(&sourceEnv, "source", "s", "", "Source environment (interactive if not specified)")
+	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Target environment (interactive if not specified)")
+	addArgumentsToUsage(cmd, "releases", "Comma-separated list of releases (interactive if not specified)")
 
 	return cmd
+}
+
+func addArgumentsToUsage(cmd *cobra.Command, argumentsAndDescriptions ...string) {
+	var builder strings.Builder
+	builder.WriteString("Arguments:\n")
+	for i := 0; i < len(argumentsAndDescriptions)-1; i += 2 {
+		builder.WriteString(fmt.Sprintf("  %-21s %s\n", argumentsAndDescriptions[i], argumentsAndDescriptions[i+1]))
+	}
+	globalSectionPattern := regexp.MustCompile(`(?m)^Global Flags:`)
+	cmd.SetUsageTemplate(globalSectionPattern.ReplaceAllString(cmd.UsageTemplate(), builder.String()+"\n$0"))
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
@@ -124,10 +135,15 @@ func NewReleaseSelectCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "select",
 		Aliases: []string{"sel"},
-		Short:   "Choose releases to work with",
-		Long: `Choose releases to work with.
+		Short:   "Select releases to include in listings and promotions",
+		Long: `Select releases to include in listings and promotions.
 
-Only selected releases will be included in releases table and during promotion.`,
+Usage:
+  joy release select [flags]
+
+Flags:
+  -a, --all          Select all releases (non-interactive)
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
