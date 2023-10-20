@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
-	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
-	"github.com/olekukonko/tablewriter"
 	"golang.org/x/exp/slices"
-	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -170,48 +168,6 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 	return subset, nil
 }
 
-type PrintOpts struct {
-	// IsPromoting allows to dim releases that are not promotable (i.e. have no release in first environment)
-	IsPromoting bool
-}
-
-// Print displays all releases versions across environments in a table format.
-func (r *ReleaseList) Print(opts PrintOpts) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetHeaderLine(false)
-	table.SetAutoWrapText(true)
-	table.SetBorder(false)
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetCenterSeparator("")
-
-	headers := []string{"NAME"}
-	for _, env := range r.Environments {
-		headers = append(headers, strings.ToUpper(env.Name))
-	}
-	table.SetHeader(headers)
-
-	for _, crossRelease := range r.Items {
-		// Check if releases and their values are synced across all environments
-		releasesSynced := crossRelease.AllReleasesSynced()
-		dimmed := opts.IsPromoting && !crossRelease.Promotable()
-
-		row := []string{stylize(crossRelease.Name, releasesSynced, dimmed)}
-		for _, rel := range crossRelease.Releases {
-			text := "-"
-			if rel != nil && !rel.Missing {
-				text = rel.Spec.Version
-			}
-			text = stylize(text, releasesSynced, dimmed)
-			row = append(row, text)
-		}
-		table.Append(row)
-	}
-
-	table.Render()
-}
-
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
 	for _, crossRelease := range r.Items {
 		for _, rel := range crossRelease.Releases {
@@ -255,14 +211,4 @@ func (r *ReleaseList) HasAnyPromotableReleases() bool {
 		}
 	}
 	return false
-}
-
-func stylize(text string, releasesSynced, dimmed bool) string {
-	if dimmed {
-		return style.SecondaryInfo(text)
-	}
-	if !releasesSynced {
-		return style.Warning(text)
-	}
-	return style.OK(text)
 }

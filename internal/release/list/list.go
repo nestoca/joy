@@ -5,7 +5,11 @@ import (
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/olekukonko/tablewriter"
+	"os"
+	"strings"
 )
 
 type Opts struct {
@@ -40,6 +44,35 @@ func List(opts Opts) error {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	cat.Releases.Print(cross.PrintOpts{})
+	// Set up table writer
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetHeaderLine(false)
+	table.SetAutoWrapText(true)
+	table.SetBorder(false)
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetCenterSeparator("")
+
+	// Add headers
+	releases := cat.Releases
+	headers := []string{"NAME"}
+	for _, env := range releases.Environments {
+		headers = append(headers, strings.ToUpper(env.Name))
+	}
+	table.SetHeader(headers)
+
+	// Add rows
+	for _, crossRelease := range releases.Items {
+		inSync := crossRelease.AreVersionsInSync()
+		row := []string{style.ReleaseInSyncOrNot(crossRelease.Name, inSync)}
+		for _, rel := range crossRelease.Releases {
+			displayVersion := cross.GetReleaseDisplayVersion(rel, inSync)
+			row = append(row, displayVersion)
+		}
+		table.Append(row)
+	}
+
+	table.Render()
 	return nil
 }

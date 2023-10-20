@@ -3,6 +3,7 @@ package cross
 import (
 	"fmt"
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -59,3 +60,12 @@ func (r *Release) AreVersionsInSync() bool {
 	return true
 }
 
+func GetReleaseDisplayVersion(rel *v1alpha1.Release, inSync bool) string {
+	if rel == nil || rel.Missing {
+		return style.ReleaseNotAvailable("-")
+	}
+	if rel.Spec.Version == "" {
+		return style.ReleaseInSyncOrNot("n/a", inSync)
+	}
+	return style.ReleaseInSyncOrNot(rel.Spec.Version, inSync)
+}
