@@ -25,9 +25,8 @@ func perform(list *cross.ReleaseList) error {
 	targetEnv := list.Environments[1]
 
 	for _, crossRelease := range crossReleases {
-		// Check if releases and values are synced across all environments
-		allReleasesSynced := crossRelease.AllReleasesSynced()
-		if allReleasesSynced {
+		// Skip releases already in sync
+		if crossRelease.PromotedFile == nil {
 			continue
 		}
 		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
