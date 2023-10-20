@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/nestoca/joy/internal/yml"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"path/filepath"
 )
@@ -15,7 +16,8 @@ type EnvironmentMetadata struct {
 }
 
 type Promotion struct {
-	FromPullRequests bool `yaml:"fromPullRequests,omitempty" json:"fromPullRequests,omitempty"`
+	FromPullRequests bool     `yaml:"fromPullRequests,omitempty" json:"fromPullRequests,omitempty"`
+	FromEnvironments []string `yaml:"fromEnvironments,omitempty" json:"fromEnvironments,omitempty"`
 }
 
 type EnvironmentSpec struct {
@@ -73,4 +75,48 @@ func NewEnvironment(file *yml.File) (*Environment, error) {
 	env.File = file
 	env.Dir = filepath.Dir(file.Path)
 	return &env, nil
+}
+
+func GetEnvironmentNames(environments []*Environment) []string {
+	var names []string
+	for _, env := range environments {
+		names = append(names, env.Name)
+	}
+	return names
+}
+
+func GetEnvironmentByName(environments []*Environment, name string) (*Environment, error) {
+	if name == "" {
+		return nil, nil
+	}
+	for _, env := range environments {
+		if env.Name == name {
+			return env, nil
+		}
+	}
+	return nil, fmt.Errorf("environment %q not found", name)
+}
+
+// GetEnvironmentsByNames returns the subset of environments with given names, preserving
+// their order in the original list. If names is empty, all environments are returned.
+func GetEnvironmentsByNames(environments []*Environment, names []string) []*Environment {
+	if len(names) == 0 {
+		return environments
+	}
+	var envs []*Environment
+	for _, env := range environments {
+		if slices.Contains(names, env.Name) {
+			envs = append(envs, env)
+		}
+	}
+	return envs
+}
+
+func (e *Environment) IsPromotableTo(targetEnv *Environment) bool {
+	for _, source := range targetEnv.Spec.Promotion.FromEnvironments {
+		if source == e.Name {
+			return true
+		}
+	}
+	return false
 }
