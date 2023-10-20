@@ -32,12 +32,6 @@ type Environments struct {
 	// Only those will be displayed in table columns by default.
 	// An empty list means all environments are selected.
 	Selected []string `yaml:"selected,omitempty"`
-
-	// Source is the environment user is promoting from by default.
-	Source string `yaml:"source,omitempty"`
-
-	// Target is the environment user is promoting to by default.
-	Target string `yaml:"target,omitempty"`
 }
 
 type Releases struct {
