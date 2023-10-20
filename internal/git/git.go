@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-func Run(args []string) error {
+func Run(dir string, args []string) error {
+	args = append([]string{"-C", dir}, args...)
 	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -21,19 +22,19 @@ func Run(args []string) error {
 	return nil
 }
 
-func Checkout(name string) error {
-	cmd := exec.Command("git", "checkout", name)
+func Checkout(dir, branch string) error {
+	cmd := exec.Command("git", "-C", dir, "checkout", branch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
-		return fmt.Errorf("checkint out branch %s: %w", name, err)
+		return fmt.Errorf("checkint out branch %s: %w", branch, err)
 	}
 	return nil
 }
 
-func CreateBranch(name string) error {
+func CreateBranch(dir, name string) error {
 	// Create and checkout branch
-	cmd := exec.Command("git", "checkout", "-b", name)
+	cmd := exec.Command("git", "-C", dir, "checkout", "-b", name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
@@ -42,8 +43,8 @@ func CreateBranch(name string) error {
 	return nil
 }
 
-func Add(files []string) error {
-	args := append([]string{"add", "--"}, files...)
+func Add(dir string, files []string) error {
+	args := append([]string{"-C", dir, "add", "--"}, files...)
 	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -53,8 +54,8 @@ func Add(files []string) error {
 	return nil
 }
 
-func Commit(message string) error {
-	cmd := exec.Command("git", "commit", "-m", message)
+func Commit(dir, message string) error {
+	cmd := exec.Command("git", "-C", dir, "commit", "-m", message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
@@ -63,8 +64,8 @@ func Commit(message string) error {
 	return nil
 }
 
-func Push(args ...string) error {
-	args = append([]string{"push"}, args...)
+func Push(dir string, args ...string) error {
+	args = append([]string{"-C", dir, "push"}, args...)
 	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -76,9 +77,9 @@ func Push(args ...string) error {
 	return nil
 }
 
-func PushNewBranch(name string) error {
+func PushNewBranch(dir, name string) error {
 	// Set upstream to origin
-	cmd := exec.Command("git", "push", "-u", "origin", name)
+	cmd := exec.Command("git", "-C", dir, "push", "-u", "origin", name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
@@ -87,8 +88,8 @@ func PushNewBranch(name string) error {
 	return nil
 }
 
-func Pull(args ...string) error {
-	args = append([]string{"pull"}, args...)
+func Pull(dir string, args ...string) error {
+	args = append([]string{"-C", dir, "pull"}, args...)
 	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -100,9 +101,9 @@ func Pull(args ...string) error {
 	return nil
 }
 
-func Reset() error {
+func Reset(dir string) error {
 	// Check for uncommitted changes
-	cmd := exec.Command("git", "status", "--porcelain")
+	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
@@ -131,7 +132,7 @@ func Reset() error {
 	}
 
 	// Perform reset
-	cmd = exec.Command("git", "reset", "--hard")
+	cmd = exec.Command("git", "-C", dir, "reset", "--hard")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))

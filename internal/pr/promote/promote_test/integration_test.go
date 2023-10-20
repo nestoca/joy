@@ -67,7 +67,7 @@ func TestPromotePRs(t *testing.T) {
 			prompt := promote.NewMockPromptProvider(ctrl)
 
 			// Preparation and clean-up
-			checkOut(t, tc.branch)
+			assert.NoError(t, git.Checkout(".", tc.branch))
 			setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
 			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
 				setExclusivePromotionLabel(t, otherBranch, tc.newLabel)

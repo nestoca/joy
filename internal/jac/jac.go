@@ -20,7 +20,7 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 		return err
 	}
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy()
+	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func ListReleasePeople(catalogDir string, extraArgs []string) error {
 		return err
 	}
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy()
+	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}

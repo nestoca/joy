@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func EnsureCleanAndUpToDateWorkingCopy() error {
-	cmd := exec.Command("git", "status", "--porcelain")
+func EnsureCleanAndUpToDateWorkingCopy(dir string) error {
+	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
 	outputBytes, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("checking git status: %s", string(outputBytes))
@@ -21,7 +21,7 @@ func EnsureCleanAndUpToDateWorkingCopy() error {
 	}
 
 	buf := bytes.Buffer{}
-	cmd = exec.Command("git", "pull")
+	cmd = exec.Command("git", "-C", dir, "pull")
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 	err = cmd.Run()

@@ -42,6 +42,7 @@ func NewReleaseListCmd() *cobra.Command {
 			}
 
 			return list.List(list.Opts{
+				CatalogDir:   cfg.CatalogDir,
 				SelectedEnvs: cfg.Environments.Selected,
 				Filter:       filter,
 			})
@@ -73,19 +74,43 @@ func NewReleasePromoteCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			// Options
+			// Load catalog
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				LoadEnvs:        true,
+				LoadReleases:    true,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			}
+			cat, err := catalog.Load(loadOpts)
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			// Resolve source and target environments
+			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
+			if err != nil {
+				return err
+			}
+			targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, targetEnv)
+			if err != nil {
+				return err
+			}
+
+			// Resolve environments selected by user via `joy env select`
+			selectedEnvironments := v1alpha1.GetEnvironmentsByNames(cat.Environments, cfg.Environments.Selected)
+
+			// Perform promotion
 			opts := promote.Opts{
-				SourceEnv: cfg.Environments.Source,
-				TargetEnv: cfg.Environments.Target,
-				Filter:    filter,
+				Catalog:              cat,
+				SourceEnv:            sourceEnv,
+				TargetEnv:            targetEnv,
+				ReleasesFiltered:     filter != nil,
+				SelectedEnvironments: selectedEnvironments,
 			}
-
-			// Filter
-			if releases != "" {
-				opts.Filter = filtering.NewNamePatternFilter(releases)
-			}
-
-			return promote.Promote(opts)
+			promotion := promote.NewDefaultPromotion(cfg.CatalogDir)
+			_, err = promotion.Promote(opts)
+			return err
 		},
 	}
 

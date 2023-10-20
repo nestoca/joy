@@ -9,6 +9,9 @@ import (
 )
 
 type Opts struct {
+	// CatalogDir is the path to the catalog directory.
+	CatalogDir string
+
 	// SelectedEnvs is the list of environments that were selected by user to work with.
 	SelectedEnvs []string
 
@@ -18,13 +21,14 @@ type Opts struct {
 }
 
 func List(opts Opts) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy()
+	err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir)
 	if err != nil {
 		return err
 	}
 
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
+		Dir:             opts.CatalogDir,
 		LoadEnvs:        true,
 		LoadReleases:    true,
 		EnvNames:        opts.SelectedEnvs,

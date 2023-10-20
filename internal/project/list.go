@@ -10,7 +10,7 @@ import (
 )
 
 func List(catalogDir string) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy()
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
