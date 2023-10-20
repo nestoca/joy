@@ -1,4 +1,4 @@
-package gh
+package github
 
 import (
 	"errors"
@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// CreatePullRequest creates a pull request.
-func CreatePullRequest(args ...string) error {
+// executeInteractively runs gh command with given args with full forwarding of stdin, stdout and stderr.
+func executeInteractively(args ...string) error {
 	err := EnsureInstalledAndAuthenticated()
 	if err != nil {
 		return err
@@ -26,6 +26,21 @@ func CreatePullRequest(args ...string) error {
 		return fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
 	}
 	return nil
+}
+
+// executeAndGetOutput runs gh command with given args and returns the stdout output.
+func executeAndGetOutput(args ...string) (string, error) {
+	err := EnsureInstalledAndAuthenticated()
+	if err != nil {
+		return "", err
+	}
+
+	cmd := exec.Command("gh", args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
+	}
+	return string(output), nil
 }
 
 func EnsureInstalledAndAuthenticated() error {

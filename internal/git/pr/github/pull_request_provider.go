@@ -1,16 +1,14 @@
-package promote
+package github
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/nestoca/joy/internal/gh"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 )
 
-type GitHubPullRequestProvider struct {
+type PullRequestProvider struct {
 }
 
 var labelRegex = regexp.MustCompile(`^promote:(.+)$`)
@@ -22,11 +20,11 @@ type pullRequest struct {
 	} `json:"labels"`
 }
 
-func (g *GitHubPullRequestProvider) EnsureInstalledAndAuthenticated() error {
-	return gh.EnsureInstalledAndAuthenticated()
+func (g *PullRequestProvider) EnsureInstalledAndAuthenticated() error {
+	return EnsureInstalledAndAuthenticated()
 }
 
-func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
+func (g *PullRequestProvider) Exists(branch string) (bool, error) {
 	pr, err := get(branch)
 	if err != nil {
 		return false, fmt.Errorf("getting pull request for branch %s: %w", branch, err)
@@ -34,7 +32,7 @@ func (g *GitHubPullRequestProvider) Exists(branch string) (bool, error) {
 	return pr != nil, nil
 }
 
-func (g *GitHubPullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
+func (g *PullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
 	prs, err := getAllWithLabel(fmt.Sprintf("promote:%s", env))
 	if err != nil {
 		return nil, fmt.Errorf("getting pull requests: %w", err)
@@ -47,15 +45,21 @@ func (g *GitHubPullRequestProvider) GetBranchesPromotingToEnvironment(env string
 	return branches, nil
 }
 
-func (g *GitHubPullRequestProvider) CreateInteractively(branch string) error {
-	cmd := exec.Command("gh", "pr", "create", "--head", branch)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("creating pull request: %w", err)
+func (g *PullRequestProvider) CreateInteractively(branch string) error {
+	err := executeInteractively("pr", "create", "--head", branch)
+	if err != nil {
+		return fmt.Errorf("creating pull request for branch %s: %w", branch, err)
 	}
 	return nil
+}
+
+func (g *PullRequestProvider) Create(branch, title, body string) (string, error) {
+	prURL, err := executeAndGetOutput("pr", "create", "--head", branch, "--title", title, "--body", body)
+	if err != nil {
+		return "", fmt.Errorf("creating pull request for branch %s: %w", branch, err)
+	}
+	prURL = strings.TrimSpace(prURL)
+	return prURL, err
 }
 
 func getPromotionLabels(branch string) ([]string, error) {
@@ -75,7 +79,7 @@ func getPromotionLabels(branch string) ([]string, error) {
 	return labels, nil
 }
 
-func (g *GitHubPullRequestProvider) GetPromotionEnvironment(branch string) (string, error) {
+func (g *PullRequestProvider) GetPromotionEnvironment(branch string) (string, error) {
 	labels, err := getPromotionLabels(branch)
 	if err != nil {
 		return "", fmt.Errorf("getting promotion labels for branch %s: %w", branch, err)
@@ -86,7 +90,7 @@ func (g *GitHubPullRequestProvider) GetPromotionEnvironment(branch string) (stri
 	return labelRegex.FindStringSubmatch(labels[0])[1], nil
 }
 
-func (g *GitHubPullRequestProvider) SetPromotionEnvironment(branch string, env string) error {
+func (g *PullRequestProvider) SetPromotionEnvironment(branch string, env string) error {
 	// Get current promotion labels
 	// Typically, there is only one or none, but we cannot guarantee there are not many
 	labels, err := getPromotionLabels(branch)

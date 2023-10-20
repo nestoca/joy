@@ -1,8 +1,8 @@
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
-package promote
+package pr
 
 type PullRequestProvider interface {
-	// EnsureInstalledAndAuthenticated ensures the pull request provider is installed and authorized.
+	// EnsureInstalledAndAuthenticated ensures the service provider is installed and authorized.
 	EnsureInstalledAndAuthenticated() error
 
 	// Exists returns whether a pull request exists for given branch.
@@ -14,6 +14,9 @@ type PullRequestProvider interface {
 
 	// CreateInteractively prompts user to create a pull request for given branch.
 	CreateInteractively(branch string) error
+
+	// Create creates a pull request for given branch
+	Create(branch, title, body string) (string, error)
 
 	// GetPromotionEnvironment returns the environment to promote builds of given branch's pull request to.
 	// If empty string is returned, promotion is disabled.
