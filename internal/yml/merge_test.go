@@ -121,6 +121,7 @@ func TestMergePreservingBraces(t *testing.T) {
 a: {b: c}
 `
 	bContent := `
+a: b
 ## lock
 d: e
 `
@@ -220,6 +221,14 @@ func TestMergeWhenBothYAMLsAreEmpty(t *testing.T) {
 	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
 }
 
+func TestMergeWhenBothYAMLsAreNil(t *testing.T) {
+	var aContent *yaml.Node = nil
+	var bContent *yaml.Node = nil
+	expectedContent := `{}`
+
+	testMergeYAMLNodes(t, aContent, bContent, expectedContent)
+}
+
 func TestMergeSanitizeLockedDestinationScalarsAsTodo(t *testing.T) {
 	aContent := `
 a: b
@@ -309,8 +318,11 @@ func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string
 	}
 	bMap.Style = 0
 
-	// Merge YAML nodes
-	result := Merge(&aMap, &bMap)
+	testMergeYAMLNodes(t, &aMap, &bMap, expectedContent)
+}
+
+func testMergeYAMLNodes(t *testing.T, aMap *yaml.Node, bMap *yaml.Node, expectedContent string) {
+	result := Merge(aMap, bMap)
 
 	// Marshal the result with custom indentation
 	var buf bytes.Buffer
@@ -381,7 +393,7 @@ e:
 	}
 }
 
-func TestMergeLockedElementOnlyPresentInTargetAndNotLastOfHisSiblingsPreservesItsOrder(t *testing.T) {
+func Test_MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
 	aContent := `
 a: b
 c: d
@@ -407,6 +419,88 @@ e:
   ## lock
   j: k
   l: m
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
+
+func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
+	aContent := `
+a: b
+c:
+  d: e
+  i: j
+`
+	bContent := `
+a: b
+c:
+  f: 
+    ## lock
+    g: h
+  d: e
+`
+	expectedContent := `
+a: b
+c:
+  f:
+    ## lock
+    g: h
+  d: e
+  i: j
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
+
+func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
+	aContent := `
+a: b
+c:
+  d: e
+  i: j
+`
+	bContent := `
+a: b
+c:
+  d: e
+  f: 
+    ## lock
+    g: h
+  k: l
+`
+	expectedContent := `
+a: b
+c:
+  d: e
+  f:
+    ## lock
+    g: h
+  i: j
+`
+
+	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+}
+
+func Test_MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged(t *testing.T) {
+	aContent := `
+a: b
+c:
+  ## lock
+  d: e
+  i: j
+`
+	bContent := `
+a: b
+c:
+  d: f
+  i: j
+`
+	expectedContent := `
+a: b
+c:
+  ## lock
+  d: f
+  i: j
 `
 
 	testMergeYAMLFiles(t, aContent, bContent, expectedContent)

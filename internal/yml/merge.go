@@ -8,6 +8,15 @@ import (
 // destination release's locked values. Source and destination releases are
 // left unchanged and a new release node tree is returned.
 func Merge(src *yaml.Node, dest *yaml.Node) *yaml.Node {
+	if src == nil {
+		src = &yaml.Node{
+			Kind: yaml.DocumentNode,
+			Content: []*yaml.Node{{
+				Kind: yaml.MappingNode,
+			}},
+		}
+	}
+
 	result := DeepCopyNode(src)
 
 	if dest == nil {
@@ -65,16 +74,24 @@ func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
 		// Find source location
 		srcIndex := findKey(src, key)
 		var srcValueNode *yaml.Node
+		var srcKeyNode *yaml.Node
 		if srcIndex != -1 {
+			srcKeyNode = src.Content[srcIndex]
 			srcValueNode = src.Content[srcIndex+1]
 		}
 
 		var subtree *yaml.Node
-		if IsLocked(destKeyNode, destValueNode) {
+		if IsLocked(destKeyNode, destValueNode) || (srcValueNode != nil && IsLocked(srcKeyNode, srcValueNode)) {
 			lockMarkerFound = true
 			subtree = destValueNode
 		} else {
 			subtree = mergeSubTrees(srcValueNode, destValueNode)
+		}
+
+		// Copy source lock comment if any
+		if destKeyNode != nil && IsLocked(srcKeyNode, srcValueNode) {
+			destKeyNode.HeadComment = srcKeyNode.HeadComment
+			destKeyNode.LineComment = srcKeyNode.LineComment
 		}
 
 		// Was a subtree with some locked nodes in it found?
@@ -86,9 +103,12 @@ func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
 				src.Content[srcIndex+1] = subtree
 			} else {
 				// We are adding a new node
-				insertIndex := findInsertionIndex(src, dest, key)
+				insertIndex := 0
+				if i > 0 {
+					insertIndex = findInsertionIndex(src, dest, key)
+				}
 				if insertIndex != -1 {
-					// Insert at correct position
+					// Insert at the correct position
 					src.Content = append(src.Content[:insertIndex], append([]*yaml.Node{destKeyNode, subtree}, src.Content[insertIndex:]...)...)
 				} else {
 					// Append at the end
