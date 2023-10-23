@@ -10,7 +10,6 @@ import (
 var cfg *config.Config
 
 func main() {
-
 	rootCmd := NewRootCmd()
 	err := rootCmd.Execute()
 	if err != nil {
@@ -44,15 +43,16 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(NewPRCmd())
 	cmd.AddCommand(NewBuildCmd())
 
-	// Git-oriented commands
-	cmd.AddGroup(&cobra.Group{ID: "git", Title: "Git-oriented commands"})
+	// Catalog git commands
+	cmd.AddGroup(&cobra.Group{ID: "git", Title: "Catalog git commands"})
 	cmd.AddCommand(NewGitCmd())
 	cmd.AddCommand(NewPullCmd())
 	cmd.AddCommand(NewPushCmd())
 	cmd.AddCommand(NewResetCmd())
 
-	// Other commands
+	// Additional commands
 	cmd.AddCommand(NewSecretCmd())
+	cmd.AddCommand(NewVersionCmd())
 
 	return cmd
 }
