@@ -22,7 +22,7 @@ It also provides the DevOps/platform engineers with a layer of abstraction to ma
 
 What makes joy releases useful and powerful:
 - They only contain the high-level information that is relevant to developers, providing a very simple, visual and intuitive interface to the deployment process.
-- Portions of the release that are environment-specific can be locked with a special `# lock` comment to prevent them from being carried over from environment to environment during promotions.
+- Portions of the release that are environment-specific can be locked with a special `## lock` comment to prevent them from being carried over from environment to environment during promotions.
 - They tie together all the deployment configuration that needs to travel with a given build, such as:
   - Container image+version
   - Helm chart+version
@@ -37,7 +37,7 @@ $ brew tap nestoca/public
 $ brew install joy
 ```
 
-Upgrade with:
+Upgrade to latest version with:
 ```
 $ brew update
 $ brew upgrade joy
@@ -70,7 +70,7 @@ catalog-dir: /absolute/path/to/your/catalog
   - The version of the container to deploy.
   - The Helm chart to use for deployment.
   - The values to pass to the Helm chart.
-  - Certain environment-specific portions of the release can be marked with a `# lock` comment to exclude them from promotions.
+  - Certain environment-specific portions of the release can be marked with a `## lock` comment to exclude them from promotions.
 - CI pipelines for `master` branch build call `joy build promote` at the end of their process to promote the release in
 
 # Using joy with jac
@@ -100,8 +100,8 @@ Select release:
   podinfo-2
 
   NAME          FIRST NAME  LAST NAME  EMAIL              GROUPS                      INHERITED GROUPS
-  jack-sparrow  Jack        Sparrow    jack@example.com   DevOps Dragons              Tech Support
-  peter-pan     Peter       Pan        peter@example.com  Backend Developer Dragons   Tech Support
+  jack-sparrow  Jack        Sparrow    jack@example.com   DevOps Dragons              Tech Support
+  peter-pan     Peter       Pan        peter@example.com  Backend Developer Dragons   Tech Support
  ———
  Count: 2
 ```
