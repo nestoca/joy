@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/go-test/deep"
 	"github.com/google/uuid"
+	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -88,7 +90,7 @@ func TestPromotePRs(t *testing.T) {
 			}
 
 			// Perform test
-			promotion := promote.NewPromotion(&promote.GitBranchProvider{}, &promote.GitHubPullRequestProvider{}, prompt)
+			promotion := promote.NewPromotion(&promote.GitBranchProvider{}, &github.PullRequestProvider{}, prompt)
 			err := promotion.Promote(newEnvironments())
 
 			// Check results
@@ -106,8 +108,8 @@ func TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t *testing.T)
 	guid, err := uuid.NewRandom()
 	assert.NoError(t, err)
 	expectedEnv := guid.String()
-	checkOut(t, branch)
-	prProvider := promote.GitHubPullRequestProvider{}
+	assert.NoError(t, git.Checkout(".", branch))
+	prProvider := github.PullRequestProvider{}
 
 	err = prProvider.SetPromotionEnvironment(branch, expectedEnv)
 	assert.NoError(t, err)
