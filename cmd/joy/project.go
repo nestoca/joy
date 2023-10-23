@@ -21,7 +21,7 @@ func NewProjectCmd() *cobra.Command {
 
 func NewProjectPeopleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "people",
+		Use:   "owners",
 		Short: "List people owning a project via jac cli",
 		Long: `List people owning a project via jac cli.
 
@@ -31,6 +31,11 @@ All extra arguments and flags are passed to jac cli as is.
 
 This command requires the jac cli: https://github.com/nestoca/jac
 `,
+		Aliases: []string{
+			"owner",
+			"own",
+			"people",
+		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

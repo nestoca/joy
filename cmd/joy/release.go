@@ -113,7 +113,7 @@ Only selected releases will be included in releases table and during promotion.`
 
 func NewReleasePeopleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "people",
+		Use:   "owners",
 		Short: "List people owning a release's project via jac cli",
 		Long: `List people owning a release's project via jac cli.
 
@@ -123,6 +123,11 @@ All extra arguments and flags are passed to jac cli as is.
 
 This command requires the jac cli: https://github.com/nestoca/jac
 `,
+		Aliases: []string{
+			"owner",
+			"own",
+			"people",
+		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
