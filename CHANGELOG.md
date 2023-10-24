@@ -1,3 +1,12 @@
+# [0.13.0](https://github.com/nestoca/joy/compare/v0.12.1...v0.13.0) (2023-10-24)
+
+
+### Features
+
+* **devops-1920:** add `joy version` command ([#32](https://github.com/nestoca/joy/issues/32)) ([bc729a2](https://github.com/nestoca/joy/commit/bc729a28239f9739f575864364f8a6f38c43900c))
+
+
+
 ## [0.12.1](https://github.com/nestoca/joy/compare/v0.12.0...v0.12.1) (2023-10-13)
 
 
