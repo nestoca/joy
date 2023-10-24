@@ -1,3 +1,12 @@
+# [0.14.0](https://github.com/nestoca/joy/compare/v0.13.0...v0.14.0) (2023-10-24)
+
+
+### Features
+
+* **devops-1934:** Rename `joy proj/rel people` to `joy proj/rel owners/own` ([#31](https://github.com/nestoca/joy/issues/31)) ([28c9af1](https://github.com/nestoca/joy/commit/28c9af112b95dc9fac8ab8163fb56cd32180eb44))
+
+
+
 # [0.13.0](https://github.com/nestoca/joy/compare/v0.12.1...v0.13.0) (2023-10-24)
 
 
