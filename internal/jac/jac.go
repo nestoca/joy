@@ -1,10 +1,10 @@
 package jac
 
 import (
-	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
@@ -14,10 +14,21 @@ import (
 	"strings"
 )
 
+var dependency = &dependencies.Dependency{
+	Command:    "jac",
+	Url:        "https://github.com/nestoca/jac",
+	IsRequired: false,
+	RequiredBy: []string{"project owners", "release owners"},
+}
+
+func init() {
+	dependencies.Add(dependency)
+}
+
 func ListProjectPeople(catalogDir string, extraArgs []string) error {
-	err := ensureJacCliInstalled()
+	err := dependency.Check()
 	if err != nil {
-		return err
+		os.Exit(1)
 	}
 
 	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
@@ -45,9 +56,9 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 }
 
 func ListReleasePeople(catalogDir string, extraArgs []string) error {
-	err := ensureJacCliInstalled()
+	err := dependency.Check()
 	if err != nil {
-		return err
+		os.Exit(1)
 	}
 
 	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
@@ -109,16 +120,6 @@ func listPeopleWithGroups(groups []string, extraArgs []string) error {
 	return nil
 }
 
-func ensureJacCliInstalled() error {
-	cmd := exec.Command("command", "-v", "jac")
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("🤓 This command requires the jac cli.\nSee: https://github.com/nestoca/jac")
-		return errors.New("missing jac cli dependency")
-	}
-	return nil
-}
-
 func selectProject(projects []*v1alpha1.Project) (*v1alpha1.Project, error) {
 	var selectedIndex int
 	err := survey.AskOne(&survey.Select{
@@ -165,4 +166,11 @@ func releaseNames(releases []*cross.Release) []string {
 		releaseNames = append(releaseNames, release.Name)
 	}
 	return releaseNames
+}
+
+var Dependency = &dependencies.Dependency{
+	Command:    "jac",
+	Url:        "https://github.com/nestoca/jac",
+	IsRequired: false,
+	RequiredBy: []string{"project owners", "release owners"},
 }

@@ -70,16 +70,19 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 	cfg.FilePath = joyrcPath
 
+	return cfg, nil
+}
+
+func CheckCatalogDir(catalogDir string) error {
 	// Ensure that catalog's environments directory exists
-	environmentsDir := filepath.Join(cfg.CatalogDir, "environments")
+	environmentsDir := filepath.Join(catalogDir, "environments")
 	if _, err := os.Stat(environmentsDir); err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("no joy catalog found at %q", cfg.CatalogDir)
+			return fmt.Errorf("no joy catalog found at %q", catalogDir)
 		}
-		return nil, fmt.Errorf("checking for catalog directory %s: %w", cfg.CatalogDir, err)
+		return fmt.Errorf("checking for catalog directory %s: %w", catalogDir, err)
 	}
-
-	return cfg, nil
+	return nil
 }
 
 func LoadFile(file string) (*Config, error) {

@@ -3,12 +3,23 @@ package github
 import (
 	"errors"
 	"fmt"
+	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 )
+
+var dependency = &dependencies.Dependency{
+	Command:    "gh",
+	Url:        "https://github.com/cli/cli",
+	IsRequired: true,
+}
+
+func init() {
+	dependencies.Add(dependency)
+}
 
 // executeInteractively runs gh command with given args with full forwarding of stdin, stdout and stderr.
 func executeInteractively(args ...string) error {
@@ -44,15 +55,13 @@ func executeAndGetOutput(args ...string) (string, error) {
 }
 
 func EnsureInstalledAndAuthenticated() error {
-	cmd := exec.Command("command", "-v", "gh")
-	err := cmd.Run()
+	err := dependency.Check()
 	if err != nil {
-		fmt.Println("🤓 This command requires the gh cli.\nSee: https://github.com/cli/cli")
-		return errors.New("missing gh cli dependency")
+		os.Exit(1)
 	}
 
 	// Check if user is logged in
-	cmd = exec.Command("gh", "auth", "status")
+	cmd := exec.Command("gh", "auth", "status")
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
 	if err != nil {
