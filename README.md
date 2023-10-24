@@ -89,10 +89,10 @@ spec:
     - team-dragons
 ```
 
-You can then use `joy project people` and `joy release people` to have jac resolve the actual people owning those projects and releases:
+You can then use `joy project owners` and `joy release owners` to have jac resolve the actual people owning those projects and releases:
 
 ```bash
-$ joy release people
+$ joy release owners
 Select release:
   service-1
   service-2
@@ -105,6 +105,8 @@ Select release:
  ———
  Count: 2
 ```
+
+(shorthand: `joy proj own` and `joy rel own`)
 
 Arbitrary arguments and flags following those two commands will be passed directly to jac, allowing you to leverage all of jac's querying and filtering capabilities.
 
