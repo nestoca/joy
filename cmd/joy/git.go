@@ -20,8 +20,8 @@ func changeToCatalogDir() error {
 func NewGitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "git",
-		Short:              "Call arbitrary git command in catalog dir with given arguments",
-		Long:               `Call arbitrary git command in catalog dir with given arguments`,
+		Short:              "Call arbitrary git command against catalog with given arguments",
+		Long:               `Call arbitrary git command against catalog with given arguments`,
 		GroupID:            "git",
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
@@ -38,7 +38,7 @@ func NewGitCmd() *cobra.Command {
 func NewPullCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "pull",
-		Short:              "Pull changes from git remote",
+		Short:              "Pull catalog changes from git remote",
 		GroupID:            "git",
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
@@ -55,7 +55,7 @@ func NewPullCmd() *cobra.Command {
 func NewPushCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "push",
-		Short:              "Push changes to git remote",
+		Short:              "Push catalog changes to git remote",
 		GroupID:            "git",
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
@@ -72,7 +72,7 @@ func NewPushCmd() *cobra.Command {
 func NewResetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "reset",
-		Short:   "Reset all uncommitted git changes",
+		Short:   "Reset all uncommitted catalog changes",
 		GroupID: "git",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -9,7 +9,7 @@ setup:
 	@go mod download
 
 build: generate
-	@go build -o ./out/joy ./cmd/joy
+	@go build -ldflags "-X main.version=manual-build-$(date +%F-%T)" -o ./out/joy ./cmd/joy
 
 vet:
 	@go vet ./...

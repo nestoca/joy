@@ -14,7 +14,6 @@ func NewSecretCmd() *cobra.Command {
 
 This command requires the sealed-secrets kubeseal cli to be installed: https://github.com/bitnami-labs/sealed-secrets 
 `,
-		GroupID: "core",
 	}
 	cmd.AddCommand(NewSecretImportCmd())
 	cmd.AddCommand(NewSecretSealCmd())
