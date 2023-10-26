@@ -1,3 +1,12 @@
+# [0.15.0](https://github.com/nestoca/joy/compare/v0.14.0...v0.15.0) (2023-10-26)
+
+
+### Features
+
+* **devops-1926:** move promotion environments selection to `joy release promote` command ([#29](https://github.com/nestoca/joy/issues/29)) ([db1fac5](https://github.com/nestoca/joy/commit/db1fac579ae8507b89634eadceb912baddf1f64a))
+
+
+
 # [0.14.0](https://github.com/nestoca/joy/compare/v0.13.0...v0.14.0) (2023-10-24)
 
 
