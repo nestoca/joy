@@ -26,12 +26,9 @@ func init() {
 }
 
 func ListProjectPeople(catalogDir string, extraArgs []string) error {
-	err := dependency.Check()
-	if err != nil {
-		os.Exit(1)
-	}
+	dependency.MustBeInstalled()
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
@@ -56,12 +53,9 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 }
 
 func ListReleasePeople(catalogDir string, extraArgs []string) error {
-	err := dependency.Check()
-	if err != nil {
-		os.Exit(1)
-	}
+	dependency.MustBeInstalled()
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
@@ -166,11 +160,4 @@ func releaseNames(releases []*cross.Release) []string {
 		releaseNames = append(releaseNames, release.Name)
 	}
 	return releaseNames
-}
-
-var Dependency = &dependencies.Dependency{
-	Command:    "jac",
-	Url:        "https://github.com/nestoca/jac",
-	IsRequired: false,
-	RequiredBy: []string{"project owners", "release owners"},
 }

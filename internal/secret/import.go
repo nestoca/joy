@@ -9,7 +9,6 @@ import (
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -26,10 +25,7 @@ func init() {
 }
 
 func ImportCert() error {
-	err := kubectlDependency.Check()
-	if err != nil {
-		os.Exit(1)
-	}
+	kubectlDependency.MustBeInstalled()
 
 	// Select kube context
 	context, err := selectKubeContext()

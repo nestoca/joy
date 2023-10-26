@@ -20,8 +20,9 @@ func init() {
 	dependencies.Add(dependency)
 }
 
-func Run(args []string) error {
+func Run(dir string, args []string) error {
 	args = append([]string{"-C", dir}, args...)
+	cmd := exec.Command("git", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

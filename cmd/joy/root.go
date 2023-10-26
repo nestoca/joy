@@ -29,10 +29,7 @@ func NewRootCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			if cmd != setupCmd {
-				err = dependencies.CheckAllRequired()
-				if err != nil {
-					os.Exit(1)
-				}
+				dependencies.AllRequiredMustBeInstalled()
 			}
 
 			cfg, err = config.Load(configDir, catalogDir)
