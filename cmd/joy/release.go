@@ -120,6 +120,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 	return cmd
 }
 
+// addArgumentsToUsage adds positional arguments and their descriptions to the usage template of a command.
 func addArgumentsToUsage(cmd *cobra.Command, argumentsAndDescriptions ...string) {
 	var builder strings.Builder
 	builder.WriteString("Arguments:\n")
@@ -136,19 +137,11 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Use:     "select",
 		Aliases: []string{"sel"},
 		Short:   "Select releases to include in listings and promotions",
-		Long: `Select releases to include in listings and promotions.
-
-Usage:
-  joy release select [flags]
-
-Flags:
-  -a, --all          Select all releases (non-interactive)
-`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
-	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases")
+	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
 	return cmd
 }
 
