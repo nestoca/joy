@@ -10,7 +10,7 @@ import (
 )
 
 func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy()
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}

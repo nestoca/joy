@@ -29,7 +29,7 @@ func NewGitCmd() *cobra.Command {
 			if err := changeToCatalogDir(); err != nil {
 				return err
 			}
-			return git.Run(args)
+			return git.Run(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -46,7 +46,7 @@ func NewPullCmd() *cobra.Command {
 			if err := changeToCatalogDir(); err != nil {
 				return err
 			}
-			return git.Pull(args...)
+			return git.Pull(cfg.CatalogDir, args...)
 		},
 	}
 	return cmd
@@ -63,7 +63,7 @@ func NewPushCmd() *cobra.Command {
 			if err := changeToCatalogDir(); err != nil {
 				return err
 			}
-			return git.Push(args...)
+			return git.Push(cfg.CatalogDir, args...)
 		},
 	}
 	return cmd
@@ -79,7 +79,7 @@ func NewResetCmd() *cobra.Command {
 			if err := changeToCatalogDir(); err != nil {
 				return err
 			}
-			return git.Reset()
+			return git.Reset(cfg.CatalogDir)
 		},
 	}
 	return cmd

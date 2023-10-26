@@ -7,6 +7,10 @@ import (
 )
 
 func SelectSingle(environments []*v1alpha1.Environment, current *v1alpha1.Environment, message string) (*v1alpha1.Environment, error) {
+	if len(environments) == 0 {
+		return nil, fmt.Errorf("no environments found")
+	}
+
 	// Create list of environment names
 	var envNames []string
 	for _, env := range environments {

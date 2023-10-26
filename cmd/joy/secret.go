@@ -35,6 +35,7 @@ This command requires kubectl cli to be installed: https://kubernetes.io/docs/ta
 }
 
 func NewSecretSealCmd() *cobra.Command {
+	var env string
 	cmd := &cobra.Command{
 		Use:   "seal",
 		Short: "Encrypt secret",
@@ -44,8 +45,9 @@ This command requires the sealed-secrets kubeseal cli to be installed: https://g
 The sealed secrets public certificate must also have been imported into the environment using 'joy secret import' command.
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return secret.Seal(cfg.Environments.Source)
+			return secret.Seal(env)
 		},
 	}
+	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment to seal secret in")
 	return cmd
 }

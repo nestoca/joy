@@ -6,5 +6,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	testutils.RunTestsInClonedRepo(m, "joy-pr-promote-test")
+	testutils.RunTestsInClonedRepo(m, "joy-release-promote-test")
 }

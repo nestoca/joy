@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
-	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
-	"github.com/olekukonko/tablewriter"
 	"golang.org/x/exp/slices"
-	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -136,59 +134,38 @@ func (r *ReleaseList) OnlySpecificReleases(releases []string) *ReleaseList {
 	return subset
 }
 
-// OnlyPromotableReleases returns a subset of the releases in this list that are promotable.
-// This assumes that there are two and only two environments and that first one is the source
-// and the second one is the target.
-func (r *ReleaseList) OnlyPromotableReleases() *ReleaseList {
-	subset := NewReleaseList(r.Environments)
+// GetReleasesForPromotion returns a subset of the releases in this list that are promotable,
+// with only the given source and target environments as first and second environments.
+func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Environment) (*ReleaseList, error) {
+	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
+	targetEnvIndex := r.getEnvironmentIndex(targetEnv.Name)
+	subset := NewReleaseList([]*v1alpha1.Environment{sourceEnv, targetEnv})
 	for _, item := range r.Items {
-		if item.Promotable() {
-			subset.Items = append(subset.Items, item)
-		}
-	}
-	return subset
-}
+		// Determine source and target releases
+		sourceRelease := item.Releases[sourceEnvIndex]
+		targetRelease := item.Releases[targetEnvIndex]
+		newItem := NewRelease(item.Name, []*v1alpha1.Environment{sourceEnv, targetEnv})
+		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
-type PrintOpts struct {
-	// IsPromoting allows to dim releases that are not promotable (i.e. have no release in first environment)
-	IsPromoting bool
-}
-
-// Print displays all releases versions across environments in a table format.
-func (r *ReleaseList) Print(opts PrintOpts) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetHeaderLine(false)
-	table.SetAutoWrapText(true)
-	table.SetBorder(false)
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetCenterSeparator("")
-
-	headers := []string{"NAME"}
-	for _, env := range r.Environments {
-		headers = append(headers, strings.ToUpper(env.Name))
-	}
-	table.SetHeader(headers)
-
-	for _, crossRelease := range r.Items {
-		// Check if releases and their values are synced across all environments
-		releasesSynced := crossRelease.AllReleasesSynced()
-		dimmed := opts.IsPromoting && !crossRelease.Promotable()
-
-		row := []string{stylize(crossRelease.Name, releasesSynced, dimmed)}
-		for _, rel := range crossRelease.Releases {
-			text := "-"
-			if rel != nil && !rel.Missing {
-				text = rel.Spec.Version
+		// Promotion requires source release
+		if sourceRelease != nil {
+			// Create missing target release based on source release
+			if targetRelease == nil {
+				targetRelease = &(*sourceRelease)
+				targetRelease.File.Path = filepath.Join(targetEnv.Dir, "releases", sourceRelease.Name+".yaml")
+				targetRelease.File.Tree = yml.Merge(sourceRelease.File.Tree, nil)
+				targetRelease.Missing = true
 			}
-			text = stylize(text, releasesSynced, dimmed)
-			row = append(row, text)
-		}
-		table.Append(row)
-	}
 
-	table.Render()
+			err := newItem.ComputePromotedFile()
+			if err != nil {
+				return nil, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
+			}
+		}
+
+		subset.Items = append(subset.Items, newItem)
+	}
+	return subset, nil
 }
 
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
@@ -227,12 +204,11 @@ func findProjectForRelease(projects []*v1alpha1.Project, rel *v1alpha1.Release) 
 	return nil
 }
 
-func stylize(text string, releasesSynced, dimmed bool) string {
-	if dimmed {
-		return style.SecondaryInfo(text)
+func (r *ReleaseList) HasAnyPromotableReleases() bool {
+	for _, crossRelease := range r.Items {
+		if crossRelease.PromotedFile != nil {
+			return true
+		}
 	}
-	if !releasesSynced {
-		return style.Warning(text)
-	}
-	return style.OK(text)
+	return false
 }

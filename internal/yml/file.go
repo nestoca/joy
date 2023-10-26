@@ -29,9 +29,6 @@ type File struct {
 	// MetadataName is the name of the CRD resource, if any.
 	MetadataName string
 
-	// Hash is the hash of the yaml file.
-	Hash uint64
-
 	// Indent is the indent size of the yaml file to be used when writing it back to disk.
 	Indent int
 }
@@ -41,7 +38,6 @@ func NewFile(filePath string, content []byte) (*File, error) {
 	if err := yaml.Unmarshal(content, &node); err != nil {
 		return nil, fmt.Errorf("unmarshalling release file %s in yaml node form: %w", filePath, err)
 	}
-	hash := GetHash(&node)
 
 	// Determine canonical absolute path
 	absFilePath, err := filepath.Abs(filePath)
@@ -57,7 +53,6 @@ func NewFile(filePath string, content []byte) (*File, error) {
 		ApiVersion:   FindNodeValueOrDefault(&node, "apiVersion", ""),
 		Kind:         FindNodeValueOrDefault(&node, "kind", ""),
 		MetadataName: FindNodeValueOrDefault(&node, "metadata.name", ""),
-		Hash:         hash,
 		Indent:       getIndentSize(string(content)),
 	}, nil
 }
@@ -80,7 +75,6 @@ func (y *File) CopyWithNewTree(newTree *yaml.Node) (*File, error) {
 		Path:   y.Path,
 		Yaml:   newYaml,
 		Tree:   newTree,
-		Hash:   GetHash(newTree),
 		Indent: y.Indent,
 	}, nil
 }

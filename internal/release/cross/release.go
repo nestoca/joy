@@ -1,7 +1,10 @@
 package cross
 
 import (
+	"fmt"
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/internal/yml"
 )
 
 // Release describes a given release across multiple environments
@@ -11,6 +14,30 @@ type Release struct {
 
 	// Releases is the list of releases for a given release name across multiple environments.
 	Releases []*v1alpha1.Release
+
+	// PromotedFile is the merged file for release from source to target environment, assuming the only environments
+	// are respectively source and target. If merged result is same as target, then no promotion is needed and
+	// PromotedFile is nil. This must be explicitly computed via ComputePromotedFile().
+	PromotedFile *yml.File
+}
+
+// ComputePromotedFile computes the promotion merged file for release from source to target environment,
+// assuming the only environments are respectively source and target. If merged result is same as target,
+// then no promotion is needed and PromotedFile is nil.
+func (r *Release) ComputePromotedFile() error {
+	source := r.Releases[0].File
+	target := r.Releases[1].File
+	mergedTree := yml.Merge(source.Tree, target.Tree)
+	promotedFile, err := target.CopyWithNewTree(mergedTree)
+	if err != nil {
+		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
+	}
+	if !yml.Compare(target.Yaml, promotedFile.Yaml) {
+		r.PromotedFile = promotedFile
+	} else {
+		r.PromotedFile = nil
+	}
+	return nil
 }
 
 func NewRelease(name string, environments []*v1alpha1.Environment) *Release {
@@ -20,25 +47,25 @@ func NewRelease(name string, environments []*v1alpha1.Environment) *Release {
 	}
 }
 
-// AllReleasesSynced returns true if all releases are synced across all environments.
-func (r *Release) AllReleasesSynced() bool {
-	var hash uint64
-	for _, rel := range r.Releases {
-		if rel == nil || rel.Missing {
-			return false
-		}
-		if hash == 0 {
-			hash = rel.File.Hash
-		} else if rel.File.Hash != hash {
+func (r *Release) AreVersionsInSync() bool {
+	for i := 0; i < len(r.Releases)-1; i++ {
+		if r.Releases[i] == nil ||
+			r.Releases[i+1] == nil ||
+			r.Releases[i].Missing ||
+			r.Releases[i+1].Missing ||
+			r.Releases[i].Spec.Version != r.Releases[i+1].Spec.Version {
 			return false
 		}
 	}
 	return true
 }
 
-// Promotable returns whether release can be promoted. In other words, that it has a release in the first environment.
-// This assumes that there are two and only two environments and that first one is the source and the second one is the
-// target. Promotability is defined as having the release present at least in source environment.
-func (r *Release) Promotable() bool {
-	return len(r.Releases) == 2 && r.Releases[0] != nil
+func GetReleaseDisplayVersion(rel *v1alpha1.Release, inSync bool) string {
+	if rel == nil || rel.Missing {
+		return style.ReleaseNotAvailable("-")
+	}
+	if rel.Spec.Version == "" {
+		return style.ReleaseInSyncOrNot("n/a", inSync)
+	}
+	return style.ReleaseInSyncOrNot(rel.Spec.Version, inSync)
 }

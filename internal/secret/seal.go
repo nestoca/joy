@@ -27,6 +27,9 @@ func Seal(env string) error {
 	var selectedEnv *v1alpha1.Environment
 	if env != "" {
 		selectedEnv = environment.FindByName(cat.Environments, env)
+		if selectedEnv == nil {
+			return fmt.Errorf("environment %s not found", env)
+		}
 	}
 	selectedEnv, err = environment.SelectSingle(
 		cat.Environments,

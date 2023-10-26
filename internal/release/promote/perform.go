@@ -3,18 +3,15 @@ package promote
 import (
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/nestoca/joy/internal/gh"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
-	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
 
-// perform performs the promotion of all releases in given list.
-func perform(list *cross.ReleaseList) error {
+// perform performs the promotion of all releases in given list and returns PR url if any
+func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 	if len(list.Environments) != 2 {
-		return fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
+		return "", fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
 	}
 
 	crossReleases := list.SortedCrossReleases()
@@ -25,90 +22,56 @@ func perform(list *cross.ReleaseList) error {
 	targetEnv := list.Environments[1]
 
 	for _, crossRelease := range crossReleases {
-		// Check if releases and values are synced across all environments
-		allReleasesSynced := crossRelease.AllReleasesSynced()
-		if allReleasesSynced {
+		// Skip releases already in sync
+		if crossRelease.PromotedFile == nil {
 			continue
 		}
 		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
 
-		source := crossRelease.Releases[0]
-		target := crossRelease.Releases[1]
-
-		// Determine operation
-		operation := "Updating release"
-		if target.Missing {
-			operation = "Creating new release"
-		}
-
-		// Promote release
-		fmt.Printf("🚀 %s %s/%s %s\n",
-			operation,
-			style.ResourceEnvPrefix(targetEnv.Name),
-			style.Resource(target.Name),
-			style.SecondaryInfo("("+target.File.Path+")"))
-		err := promoteFile(source.File, target.File)
+		// Update target release file
+		sourceRelease := crossRelease.Releases[0]
+		targetRelease := crossRelease.Releases[1]
+		p.promptProvider.PrintUpdatingTargetRelease(targetRelease, targetEnv)
+		err := p.promoteFile(sourceRelease.File, targetRelease.File)
 		if err != nil {
-			return fmt.Errorf("promoting release %q: %w", target.File.Path, err)
+			return "", fmt.Errorf("update target release %q: %w", targetRelease.File.Path, err)
 		}
-		promotedFiles = append(promotedFiles, target.File.Path)
+		promotedFiles = append(promotedFiles, targetRelease.File.Path)
 
 		// Determine release-specific message
-		message := getPromotionMessage(crossRelease.Name, source.Spec.Version, target.Spec.Version, target.Missing)
+		message := getPromotionMessage(crossRelease.Name, sourceRelease.Spec.Version, targetRelease.Spec.Version, targetRelease.Missing)
 		messages = append(messages, message)
 	}
 
 	// Nothing promoted?
 	if len(promotedFiles) == 0 {
-		fmt.Println("🍺 Nothing to do, all releases already in sync!")
-		return nil
+		return "", fmt.Errorf("no releases promoted, should not reach this point")
 	}
 
-	// Create branch
+	// Create new branch and commit and push changes
 	branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
-	err := git.CreateBranch(branchName)
-	if err != nil {
-		return fmt.Errorf("creating branch %s: %w", branchName, err)
-	}
-	fmt.Printf("✅ Created branch: %s\n", branchName)
-
-	// Commit changes
-	err = git.Add(promotedFiles)
-	if err != nil {
-		return fmt.Errorf("adding files to index: %w", err)
-	}
 	message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
-	err = git.Commit(message)
+	err := p.gitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, message)
 	if err != nil {
-		return fmt.Errorf("committing changes: %w", err)
+		return "", err
 	}
-	fmt.Println("✅ Committed with message:")
-	fmt.Println(message)
-
-	// Push changes
-	err = git.PushNewBranch(branchName)
-	if err != nil {
-		return fmt.Errorf("pushing changes: %w", err)
-	}
-	fmt.Println("✅ Pushed")
+	p.promptProvider.PrintBranchCreated(branchName, message)
 
 	// Create pull request
 	prTitle, prBody := getPRTitleAndBody(message)
-	err = gh.CreatePullRequest("pr", "create", "--title", prTitle, "--body", prBody)
+	prURL, err := p.pullRequestProvider.Create(branchName, prTitle, prBody)
 	if err != nil {
-		return fmt.Errorf("creating pull request: %w", err)
+		return "", fmt.Errorf("creating pull request: %w", err)
 	}
-	fmt.Printf("✅ Created pull request: %s\n", prTitle)
+	p.promptProvider.PrintPullRequestCreated(prURL)
 
-	// Checking out master branch
-	err = git.Checkout("master")
+	err = p.gitProvider.CheckoutMasterBranch()
 	if err != nil {
-		return fmt.Errorf("checking out master branch: %w", err)
+		return "", err
 	}
-	fmt.Println("✅ Checked out master branch")
 
-	fmt.Println("🍺 Promotion complete!")
-	return nil
+	p.promptProvider.PrintCompleted()
+	return prURL, nil
 }
 
 // getPromotionMessage computes the message for a specific release promotion
@@ -157,13 +120,13 @@ func getPRTitleAndBody(commitMessage string) (string, string) {
 }
 
 // promoteFile merges a specific source yaml release or values file onto an equivalent target file
-func promoteFile(source, target *yml.File) error {
+func (p *Promotion) promoteFile(source, target *yml.File) error {
 	mergedTree := yml.Merge(source.Tree, target.Tree)
 	merged, err := target.CopyWithNewTree(mergedTree)
 	if err != nil {
 		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
 	}
-	err = merged.WriteYaml()
+	err = p.yamlWriter.Write(merged)
 	if err != nil {
 		return fmt.Errorf("writing merged file: %w", err)
 	}
