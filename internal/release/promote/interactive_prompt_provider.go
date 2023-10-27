@@ -143,17 +143,17 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool,
 func (i *InteractivePromptProvider) PrintNoPromotableReleasesFound(releasesFiltered bool, sourceEnv *v1alpha1.Environment, targetEnv *v1alpha1.Environment) {
 	matchingSelection := ""
 	if releasesFiltered {
-		matchingSelection = "(matching your selection) "
+		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No releases found %sfor promotion from %s to %s.\n", matchingSelection, style.Resource(sourceEnv), style.Resource(targetEnv))
+	fmt.Printf("🤷 No releases found %sfor promoting from %s to %s.\n", matchingSelection, style.Resource(sourceEnv.Name), style.Resource(targetEnv.Name))
 }
 
 func (i *InteractivePromptProvider) PrintNoPromotableEnvironmentFound(environmentsFiltered bool) {
 	matchingSelection := ""
 	if environmentsFiltered {
-		matchingSelection = "(matching your selection) "
+		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No environments found %sfor promotion.\n", matchingSelection)
+	fmt.Printf("🤷 No environments found %sfor promoting.\n", matchingSelection)
 }
 
 func (i *InteractivePromptProvider) PrintStartPreview() {
