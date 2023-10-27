@@ -3,11 +3,22 @@ package git
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"strings"
 )
+
+var dependency = &dependencies.Dependency{
+	Command:    "git",
+	Url:        "https://git-scm.com/downloads",
+	IsRequired: true,
+}
+
+func init() {
+	dependencies.Add(dependency)
+}
 
 func Run(dir string, args []string) error {
 	args = append([]string{"-C", dir}, args...)

@@ -20,11 +20,6 @@ func ResourceEnvPrefix(s any) string {
 	return color.Colorize(darkYellow, s)
 }
 
-// Hyperlink is for URLs and other clickable links
-func Hyperlink(s any) string {
-	return color.InUnderline(color.InBlue(s))
-}
-
 // DiffBefore is for text that is being removed in a diff
 func DiffBefore(s any) string {
 	return color.InRed(s)
@@ -47,7 +42,7 @@ func Warning(s any) string {
 
 // Code is for code snippets, commands, yaml properties, or any technical text that is not a resource name
 func Code(s any) string {
-	return color.InBold(color.InCyan(s))
+	return color.InBold(color.InYellow(s))
 }
 
 // Version is for release versions within messages (not tables)
@@ -76,4 +71,9 @@ func ReleaseInSyncOrNot(s any, inSync bool) string {
 // ReleaseNotAvailable is for releases that are not existing in an environment or have not version specified
 func ReleaseNotAvailable(s any) string {
 	return color.InGray(s)
+}
+
+// Link is for URLs and other links
+func Link(s any) string {
+	return color.InUnderline(color.InBlue(s))
 }

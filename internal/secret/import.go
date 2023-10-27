@@ -2,9 +2,9 @@ package secret
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
@@ -13,11 +13,19 @@ import (
 	"strings"
 )
 
+var kubectlDependency = &dependencies.Dependency{
+	Command:    "kubectl",
+	Url:        "https://kubernetes.io/docs/tasks/tools/#kubectl",
+	IsRequired: false,
+	RequiredBy: []string{"sealed-secret import"},
+}
+
+func init() {
+	dependencies.Add(kubectlDependency)
+}
+
 func ImportCert() error {
-	err := ensureKubectlInstalled()
-	if err != nil {
-		return err
-	}
+	kubectlDependency.MustBeInstalled()
 
 	// Select kube context
 	context, err := selectKubeContext()
@@ -107,14 +115,4 @@ func selectKubeContext() (string, error) {
 		return "", fmt.Errorf("prompting for kube context: %w", err)
 	}
 	return contexts[selectedIndex], nil
-}
-
-func ensureKubectlInstalled() error {
-	cmd := exec.Command("command", "-v", "kubectl")
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("🤓 This command requires kubectl cli to be installed: https://kubernetes.io/docs/tasks/tools/#kubectl")
-		return errors.New("missing kubectl cli dependency")
-	}
-	return nil
 }

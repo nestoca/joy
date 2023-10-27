@@ -1,10 +1,10 @@
 package jac
 
 import (
-	"errors"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
@@ -14,13 +14,21 @@ import (
 	"strings"
 )
 
-func ListProjectPeople(catalogDir string, extraArgs []string) error {
-	err := ensureJacCliInstalled()
-	if err != nil {
-		return err
-	}
+var dependency = &dependencies.Dependency{
+	Command:    "jac",
+	Url:        "https://github.com/nestoca/jac",
+	IsRequired: false,
+	RequiredBy: []string{"project owners", "release owners"},
+}
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
+func init() {
+	dependencies.Add(dependency)
+}
+
+func ListProjectPeople(catalogDir string, extraArgs []string) error {
+	dependency.MustBeInstalled()
+
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
@@ -45,12 +53,9 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 }
 
 func ListReleasePeople(catalogDir string, extraArgs []string) error {
-	err := ensureJacCliInstalled()
-	if err != nil {
-		return err
-	}
+	dependency.MustBeInstalled()
 
-	err = git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
+	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
 		return err
 	}
@@ -105,16 +110,6 @@ func listPeopleWithGroups(groups []string, extraArgs []string) error {
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("running jac command: %w", err)
-	}
-	return nil
-}
-
-func ensureJacCliInstalled() error {
-	cmd := exec.Command("command", "-v", "jac")
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("🤓 This command requires the jac cli.\nSee: https://github.com/nestoca/jac")
-		return errors.New("missing jac cli dependency")
 	}
 	return nil
 }
