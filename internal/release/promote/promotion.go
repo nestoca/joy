@@ -6,6 +6,7 @@ import (
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -144,9 +145,12 @@ func (p *Promotion) preview(list *cross.ReleaseList) error {
 			continue
 		}
 
-		source := rel.Releases[0]
-		target := rel.Releases[1]
-		err := p.promptProvider.PrintReleasePreview(targetEnv, source, target)
+		targetRelease := rel.Releases[1]
+		var targetReleaseFile *yml.File
+		if targetRelease != nil {
+			targetReleaseFile = targetRelease.File
+		}
+		err := p.promptProvider.PrintReleasePreview(targetEnv.Name, rel.Name, targetReleaseFile, rel.PromotedFile)
 		if err != nil {
 			return fmt.Errorf("printing release preview: %w", err)
 		}

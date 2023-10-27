@@ -6,7 +6,6 @@ import (
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
 	"golang.org/x/exp/slices"
-	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -147,22 +146,11 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		newItem := NewRelease(item.Name, []*v1alpha1.Environment{sourceEnv, targetEnv})
 		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
-		// Promotion requires source release
-		if sourceRelease != nil {
-			// Create missing target release based on source release
-			if targetRelease == nil {
-				targetRelease = &(*sourceRelease)
-				targetRelease.File.Path = filepath.Join(targetEnv.Dir, "releases", sourceRelease.Name+".yaml")
-				targetRelease.File.Tree = yml.Merge(sourceRelease.File.Tree, nil)
-				targetRelease.Missing = true
-			}
-
-			err := newItem.ComputePromotedFile()
-			if err != nil {
-				return nil, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
-			}
+		// Compute promoted file
+		err := newItem.ComputePromotedFile(targetEnv)
+		if err != nil {
+			return nil, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
 		}
-
 		subset.Items = append(subset.Items, newItem)
 	}
 	return subset, nil

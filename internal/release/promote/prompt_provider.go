@@ -4,6 +4,7 @@ package promote
 import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/yml"
 )
 
 type PromptProvider interface {
@@ -32,13 +33,13 @@ type PromptProvider interface {
 	PrintStartPreview()
 
 	// PrintReleasePreview prints the diff for promotion of a given release.
-	PrintReleasePreview(targetEnv *v1alpha1.Environment, sourceRelease, targetRelease *v1alpha1.Release) error
+	PrintReleasePreview(targetEnvName string, releaseName string, existingTargetFile, promotedFile *yml.File) error
 
 	// PrintEndPreview ends the preview of release promotion diffs.
 	PrintEndPreview()
 
 	// PrintUpdatingTargetRelease prints message that target release file is being updated or created.
-	PrintUpdatingTargetRelease(targetRelease *v1alpha1.Release, targetEnv *v1alpha1.Environment)
+	PrintUpdatingTargetRelease(targetEnvName, releaseName, releaseFilePath string, isCreating bool)
 
 	// PrintBranchCreated prints message that a new promotion branch was created and promotion changes were committed
 	// and pushed.

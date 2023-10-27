@@ -3,8 +3,8 @@ package promote
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
-	"github.com/nestoca/joy/internal/yml"
 	"strings"
 )
 
@@ -23,7 +23,8 @@ func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 
 	for _, crossRelease := range crossReleases {
 		// Skip releases already in sync
-		if crossRelease.PromotedFile == nil {
+		promotedFile := crossRelease.PromotedFile
+		if promotedFile == nil {
 			continue
 		}
 		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
@@ -31,15 +32,16 @@ func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 		// Update target release file
 		sourceRelease := crossRelease.Releases[0]
 		targetRelease := crossRelease.Releases[1]
-		p.promptProvider.PrintUpdatingTargetRelease(targetRelease, targetEnv)
-		err := p.promoteFile(sourceRelease.File, targetRelease.File)
+		isCreatingTargetRelease := targetRelease == nil
+		p.promptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
+		err := p.yamlWriter.Write(promotedFile)
 		if err != nil {
-			return "", fmt.Errorf("update target release %q: %w", targetRelease.File.Path, err)
+			return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 		}
-		promotedFiles = append(promotedFiles, targetRelease.File.Path)
+		promotedFiles = append(promotedFiles, promotedFile.Path)
 
 		// Determine release-specific message
-		message := getPromotionMessage(crossRelease.Name, sourceRelease.Spec.Version, targetRelease.Spec.Version, targetRelease.Missing)
+		message := getPromotionMessage(crossRelease.Name, sourceRelease, targetRelease)
 		messages = append(messages, message)
 	}
 
@@ -75,14 +77,12 @@ func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 }
 
 // getPromotionMessage computes the message for a specific release promotion
-func getPromotionMessage(releaseName, sourceVersion, targetVersion string, missing bool) string {
-	versionChanged := ""
-	if missing {
-		versionChanged = fmt.Sprintf(" (missing) -> %s", targetVersion)
-	} else if sourceVersion != targetVersion {
-		versionChanged = fmt.Sprintf(" %s -> %s", targetVersion, sourceVersion)
+func getPromotionMessage(releaseName string, sourceRelease, targetRelease *v1alpha1.Release) string {
+	previousVersion := "(missing)"
+	if targetRelease != nil {
+		previousVersion = targetRelease.Spec.Version
 	}
-	return fmt.Sprintf("Promote %s%s", releaseName, versionChanged)
+	return fmt.Sprintf("Promote %s %s -> %s", releaseName, previousVersion, sourceRelease.Spec.Version)
 }
 
 func getBranchName(sourceEnv, targetEnv string, promotedReleaseNames []string) string {
@@ -117,18 +117,4 @@ func getPRTitleAndBody(commitMessage string) (string, string) {
 	title := lines[0]
 	body := strings.Join(lines[1:], "\n")
 	return title, body
-}
-
-// promoteFile merges a specific source yaml release or values file onto an equivalent target file
-func (p *Promotion) promoteFile(source, target *yml.File) error {
-	mergedTree := yml.Merge(source.Tree, target.Tree)
-	merged, err := target.CopyWithNewTree(mergedTree)
-	if err != nil {
-		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
-	}
-	err = p.yamlWriter.Write(merged)
-	if err != nil {
-		return fmt.Errorf("writing merged file: %w", err)
-	}
-	return nil
 }

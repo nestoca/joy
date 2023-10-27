@@ -54,10 +54,6 @@ type Release struct {
 	// File represents the in-memory yaml file of the release.
 	File *yml.File `yaml:"-" json:"-"`
 
-	// Missing indicates whether the release is missing in the target environment. During a promotion,
-	// this allows to know whether the release will be created or updated.
-	Missing bool `yaml:"-" json:"-"`
-
 	// Project is the project that the release belongs to.
 	Project *Project `yaml:"-" json:"-"`
 

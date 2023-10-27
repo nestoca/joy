@@ -18,6 +18,8 @@ const stagingEnvIndex = 1
 const prodEnvIndex = 2
 const sourceEnvIndex = stagingEnvIndex
 const targetEnvIndex = prodEnvIndex
+const sourceEnvName = "staging"
+const targetEnvName = "prod"
 
 type setupArgs struct {
 	t              *testing.T
@@ -66,11 +68,11 @@ func TestPromotion(t *testing.T) {
 				opts.Catalog.Releases.Items[0].Releases[sourceEnvIndex] = newRelease("release1", `spec:
   values:
     ## lock
-    key: value1`)
+    key: value1`, sourceEnvName)
 				opts.Catalog.Releases.Items[0].Releases[targetEnvIndex] = newRelease("release1", `spec:
   values:
     ## lock
-    key: value2`)
+    key: value2`, targetEnvName)
 				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 			},
@@ -83,38 +85,85 @@ func TestPromotion(t *testing.T) {
 				opts := args.opts
 				crossRel0 := opts.Catalog.Releases.Items[0]
 				targetEnv := opts.Catalog.Environments[targetEnvIndex]
-				crossRel0.Releases[sourceEnvIndex] = newRelease("release1", `spec:
+				sourceRelease := newRelease("release1", `spec:
   values:
     ## lock
     key: value1
     env:
-      ENV_VAR: value1`)
-				crossRel0.Releases[targetEnvIndex] = newRelease("release1", `spec:
+      ENV_VAR: value1`, sourceEnvName)
+				targetRelease := newRelease("release1", `spec:
   values:
     ## lock
     key: value2
     env:
-      ENV_VAR: value2`)
-
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
-				args.promptProvider.EXPECT().PrintStartPreview()
-				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv, crossRel0.Releases[sourceEnvIndex], crossRel0.Releases[targetEnvIndex])
-				args.promptProvider.EXPECT().PrintEndPreview()
-				args.promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
-				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(crossRel0.Releases[targetEnvIndex], targetEnv)
-				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(file *yml.File) error {
-					assert.Equal(t, `apiVersion: joy.nesto.ca/v1alpha1
-kind: Release
-metadata:
-  name: release1
-spec:
+      ENV_VAR: value2`, targetEnvName)
+				expectedPromotedFile := newYamlFile("release1", `spec:
   values:
     ## lock
     key: value2
     env:
       ENV_VAR: value1
-`, string(file.Yaml))
+`, targetEnvName)
+				crossRel0.Releases[sourceEnvIndex] = sourceRelease
+				crossRel0.Releases[targetEnvIndex] = targetRelease
+
+				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().PrintStartPreview()
+				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
+				args.promptProvider.EXPECT().PrintEndPreview()
+				args.promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
+				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), false)
+				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
+					expectedYaml, err := expectedPromotedFile.ToYaml()
+					assert.NoError(t, err)
+					assert.Equal(t, expectedYaml, string(actualPromotedFile.Yaml))
+					return nil
+				})
+				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
+				args.prProvider.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return("https://github.com/owner/repo/pull/123", nil)
+				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
+				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
+				args.promptProvider.EXPECT().PrintCompleted()
+			},
+			expectedPromoted: true,
+		},
+		{
+			name: "Promote release1 from staging to missing release in prod",
+			opts: newOpts(),
+			setup: func(args setupArgs) {
+				opts := args.opts
+				crossRel0 := opts.Catalog.Releases.Items[0]
+				targetEnv := opts.Catalog.Environments[targetEnvIndex]
+				sourceRelease := newRelease("release1", `spec:
+  values:
+    ## lock
+    key: TODO
+    env:
+      ENV_VAR: value1`, sourceEnvName)
+				crossRel0.Releases[sourceEnvIndex] = sourceRelease
+				crossRel0.Releases[targetEnvIndex] = nil
+				expectedPromotedFile := newYamlFile("release1", `spec:
+  values:
+    ## lock
+    key: TODO
+    env:
+      ENV_VAR: value1
+`, targetEnvName)
+				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/release1.yaml", targetEnv.Dir)
+
+				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().PrintStartPreview()
+				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)
+				args.promptProvider.EXPECT().PrintEndPreview()
+				args.promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
+				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), true)
+				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
+					expectedYaml, err := expectedPromotedFile.ToYaml()
+					assert.NoError(t, err)
+					assert.Equal(t, expectedYaml, string(actualPromotedFile.Yaml))
 					return nil
 				})
 				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -176,6 +225,7 @@ func newEnvironment(name string, promotionSourceEnvs ...string) *v1alpha1.Enviro
 				FromEnvironments: promotionSourceEnvs,
 			},
 		},
+		Dir: "/dummy/environments/" + name,
 	}
 }
 
@@ -187,7 +237,16 @@ func newEnvironments() []*v1alpha1.Environment {
 	}
 }
 
-func newRelease(name string, specYaml string) *v1alpha1.Release {
+func newRelease(name, specYaml, envName string) *v1alpha1.Release {
+	return &v1alpha1.Release{
+		ReleaseMetadata: v1alpha1.ReleaseMetadata{
+			Name: name,
+		},
+		File: newYamlFile(name, specYaml, envName),
+	}
+}
+
+func newYamlFile(name, specYaml, envName string) *yml.File {
 	if specYaml == "" {
 		specYaml = `spec:
   values:
@@ -199,25 +258,20 @@ metadata:
   name: %s
 %s`,
 		name, specYaml)
-	file, err := yml.NewFile("dummy/path/release.yaml", []byte(yaml))
+	file, err := yml.NewFile("/dummy/environments/"+envName+"/releases/release.yaml", []byte(yaml))
 	if err != nil {
 		panic(err)
 	}
-	return &v1alpha1.Release{
-		ReleaseMetadata: v1alpha1.ReleaseMetadata{
-			Name: name,
-		},
-		File: file,
-	}
+	return file
 }
 
 func newCrossRelease(name string) *cross.Release {
 	return &cross.Release{
 		Name: name,
 		Releases: []*v1alpha1.Release{
-			newRelease(name, ""),
-			newRelease(name, ""),
-			newRelease(name, ""),
+			newRelease(name, "", "dev"),
+			newRelease(name, "", "staging"),
+			newRelease(name, "", "prod"),
 		},
 	}
 }

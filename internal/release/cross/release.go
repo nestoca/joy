@@ -5,6 +5,7 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
+	"path/filepath"
 )
 
 // Release describes a given release across multiple environments
@@ -24,15 +25,38 @@ type Release struct {
 // ComputePromotedFile computes the promotion merged file for release from source to target environment,
 // assuming the only environments are respectively source and target. If merged result is same as target,
 // then no promotion is needed and PromotedFile is nil.
-func (r *Release) ComputePromotedFile() error {
-	source := r.Releases[0].File
-	target := r.Releases[1].File
-	mergedTree := yml.Merge(source.Tree, target.Tree)
-	promotedFile, err := target.CopyWithNewTree(mergedTree)
-	if err != nil {
-		return fmt.Errorf("making in-memory copy of target file using merged result: %w", err)
+func (r *Release) ComputePromotedFile(targetEnv *v1alpha1.Environment) error {
+	sourceRelease := r.Releases[0]
+	targetRelease := r.Releases[1]
+
+	// Skip missing source releases, which obviously cannot be promoted
+	if sourceRelease == nil {
+		return nil
 	}
-	if !yml.Compare(target.Yaml, promotedFile.Yaml) {
+
+	// Do we have an existing target release?
+	var promotedFile *yml.File
+	var err error
+	if targetRelease != nil && targetRelease.File != nil {
+		// Promote source release to existing target
+		mergedTree := yml.Merge(sourceRelease.File.Tree, targetRelease.File.Tree)
+		promotedFile, err = targetRelease.File.CopyWithNewTree(mergedTree)
+		if err != nil {
+			return fmt.Errorf("creating in-memory copy of target file using merged result: %w", err)
+		}
+	} else {
+		// Promote source release to empty target
+		promotedFile, err = yml.NewFileFromTree(
+			filepath.Join(targetEnv.Dir, "releases", sourceRelease.Name+".yaml"),
+			sourceRelease.File.Indent,
+			yml.Merge(sourceRelease.File.Tree, nil))
+		if err != nil {
+			return fmt.Errorf("creating in-memory file from tree for missing target release: %w", err)
+		}
+	}
+
+	// Only consider promotion if the new merged result is different from existing target
+	if targetRelease == nil || !yml.Compare(targetRelease.File.Yaml, promotedFile.Yaml) {
 		r.PromotedFile = promotedFile
 	} else {
 		r.PromotedFile = nil
@@ -51,8 +75,6 @@ func (r *Release) AreVersionsInSync() bool {
 	for i := 0; i < len(r.Releases)-1; i++ {
 		if r.Releases[i] == nil ||
 			r.Releases[i+1] == nil ||
-			r.Releases[i].Missing ||
-			r.Releases[i+1].Missing ||
 			r.Releases[i].Spec.Version != r.Releases[i+1].Spec.Version {
 			return false
 		}
@@ -61,7 +83,7 @@ func (r *Release) AreVersionsInSync() bool {
 }
 
 func GetReleaseDisplayVersion(rel *v1alpha1.Release, inSync bool) string {
-	if rel == nil || rel.Missing {
+	if rel == nil {
 		return style.ReleaseNotAvailable("-")
 	}
 	if rel.Spec.Version == "" {
