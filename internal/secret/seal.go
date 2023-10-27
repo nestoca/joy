@@ -12,17 +12,7 @@ import (
 	"strings"
 )
 
-func Seal(env string) error {
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		LoadEnvs:        true,
-		SortEnvsByOrder: true,
-	}
-	cat, err := catalog.Load(loadOpts)
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
-	}
-
+func Seal(cat *catalog.Catalog, env string) error {
 	// Select environment
 	var selectedEnv *v1alpha1.Environment
 	if env != "" {
@@ -31,6 +21,7 @@ func Seal(env string) error {
 			return fmt.Errorf("environment %s not found", env)
 		}
 	}
+	var err error
 	selectedEnv, err = environment.SelectSingle(
 		cat.Environments,
 		selectedEnv,
