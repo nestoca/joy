@@ -1,3 +1,12 @@
+# [0.16.0](https://github.com/nestoca/joy/compare/v0.15.1...v0.16.0) (2023-10-27)
+
+
+### Features
+
+* **devops-1938:** add joy setup command ([#33](https://github.com/nestoca/joy/issues/33)) ([ba1e134](https://github.com/nestoca/joy/commit/ba1e134db8c41f120f3dfdb5ab4c287371f58728))
+
+
+
 ## [0.15.1](https://github.com/nestoca/joy/compare/v0.15.0...v0.15.1) (2023-10-27)
 
 
