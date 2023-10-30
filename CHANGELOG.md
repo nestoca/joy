@@ -1,3 +1,12 @@
+## [0.16.1](https://github.com/nestoca/joy/compare/v0.16.0...v0.16.1) (2023-10-30)
+
+
+### Bug Fixes
+
+* promoting release to an environment where it's missing ([#34](https://github.com/nestoca/joy/issues/34)) ([992495a](https://github.com/nestoca/joy/commit/992495a1b99222d69b9699ded2d6cd2bc669a33f))
+
+
+
 # [0.16.0](https://github.com/nestoca/joy/compare/v0.15.1...v0.16.0) (2023-10-27)
 
 
