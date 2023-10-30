@@ -39,12 +39,10 @@ func NewFile(filePath string, content []byte) (*File, error) {
 		return nil, fmt.Errorf("unmarshalling release file %s in yaml node form: %w", filePath, err)
 	}
 
-	// Determine canonical absolute path
-	absFilePath, err := filepath.Abs(filePath)
+	cleanFilePath, err := cleanUpFilePath(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("getting absolute path of %s: %w", filePath, err)
+		return nil, err
 	}
-	cleanFilePath := filepath.Clean(absFilePath)
 
 	return &File{
 		Path:         cleanFilePath,
@@ -55,6 +53,37 @@ func NewFile(filePath string, content []byte) (*File, error) {
 		MetadataName: FindNodeValueOrDefault(&node, "metadata.name", ""),
 		Indent:       getIndentSize(string(content)),
 	}, nil
+}
+
+func NewFileFromTree(filePath string, indent int, node *yaml.Node) (*File, error) {
+	content, err := marshallTreeToYaml(node, indent)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling yaml node to yaml: %w", err)
+	}
+
+	cleanFilePath, err := cleanUpFilePath(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &File{
+		Path:         cleanFilePath,
+		Yaml:         content,
+		Tree:         node,
+		ApiVersion:   FindNodeValueOrDefault(node, "apiVersion", ""),
+		Kind:         FindNodeValueOrDefault(node, "kind", ""),
+		MetadataName: FindNodeValueOrDefault(node, "metadata.name", ""),
+		Indent:       indent,
+	}, nil
+}
+
+func cleanUpFilePath(filePath string) (string, error) {
+	absFilePath, err := filepath.Abs(filePath)
+	if err != nil {
+		return "", fmt.Errorf("getting absolute path of %s: %w", filePath, err)
+	}
+	cleanFilePath := filepath.Clean(absFilePath)
+	return cleanFilePath, nil
 }
 
 func LoadFile(filePath string) (*File, error) {
@@ -72,10 +101,13 @@ func (y *File) CopyWithNewTree(newTree *yaml.Node) (*File, error) {
 	}
 
 	return &File{
-		Path:   y.Path,
-		Yaml:   newYaml,
-		Tree:   newTree,
-		Indent: y.Indent,
+		Path:         y.Path,
+		Yaml:         newYaml,
+		Tree:         newTree,
+		ApiVersion:   y.ApiVersion,
+		Kind:         y.Kind,
+		MetadataName: y.MetadataName,
+		Indent:       y.Indent,
 	}, nil
 }
 

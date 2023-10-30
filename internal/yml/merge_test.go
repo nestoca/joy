@@ -41,7 +41,7 @@ e:
     t: u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeMultipleComments(t *testing.T) {
@@ -81,7 +81,7 @@ e:
     t: u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeLineCommentLockMarker(t *testing.T) {
@@ -113,7 +113,7 @@ e:
     t: u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergePreservingBraces(t *testing.T) {
@@ -131,7 +131,7 @@ a: {b: c}
 d: e
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeLockedSubTreesIntoNonExistingSubTrees(t *testing.T) {
@@ -161,7 +161,7 @@ e:
     t: u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeWhenAYAMLIsEmpty(t *testing.T) {
@@ -186,7 +186,7 @@ e:
     t: u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeWhenBYAMLIsEmpty(t *testing.T) {
@@ -210,7 +210,7 @@ e:
     k: l
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeWhenBothYAMLsAreEmpty(t *testing.T) {
@@ -218,15 +218,13 @@ func TestMergeWhenBothYAMLsAreEmpty(t *testing.T) {
 	bContent := `{}`
 	expectedContent := `{}`
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func TestMergeWhenBothYAMLsAreNil(t *testing.T) {
-	var aContent *yaml.Node = nil
-	var bContent *yaml.Node = nil
 	expectedContent := `{}`
 
-	testMergeYAMLNodes(t, aContent, bContent, expectedContent)
+	testMerge(t, nil, nil, expectedContent)
 }
 
 func TestMergeSanitizeLockedDestinationScalarsAsTodo(t *testing.T) {
@@ -260,7 +258,33 @@ e:
     k: TODO
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
+}
+
+func TestMergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil(t *testing.T) {
+	aContent := `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j:
+    k: l
+`
+
+	expectedContent := `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j:
+    k: TODO
+`
+
+	testMerge(t, &aContent, nil, expectedContent)
 }
 
 func TestMergeArrays(t *testing.T) {
@@ -300,28 +324,31 @@ e:
     - u
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
-func testMergeYAMLFiles(t *testing.T, aContent, bContent, expectedContent string) {
+func testMerge(t *testing.T, aContent *string, bContent *string, expectedContent string) {
 	// Parse a.yaml
-	var aMap yaml.Node
-	if err := yaml.Unmarshal([]byte(aContent), &aMap); err != nil {
-		t.Fatalf("Failed to parse a.yaml: %v", err)
+	var aMap *yaml.Node
+	if aContent != nil {
+		aMap = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(*aContent), aMap); err != nil {
+			t.Fatalf("Failed to parse a.yaml: %v", err)
+		}
+		aMap.Style = 0
 	}
-	aMap.Style = 0
 
 	// Parse b.yaml
-	var bMap yaml.Node
-	if err := yaml.Unmarshal([]byte(bContent), &bMap); err != nil {
-		t.Fatalf("Failed to parse b.yaml: %v", err)
+	var bMap *yaml.Node
+	if bContent != nil {
+		bMap = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(*bContent), bMap); err != nil {
+			t.Fatalf("Failed to parse b.yaml: %v", err)
+		}
+		bMap.Style = 0
 	}
-	bMap.Style = 0
 
-	testMergeYAMLNodes(t, &aMap, &bMap, expectedContent)
-}
-
-func testMergeYAMLNodes(t *testing.T, aMap *yaml.Node, bMap *yaml.Node, expectedContent string) {
+	// Merge
 	result := Merge(aMap, bMap)
 
 	// Marshal the result with custom indentation
@@ -421,7 +448,7 @@ e:
   l: m
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
@@ -449,7 +476,7 @@ c:
   i: j
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
@@ -478,7 +505,7 @@ c:
   i: j
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }
 
 func Test_MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged(t *testing.T) {
@@ -503,5 +530,5 @@ c:
   i: j
 `
 
-	testMergeYAMLFiles(t, aContent, bContent, expectedContent)
+	testMerge(t, &aContent, &bContent, expectedContent)
 }

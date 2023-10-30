@@ -143,29 +143,29 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool,
 func (i *InteractivePromptProvider) PrintNoPromotableReleasesFound(releasesFiltered bool, sourceEnv *v1alpha1.Environment, targetEnv *v1alpha1.Environment) {
 	matchingSelection := ""
 	if releasesFiltered {
-		matchingSelection = "(matching your selection) "
+		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No releases found %sfor promotion from %s to %s.\n", matchingSelection, style.Resource(sourceEnv), style.Resource(targetEnv))
+	fmt.Printf("🤷 No releases found %sfor promoting from %s to %s.\n", matchingSelection, style.Resource(sourceEnv.Name), style.Resource(targetEnv.Name))
 }
 
 func (i *InteractivePromptProvider) PrintNoPromotableEnvironmentFound(environmentsFiltered bool) {
 	matchingSelection := ""
 	if environmentsFiltered {
-		matchingSelection = "(matching your selection) "
+		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No environments found %sfor promotion.\n", matchingSelection)
+	fmt.Printf("🤷 No environments found %sfor promoting.\n", matchingSelection)
 }
 
 func (i *InteractivePromptProvider) PrintStartPreview() {
 	i.anyReleaseDiffPrinted = false
 }
 
-func (i *InteractivePromptProvider) PrintReleasePreview(targetEnv *v1alpha1.Environment, sourceRelease, targetRelease *v1alpha1.Release) error {
+func (i *InteractivePromptProvider) PrintReleasePreview(targetEnvName string, releaseName string, existingTargetFile, promotedFile *yml.File) error {
 	i.anyReleaseDiffPrinted = true
 
 	// Determine operation
 	operation := "Update release"
-	if targetRelease.Missing {
+	if existingTargetFile == nil {
 		operation = "Create new release"
 	}
 
@@ -173,35 +173,22 @@ func (i *InteractivePromptProvider) PrintReleasePreview(targetEnv *v1alpha1.Envi
 	fmt.Println(Separator)
 	fmt.Printf("🚀 %s %s/%s %s\n",
 		operation,
-		style.ResourceEnvPrefix(targetEnv.Name),
-		style.Resource(targetRelease.Name),
-		style.SecondaryInfo("("+targetRelease.File.Path+")"))
-	err := printDiff(sourceRelease.File, targetRelease.File, targetRelease.Missing)
+		style.ResourceEnvPrefix(targetEnvName),
+		style.Resource(releaseName),
+		style.SecondaryInfo("("+promotedFile.Path+")"))
+	err := printDiff(existingTargetFile, promotedFile)
 	if err != nil {
 		return fmt.Errorf("printing release diff: %w", err)
 	}
 	return nil
 }
 
-func printDiff(source, target *yml.File, targetMissing bool) error {
-	merged := yml.Merge(source.Tree, target.Tree)
-
-	beforeYaml, err := target.ToYaml()
-	if err != nil {
-		return fmt.Errorf("marshalling before: %w", err)
+func printDiff(before, after *yml.File) error {
+	beforeYaml := ""
+	if before != nil {
+		beforeYaml = string(before.Yaml)
 	}
-
-	afterYaml, err := yml.TreeToYaml(merged, target.Indent)
-	if err != nil {
-		return fmt.Errorf("marshalling after: %w", err)
-	}
-
-	// If target is missing, we want to show the whole file as added
-	if targetMissing {
-		beforeYaml = ""
-	}
-
-	edits := myers.ComputeEdits(span.URIFromPath(""), beforeYaml, afterYaml)
+	edits := myers.ComputeEdits(span.URIFromPath(""), beforeYaml, string(after.Yaml))
 	unified := fmt.Sprintf("%s", gotextdiff.ToUnified("before", "after", beforeYaml, edits))
 	unified = strings.ReplaceAll(unified, "\\ No newline at end of file\n", "")
 	unified = formatDiff(unified)
@@ -238,17 +225,17 @@ func (i *InteractivePromptProvider) PrintEndPreview() {
 	fmt.Println(Separator)
 }
 
-func (i *InteractivePromptProvider) PrintUpdatingTargetRelease(targetRelease *v1alpha1.Release, targetEnv *v1alpha1.Environment) {
+func (i *InteractivePromptProvider) PrintUpdatingTargetRelease(targetEnvName, releaseName, releaseFilePath string, isCreating bool) {
 	operation := "Updating release"
-	if targetRelease.Missing {
+	if isCreating {
 		operation = "Creating new release"
 	}
 
 	fmt.Printf("🚀 %s %s/%s %s\n",
 		operation,
-		style.ResourceEnvPrefix(targetEnv.Name),
-		style.Resource(targetRelease.Name),
-		style.SecondaryInfo("("+targetRelease.File.Path+")"))
+		style.ResourceEnvPrefix(targetEnvName),
+		style.Resource(releaseName),
+		style.SecondaryInfo("("+releaseFilePath+")"))
 }
 
 func (i *InteractivePromptProvider) PrintBranchCreated(branchName, message string) {
