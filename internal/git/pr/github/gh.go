@@ -3,12 +3,13 @@ package github
 import (
 	"errors"
 	"fmt"
-	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/style"
 )
 
 var dependency = &dependencies.Dependency{

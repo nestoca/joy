@@ -2,12 +2,14 @@ package cross
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+
+	"golang.org/x/exp/slices"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
-	"golang.org/x/exp/slices"
-	"sort"
-	"strings"
 )
 
 // ReleaseList describes multiple releases across multiple environments

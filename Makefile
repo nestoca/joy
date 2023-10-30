@@ -27,3 +27,7 @@ test-cov: generate vet
 
 clean:
 	@rm -rf ./reports ./out
+
+fmt:
+	@gofumpt -w .
+	@goimports --local github.com/nestoca/joy,github.com/nestoca -w .

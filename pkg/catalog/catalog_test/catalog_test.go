@@ -1,11 +1,13 @@
 package catalog_test
 
 import (
-	"github.com/nestoca/joy/internal/release/cross"
-	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func TestFreeformEnvsAndReleasesLoading(t *testing.T) {

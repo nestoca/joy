@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/spf13/cobra"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
@@ -9,9 +14,6 @@ import (
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/spf13/cobra"
-	"regexp"
-	"strings"
 )
 
 func NewReleaseCmd() *cobra.Command {

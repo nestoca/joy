@@ -1,10 +1,12 @@
 package promote_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/pr/promote"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetCurrentBranch(t *testing.T) {

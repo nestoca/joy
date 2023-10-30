@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-type PullRequestProvider struct {
-}
+type PullRequestProvider struct{}
 
 var labelRegex = regexp.MustCompile(`^promote:(.+)$`)
 

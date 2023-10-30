@@ -1,8 +1,9 @@
 package yml_test
 
 import (
-	"github.com/nestoca/joy/internal/yml"
 	"testing"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 func TestCompare(t *testing.T) {

@@ -2,8 +2,10 @@ package style
 
 import "github.com/TwiN/go-color"
 
-const darkGrey = "\033[38;2;90;90;90m"
-const darkYellow = "\033[38;2;128;128;0m"
+const (
+	darkGrey   = "\033[38;2;90;90;90m"
+	darkYellow = "\033[38;2;128;128;0m"
+)
 
 // SecondaryInfo is for text that should be less prominent than the main text
 func SecondaryInfo(s any) string {

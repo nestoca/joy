@@ -3,8 +3,9 @@ package yml
 import (
 	"bytes"
 	"errors"
-	"gopkg.in/yaml.v3"
 	"reflect"
+
+	"gopkg.in/yaml.v3"
 )
 
 func EncodeYaml(obj any) ([]byte, error) {

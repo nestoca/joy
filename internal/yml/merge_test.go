@@ -2,10 +2,11 @@ package yml
 
 import (
 	"bytes"
-	"github.com/google/go-cmp/cmp"
-	"gopkg.in/yaml.v3"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"gopkg.in/yaml.v3"
 )
 
 func TestMergeLockedSubTreesIntoExistingSubTrees(t *testing.T) {

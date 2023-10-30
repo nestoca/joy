@@ -2,16 +2,18 @@ package jac
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
-	"os"
-	"os/exec"
-	"strings"
 )
 
 var dependency = &dependencies.Dependency{

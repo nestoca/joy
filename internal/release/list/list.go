@@ -2,14 +2,16 @@ package list
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/olekukonko/tablewriter"
+
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/olekukonko/tablewriter"
-	"os"
-	"strings"
 )
 
 type Opts struct {

@@ -3,17 +3,19 @@ package promote
 import (
 	"bytes"
 	"fmt"
+	"strings"
+	"text/tabwriter"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
-	"strings"
-	"text/tabwriter"
 )
 
 type InteractivePromptProvider struct {
