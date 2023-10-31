@@ -3,12 +3,12 @@ package github
 import (
 	"errors"
 	"fmt"
-	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/internal/style"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/style"
 )
 
 var dependency = &dependencies.Dependency{
@@ -29,12 +29,9 @@ func executeInteractively(args ...string) error {
 	}
 
 	cmd := exec.Command("gh", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
+		return fmt.Errorf("running gh command with args %q: %s", strings.Join(args, " "), output)
 	}
 	return nil
 }
