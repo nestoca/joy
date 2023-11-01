@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/build"
 	"github.com/spf13/cobra"
+
+	"github.com/nestoca/joy/internal/build"
 )
 
 func NewBuildCmd() *cobra.Command {

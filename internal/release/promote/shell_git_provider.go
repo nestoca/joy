@@ -2,6 +2,7 @@ package promote
 
 import (
 	"fmt"
+
 	"github.com/nestoca/joy/internal/git"
 )
 

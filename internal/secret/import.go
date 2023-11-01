@@ -3,14 +3,16 @@ package secret
 import (
 	"encoding/base64"
 	"fmt"
+	"os/exec"
+	"strings"
+
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"os/exec"
-	"strings"
 )
 
 var kubectlDependency = &dependencies.Dependency{

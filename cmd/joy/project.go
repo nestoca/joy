@@ -1,9 +1,10 @@
 package main
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/project"
-	"github.com/spf13/cobra"
 )
 
 func NewProjectCmd() *cobra.Command {

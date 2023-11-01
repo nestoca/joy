@@ -1,8 +1,9 @@
 package promote_test
 
 import (
-	"github.com/nestoca/joy/internal/testutils"
 	"testing"
+
+	"github.com/nestoca/joy/internal/testutils"
 )
 
 func TestMain(m *testing.M) {

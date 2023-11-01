@@ -2,9 +2,10 @@ package dependencies
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
+
+	"github.com/nestoca/joy/internal/style"
 )
 
 type Dependency struct {
@@ -33,8 +34,10 @@ func (d *Dependency) MustBeInstalled() {
 	}
 }
 
-var AllRequired []*Dependency
-var AllOptional []*Dependency
+var (
+	AllRequired []*Dependency
+	AllOptional []*Dependency
+)
 
 func Add(dep *Dependency) {
 	if dep.IsRequired {

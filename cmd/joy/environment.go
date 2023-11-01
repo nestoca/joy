@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/environment"
 	"github.com/spf13/cobra"
+
+	"github.com/nestoca/joy/internal/environment"
 )
 
 func NewEnvironmentCmd() *cobra.Command {

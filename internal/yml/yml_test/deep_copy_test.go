@@ -1,9 +1,11 @@
 package yml_test
 
 import (
-	"github.com/nestoca/joy/internal/yml"
-	"gopkg.in/yaml.v3"
 	"testing"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 func TestDeepCopyNode(t *testing.T) {

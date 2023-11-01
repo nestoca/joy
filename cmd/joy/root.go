@@ -2,14 +2,18 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/spf13/cobra"
-	"os"
 )
 
-var cfg *config.Config
-var configDir, catalogDir string
+var (
+	cfg                   *config.Config
+	configDir, catalogDir string
+)
 
 func main() {
 	rootCmd := NewRootCmd()

@@ -2,10 +2,11 @@ package build
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const releaseTemplate = `# Some random comment
@@ -184,7 +185,7 @@ func setup(opts setupOpts) (string, error) {
 	// Create environment file
 	environmentFile := filepath.Join(tempDir, "env.yaml")
 	environmentContent := fmt.Sprintf(environmentTemplate, opts.env)
-	err = os.WriteFile(environmentFile, []byte(environmentContent), 0644)
+	err = os.WriteFile(environmentFile, []byte(environmentContent), 0o644)
 	if err != nil {
 		return "", fmt.Errorf("writing environment file: %w", err)
 	}
@@ -194,7 +195,7 @@ func setup(opts setupOpts) (string, error) {
 	if opts.fileContents == "" {
 		opts.fileContents = fmt.Sprintf(releaseTemplate, "promote-build-release", opts.project, "0.0.1")
 	}
-	err = os.WriteFile(releaseFile, []byte(opts.fileContents), 0644)
+	err = os.WriteFile(releaseFile, []byte(opts.fileContents), 0o644)
 	if err != nil {
 		return "", err
 	}
