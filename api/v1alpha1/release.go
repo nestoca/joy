@@ -2,8 +2,10 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/yml"
+
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 const ReleaseKind = "Release"

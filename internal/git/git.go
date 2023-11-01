@@ -2,12 +2,14 @@ package git
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/internal/style"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/AlecAivazis/survey/v2"
+
+	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/style"
 )
 
 var dependency = &dependencies.Dependency{

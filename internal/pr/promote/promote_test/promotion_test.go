@@ -1,12 +1,14 @@
 package promote_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/pr/promote"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
-	"testing"
 )
 
 func newEnvironment(name string, promotable bool) *v1alpha1.Environment {

@@ -2,14 +2,14 @@ package yml
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // FindNode traverses a given yaml.Node to locate the value Node of the provided path. The path is interpreted as being
 // relative to the given yaml.Node.
 func FindNode(node *yaml.Node, path string) (resultNode *yaml.Node, err error) {
-
 	var findNodeErr error
 
 	// If node is a DocumentNode, we need to retrieve the MappingNode from its Content and traverse it.

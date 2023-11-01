@@ -2,15 +2,17 @@ package catalog
 
 import (
 	"fmt"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"golang.org/x/exp/slices"
+	"gopkg.in/godo.v2/glob"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
-	"golang.org/x/exp/slices"
-	"gopkg.in/godo.v2/glob"
-	"path/filepath"
-	"sort"
-	"strings"
 )
 
 type Catalog struct {

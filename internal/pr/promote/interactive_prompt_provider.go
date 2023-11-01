@@ -2,12 +2,13 @@ package promote
 
 import (
 	"fmt"
+
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/nestoca/joy/internal/style"
 )
 
-type InteractivePromptProvider struct {
-}
+type InteractivePromptProvider struct{}
 
 func (s *InteractivePromptProvider) WhetherToCreateMissingPullRequest() (bool, error) {
 	prompt := &survey.Confirm{

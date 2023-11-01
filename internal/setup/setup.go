@@ -2,19 +2,23 @@ package setup
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/internal/style"
-	"github.com/nestoca/joy/pkg/catalog"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/AlecAivazis/survey/v2"
+
+	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
-const defaultCatalogDir = "~/.joy"
-const separator = "————————————————————————————————————————————————————————————————————————————————"
+const (
+	defaultCatalogDir = "~/.joy"
+	separator         = "————————————————————————————————————————————————————————————————————————————————"
+)
 
 func Setup(configDir, catalogDir, catalogRepo string) error {
 	fmt.Println("👋 Hey there, let's kickstart your most joyful CD experience! ☀️")

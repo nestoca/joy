@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"

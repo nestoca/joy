@@ -1,9 +1,11 @@
 package promote
 
 import (
-	"github.com/go-test/deep"
-	"github.com/nestoca/joy/api/v1alpha1"
 	"testing"
+
+	"github.com/go-test/deep"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 )
 
 func newEnvironment(name string, promotable bool) *v1alpha1.Environment {

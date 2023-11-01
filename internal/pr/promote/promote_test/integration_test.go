@@ -4,23 +4,27 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-test/deep"
-	"github.com/google/uuid"
-	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/git/pr/github"
-	"github.com/nestoca/joy/internal/pr/promote"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 	"os"
 	"os/exec"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/go-test/deep"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+
+	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/git/pr/github"
+	"github.com/nestoca/joy/internal/pr/promote"
 )
 
-var promotableEnvs = []string{"staging", "demo"}
-var commonLabels = []string{"label1", "label2", "label3"}
-var possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
+var (
+	promotableEnvs          = []string{"staging", "demo"}
+	commonLabels            = []string{"label1", "label2", "label3"}
+	possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
+)
 
 func TestPromotePRs(t *testing.T) {
 	testCases := []struct {

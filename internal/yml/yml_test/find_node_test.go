@@ -1,10 +1,12 @@
 package yml_test
 
 import (
-	"github.com/nestoca/joy/internal/yml"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"testing"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 const yamlString = `# Some random comment

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/setup"
 	"github.com/spf13/cobra"
+
+	"github.com/nestoca/joy/internal/setup"
 )
 
 func NewSetupCmd() *cobra.Command {

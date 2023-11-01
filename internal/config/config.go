@@ -9,8 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const joyrcFile = ".joyrc"
-const joyDefaultDir = ".joy"
+const (
+	joyrcFile     = ".joyrc"
+	joyDefaultDir = ".joy"
+)
 
 type Config struct {
 	// CatalogDir is the directory containing catalog of environments, projects and releases.
@@ -117,7 +119,7 @@ func (c *Config) Save() error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(c.FilePath, content, 0644); err != nil {
+	if err := os.WriteFile(c.FilePath, content, 0o644); err != nil {
 		return fmt.Errorf("writing config to %s: %w", c.FilePath, err)
 	}
 
