@@ -2,10 +2,11 @@ package cross
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
-	"path/filepath"
 )
 
 // Release describes a given release across multiple environments

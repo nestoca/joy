@@ -2,7 +2,9 @@ package environment
 
 import (
 	"fmt"
+
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 )
 

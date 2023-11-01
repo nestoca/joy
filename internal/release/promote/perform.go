@@ -2,10 +2,12 @@ package promote
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
-	"strings"
 )
 
 // perform performs the promotion of all releases in given list and returns PR url if any

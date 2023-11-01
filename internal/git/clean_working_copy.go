@@ -3,9 +3,10 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"github.com/nestoca/joy/internal/style"
 	"os/exec"
 	"strings"
+
+	"github.com/nestoca/joy/internal/style"
 )
 
 func EnsureCleanAndUpToDateWorkingCopy(dir string) error {

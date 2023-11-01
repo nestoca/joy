@@ -2,11 +2,13 @@ package release
 
 import (
 	"fmt"
+	"sort"
+
 	"github.com/AlecAivazis/survey/v2"
+
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
-	"sort"
 )
 
 func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
