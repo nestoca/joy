@@ -9,6 +9,13 @@ import (
 )
 
 type PullRequestProvider struct {
+	dir string
+}
+
+func NewPullRequestProvider(dir string) *PullRequestProvider {
+	return &PullRequestProvider{
+		dir: dir,
+	}
 }
 
 var labelRegex = regexp.MustCompile(`^promote:(.+)$`)
@@ -25,7 +32,7 @@ func (g *PullRequestProvider) EnsureInstalledAndAuthenticated() error {
 }
 
 func (g *PullRequestProvider) Exists(branch string) (bool, error) {
-	pr, err := get(branch)
+	pr, err := g.get(branch)
 	if err != nil {
 		return false, fmt.Errorf("getting pull request for branch %s: %w", branch, err)
 	}
@@ -33,7 +40,7 @@ func (g *PullRequestProvider) Exists(branch string) (bool, error) {
 }
 
 func (g *PullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
-	prs, err := getAllWithLabel(fmt.Sprintf("promote:%s", env))
+	prs, err := g.getAllWithLabel(fmt.Sprintf("promote:%s", env))
 	if err != nil {
 		return nil, fmt.Errorf("getting pull requests: %w", err)
 	}
@@ -46,7 +53,7 @@ func (g *PullRequestProvider) GetBranchesPromotingToEnvironment(env string) ([]s
 }
 
 func (g *PullRequestProvider) CreateInteractively(branch string) error {
-	err := executeInteractively("pr", "create", "--head", branch)
+	err := executeInteractively(g.dir, "pr", "create", "--head", branch)
 	if err != nil {
 		return fmt.Errorf("creating pull request for branch %s: %w", branch, err)
 	}
@@ -54,7 +61,7 @@ func (g *PullRequestProvider) CreateInteractively(branch string) error {
 }
 
 func (g *PullRequestProvider) Create(branch, title, body string) (string, error) {
-	prURL, err := executeAndGetOutput("pr", "create", "--head", branch, "--title", title, "--body", body)
+	prURL, err := executeAndGetOutput(g.dir, "pr", "create", "--head", branch, "--title", title, "--body", body)
 	if err != nil {
 		return "", fmt.Errorf("creating pull request for branch %s: %w", branch, err)
 	}
@@ -62,8 +69,8 @@ func (g *PullRequestProvider) Create(branch, title, body string) (string, error)
 	return prURL, err
 }
 
-func getPromotionLabels(branch string) ([]string, error) {
-	pr, err := get(branch)
+func (g *PullRequestProvider) getPromotionLabels(branch string) ([]string, error) {
+	pr, err := g.get(branch)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +87,7 @@ func getPromotionLabels(branch string) ([]string, error) {
 }
 
 func (g *PullRequestProvider) GetPromotionEnvironment(branch string) (string, error) {
-	labels, err := getPromotionLabels(branch)
+	labels, err := g.getPromotionLabels(branch)
 	if err != nil {
 		return "", fmt.Errorf("getting promotion labels for branch %s: %w", branch, err)
 	}
@@ -93,14 +100,14 @@ func (g *PullRequestProvider) GetPromotionEnvironment(branch string) (string, er
 func (g *PullRequestProvider) SetPromotionEnvironment(branch string, env string) error {
 	// Get current promotion labels
 	// Typically, there is only one or none, but we cannot guarantee there are not many
-	labels, err := getPromotionLabels(branch)
+	labels, err := g.getPromotionLabels(branch)
 	if err != nil {
 		return fmt.Errorf("getting promotion labels for branch %s: %w", branch, err)
 	}
 
 	// Remove existing labels, if any
 	for _, label := range labels {
-		if err := removeLabel(branch, label); err != nil {
+		if err := g.removeLabel(branch, label); err != nil {
 			return fmt.Errorf("removing label %s from branch %s: %w", label, branch, err)
 		}
 	}
@@ -108,16 +115,17 @@ func (g *PullRequestProvider) SetPromotionEnvironment(branch string, env string)
 	// Add new label
 	if env != "" {
 		label := fmt.Sprintf("promote:%s", env)
-		if err := addLabel(branch, label); err != nil {
+		if err := g.addLabel(branch, label); err != nil {
 			return fmt.Errorf("adding label %s to branch %s: %w", env, branch, err)
 		}
 	}
 	return nil
 }
 
-func get(branch string) (*pullRequest, error) {
+func (g *PullRequestProvider) get(branch string) (*pullRequest, error) {
 	// List pull requests for branch
 	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--state", "open", "--json", "headRefName,labels")
+	cmd.Dir = g.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("listing pull requests for branch %s: %s", branch, output)
@@ -136,9 +144,10 @@ func get(branch string) (*pullRequest, error) {
 	return &prs[0], nil
 }
 
-func getAllWithLabel(label string) ([]pullRequest, error) {
+func (g *PullRequestProvider) getAllWithLabel(label string) ([]pullRequest, error) {
 	// List pull requests for branch
 	cmd := exec.Command("gh", "pr", "list", "--label", label, "--state", "open", "--json", "headRefName")
+	cmd.Dir = g.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("listing pull requests: %s", output)
@@ -153,8 +162,9 @@ func getAllWithLabel(label string) ([]pullRequest, error) {
 	return prs, nil
 }
 
-func removeLabel(branch string, label string) error {
+func (g *PullRequestProvider) removeLabel(branch string, label string) error {
 	cmd := exec.Command("gh", "pr", "edit", branch, "--remove-label", label)
+	cmd.Dir = g.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("removing label %s from branch %s: %s", label, branch, output)
@@ -162,9 +172,10 @@ func removeLabel(branch string, label string) error {
 	return nil
 }
 
-func addLabel(branch string, label string) error {
+func (g *PullRequestProvider) addLabel(branch string, label string) error {
 	// Ensure label exists in repo
 	cmd := exec.Command("gh", "label", "create", label)
+	cmd.Dir = g.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if !strings.Contains(string(output), "already exists") {
@@ -174,6 +185,7 @@ func addLabel(branch string, label string) error {
 
 	// Add label to PR
 	cmd = exec.Command("gh", "pr", "edit", branch, "--add-label", label)
+	cmd.Dir = g.dir
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("adding label %s to branch %s: %s", label, branch, output)

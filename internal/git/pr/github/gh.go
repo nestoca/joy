@@ -22,13 +22,14 @@ func init() {
 }
 
 // executeInteractively runs gh command with given args with full forwarding of stdin, stdout and stderr.
-func executeInteractively(args ...string) error {
+func executeInteractively(workDir string, args ...string) error {
 	err := EnsureInstalledAndAuthenticated()
 	if err != nil {
 		return err
 	}
 
 	cmd := exec.Command("gh", args...)
+	cmd.Dir = workDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("running gh command with args %q: %s", strings.Join(args, " "), output)
@@ -37,13 +38,14 @@ func executeInteractively(args ...string) error {
 }
 
 // executeAndGetOutput runs gh command with given args and returns the stdout output.
-func executeAndGetOutput(args ...string) (string, error) {
+func executeAndGetOutput(workDir string, args ...string) (string, error) {
 	err := EnsureInstalledAndAuthenticated()
 	if err != nil {
 		return "", err
 	}
 
 	cmd := exec.Command("gh", args...)
+	cmd.Dir = workDir
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)

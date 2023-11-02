@@ -1,17 +1,19 @@
 package promote_test
 
 import (
+	"testing"
+
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetCurrentBranch(t *testing.T) {
+	dir := "."
 	// Prepare
 	expectedBranch := "branch-with-pr"
-	branchProvider := &promote.GitBranchProvider{}
-	assert.NoError(t, git.Checkout(".", expectedBranch))
+	branchProvider := promote.NewGitBranchProvider(dir)
+	assert.NoError(t, git.Checkout(dir, expectedBranch))
 
 	// Perform test
 	actualBranch, err := branchProvider.GetCurrentBranch()

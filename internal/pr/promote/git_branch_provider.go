@@ -6,10 +6,18 @@ import (
 	"strings"
 )
 
-type GitBranchProvider struct{}
+type GitBranchProvider struct {
+	dir string
+}
+
+func NewGitBranchProvider(dir string) *GitBranchProvider {
+	return &GitBranchProvider{
+		dir: dir,
+	}
+}
 
 func (g *GitBranchProvider) GetCurrentBranch() (string, error) {
-	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd := exec.Command("git", "-C", g.dir, "symbolic-ref", "--short", "HEAD")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))

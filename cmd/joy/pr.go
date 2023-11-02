@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/spf13/cobra"
@@ -36,7 +37,7 @@ func NewPRPromoteCmd() *cobra.Command {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
 
-			promotion := promote.NewDefaultPromotion()
+			promotion := promote.NewDefaultPromotion(cfg.CatalogDir)
 			return promotion.Promote(cat.Environments)
 		},
 	}

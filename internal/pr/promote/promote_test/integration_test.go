@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
+	"sort"
+	"strings"
+	"testing"
+
 	"github.com/go-test/deep"
 	"github.com/google/uuid"
 	"github.com/nestoca/joy/internal/git"
@@ -11,16 +17,13 @@ import (
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"os"
-	"os/exec"
-	"sort"
-	"strings"
-	"testing"
 )
 
-var promotableEnvs = []string{"staging", "demo"}
-var commonLabels = []string{"label1", "label2", "label3"}
-var possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
+var (
+	promotableEnvs          = []string{"staging", "demo"}
+	commonLabels            = []string{"label1", "label2", "label3"}
+	possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
+)
 
 func TestPromotePRs(t *testing.T) {
 	testCases := []struct {
@@ -63,13 +66,15 @@ func TestPromotePRs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			dir := "."
+
 			// Create mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			prompt := promote.NewMockPromptProvider(ctrl)
 
 			// Preparation and clean-up
-			assert.NoError(t, git.Checkout(".", tc.branch))
+			assert.NoError(t, git.Checkout(dir, tc.branch))
 			setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
 			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
 				setExclusivePromotionLabel(t, otherBranch, tc.newLabel)
@@ -90,7 +95,7 @@ func TestPromotePRs(t *testing.T) {
 			}
 
 			// Perform test
-			promotion := promote.NewPromotion(&promote.GitBranchProvider{}, &github.PullRequestProvider{}, prompt)
+			promotion := promote.NewPromotion(promote.NewGitBranchProvider(dir), github.NewPullRequestProvider(dir), prompt)
 			err := promotion.Promote(newEnvironments())
 
 			// Check results
@@ -109,7 +114,7 @@ func TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t *testing.T)
 	assert.NoError(t, err)
 	expectedEnv := guid.String()
 	assert.NoError(t, git.Checkout(".", branch))
-	prProvider := github.PullRequestProvider{}
+	prProvider := github.NewPullRequestProvider(".")
 
 	err = prProvider.SetPromotionEnvironment(branch, expectedEnv)
 	assert.NoError(t, err)
