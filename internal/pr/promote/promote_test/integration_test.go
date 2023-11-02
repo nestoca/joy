@@ -15,7 +15,8 @@ import (
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/pr/promote"
-	"github.com/stretchr/testify/assert"
+	"github.com/nestoca/joy/internal/testutils"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -25,7 +26,23 @@ var (
 	possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
 )
 
-func TestPromotePRs(t *testing.T) {
+func TestGitPromote(t *testing.T) {
+	gitRepo := testutils.CloneToTempDir(t, "joy-pr-promote-test")
+
+	t.Run("TestPromotePRs", func(t *testing.T) {
+		testPromotePRs(t, gitRepo)
+	})
+
+	t.Run("TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo", func(t *testing.T) {
+		testSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t, gitRepo)
+	})
+
+	t.Run("testDir", func(t *testing.T) {
+		testGetCurrentBranch(t, gitRepo)
+	})
+}
+
+func testPromotePRs(t *testing.T, dir string) {
 	testCases := []struct {
 		name                               string
 		branch                             string
@@ -66,20 +83,18 @@ func TestPromotePRs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			dir := "."
-
 			// Create mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			prompt := promote.NewMockPromptProvider(ctrl)
 
 			// Preparation and clean-up
-			assert.NoError(t, git.Checkout(dir, tc.branch))
-			setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
+			require.NoError(t, git.Checkout(dir, tc.branch))
+			setExclusivePromotionLabel(t, dir, tc.branch, tc.oldLabel)
 			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
-				setExclusivePromotionLabel(t, otherBranch, tc.newLabel)
+				setExclusivePromotionLabel(t, dir, otherBranch, tc.newLabel)
 			}
-			defer setExclusivePromotionLabel(t, tc.branch, tc.oldLabel)
+			defer setExclusivePromotionLabel(t, dir, tc.branch, tc.oldLabel)
 
 			// Set expectations
 			prompt.EXPECT().WhichEnvironmentToPromoteTo(promotableEnvs, tc.oldEnv).Return(tc.newEnv, nil)
@@ -99,61 +114,78 @@ func TestPromotePRs(t *testing.T) {
 			err := promotion.Promote(newEnvironments())
 
 			// Check results
-			assert.NoError(t, err)
-			assertLabel(t, tc.branch, tc.newLabel)
+			require.NoError(t, err)
+			requireLabel(t, dir, tc.branch, tc.newLabel)
 			for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
-				assertLabel(t, otherBranch, "")
+				requireLabel(t, dir, otherBranch, "")
 			}
 		})
 	}
 }
 
-func TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t *testing.T) {
+func testSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t *testing.T, dir string) {
 	branch := "branch-with-pr"
 	guid, err := uuid.NewRandom()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	expectedEnv := guid.String()
-	assert.NoError(t, git.Checkout(".", branch))
-	prProvider := github.NewPullRequestProvider(".")
+	require.NoError(t, git.Checkout(dir, branch))
+	prProvider := github.NewPullRequestProvider(dir)
 
 	err = prProvider.SetPromotionEnvironment(branch, expectedEnv)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = prProvider.SetPromotionEnvironment(branch, "")
-		deletePromotionLabelFromRepo(t, expectedEnv)
+		deletePromotionLabelFromRepo(t, dir, expectedEnv)
 	})
 
 	actualEnv, err := prProvider.GetPromotionEnvironment(branch)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedEnv, actualEnv)
+	require.NoError(t, err)
+	require.Equal(t, expectedEnv, actualEnv)
 }
 
-func addLabel(t *testing.T, branch string, labels ...string) {
+func testGetCurrentBranch(t *testing.T, dir string) {
+	// Prepare
+	expectedBranch := "branch-with-pr"
+	branchProvider := promote.NewGitBranchProvider(dir)
+	require.NoError(t, git.Checkout(dir, expectedBranch))
+
+	// Perform test
+	actualBranch, err := branchProvider.GetCurrentBranch()
+
+	// require
+	require.NoError(t, err, "getting current branch")
+	require.Equal(t, expectedBranch, actualBranch)
+}
+
+func addLabel(t *testing.T, dir, branch string, labels ...string) {
 	t.Helper()
 	cmd := exec.Command("gh", "pr", "edit", branch, "--add-label", strings.Join(labels, ","))
+	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	assert.NoError(t, err, "adding labels %v", labels)
+	require.NoError(t, err, "adding labels %v", labels)
 }
 
-func removeLabel(t *testing.T, branch string, labels ...string) {
+func removeLabel(t *testing.T, dir, branch string, labels ...string) {
 	t.Helper()
 	cmd := exec.Command("gh", "pr", "edit", branch, "--remove-label", strings.Join(labels, ","))
+	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	assert.NoError(t, err, "remove labels %v", labels)
+	require.NoError(t, err, "remove labels %v", labels)
 }
 
-func deletePromotionLabelFromRepo(t *testing.T, env string) {
+func deletePromotionLabelFromRepo(t *testing.T, dir, env string) {
 	t.Helper()
 	label := fmt.Sprintf("promote:%s", env)
 	cmd := exec.Command("gh", "label", "delete", label, "--yes")
+	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	assert.NoError(t, err, "delete label %s from repo", label)
+	require.NoError(t, err, "delete label %s from repo", label)
 }
 
 type pullRequest struct {
@@ -162,12 +194,15 @@ type pullRequest struct {
 	} `json:"labels"`
 }
 
-func assertLabel(t *testing.T, branch, expectedLabel string) {
+func requireLabel(t *testing.T, dir, branch, expectedLabel string) {
+	t.Helper()
+
 	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "labels")
+	cmd.Dir = dir
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	assert.NoError(t, err, "listing labels")
+	require.NoError(t, err, "listing labels")
 
 	// Always include common labels
 	expectedLabels := commonLabels
@@ -197,12 +232,14 @@ func assertLabel(t *testing.T, branch, expectedLabel string) {
 	}
 }
 
-func setExclusivePromotionLabel(t *testing.T, branch, label string) {
+func setExclusivePromotionLabel(t *testing.T, dir, branch, label string) {
+	t.Helper()
+
 	for _, possibleLabel := range possiblePromotionLabels {
 		if possibleLabel == label {
-			addLabel(t, branch, possibleLabel)
+			addLabel(t, dir, branch, possibleLabel)
 		} else {
-			removeLabel(t, branch, possibleLabel)
+			removeLabel(t, dir, branch, possibleLabel)
 		}
 	}
 }

@@ -1,15 +1,17 @@
 package promote_test
 
 import (
+	"os/exec"
+	"testing"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
+	"github.com/nestoca/joy/internal/testutils"
 	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"os/exec"
-	"testing"
 )
 
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
@@ -31,9 +33,11 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
 
+	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
+
 	// Load catalog
 	loadOpts := catalog.LoadOpts{
-		Dir:             ".",
+		Dir:             dir,
 		LoadEnvs:        true,
 		LoadReleases:    true,
 		SortEnvsByOrder: true,
@@ -48,12 +52,13 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider("."), &github.PullRequestProvider{}, &promote.FileSystemYamlWriter{})
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
 		TargetEnv: targetEnv,
 	}
+
 	prURL, err := promotion.Promote(opts)
 	defer func() {
 		if prURL != "" {
