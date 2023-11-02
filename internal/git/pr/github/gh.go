@@ -3,6 +3,7 @@ package github
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -29,10 +30,12 @@ func executeInteractively(workDir string, args ...string) error {
 	}
 
 	cmd := exec.Command("gh", args...)
-	cmd.Dir = workDir
-	output, err := cmd.CombinedOutput()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("running gh command with args %q: %s", strings.Join(args, " "), output)
+		return fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
 	}
 	return nil
 }
