@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// CloneToTempDir will clone the nestoca reponame to a temporary directory and return the absolute path
-// to that temporary dir.
+// CloneToTempDir will clone given nestoca repo to a temporary directory and return its absolute path.
 func CloneToTempDir(t *testing.T, repoName string) string {
 	tempDir, err := os.MkdirTemp("", repoName+"-")
 	require.NoError(t, err)

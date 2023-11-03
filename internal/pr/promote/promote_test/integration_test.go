@@ -27,18 +27,18 @@ var (
 	possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
 )
 
-func TestGitPromote(t *testing.T) {
+func Test(t *testing.T) {
 	gitRepo := testutils.CloneToTempDir(t, "joy-pr-promote-test")
 
-	t.Run("TestPromotePRs", func(t *testing.T) {
+	t.Run("testPromotePRs", func(t *testing.T) {
 		testPromotePRs(t, gitRepo)
 	})
 
-	t.Run("TestSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo", func(t *testing.T) {
+	t.Run("testSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo", func(t *testing.T) {
 		testSettingAutoPromotionEnvUsingLabelNotAlreadyExistingInRepo(t, gitRepo)
 	})
 
-	t.Run("testDir", func(t *testing.T) {
+	t.Run("testGetCurrentBranch", func(t *testing.T) {
 		testGetCurrentBranch(t, gitRepo)
 	})
 }
@@ -153,7 +153,7 @@ func testGetCurrentBranch(t *testing.T, dir string) {
 	// Perform test
 	actualBranch, err := branchProvider.GetCurrentBranch()
 
-	// require
+	// Require
 	require.NoError(t, err, "getting current branch")
 	require.Equal(t, expectedBranch, actualBranch)
 }
