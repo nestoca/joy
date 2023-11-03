@@ -6,18 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 )
-
-// changeToCatalogDir changes the current directory to the catalog, for commands
-// that need to be run from there.
-func changeToCatalogDir() error {
-	err := os.Chdir(cfg.CatalogDir)
-	if err != nil {
-		return fmt.Errorf("changing to catalog directory: %w", err)
-	}
-	return nil
-}
 
 func NewGitCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -28,8 +19,9 @@ func NewGitCmd() *cobra.Command {
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
+			cfg := config.FromContext(cmd.Context())
+			if err := os.Chdir(cfg.CatalogDir); err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 			return git.Run(cfg.CatalogDir, args)
 		},
@@ -45,8 +37,9 @@ func NewPullCmd() *cobra.Command {
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
+			cfg := config.FromContext(cmd.Context())
+			if err := os.Chdir(cfg.CatalogDir); err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 			return git.Pull(cfg.CatalogDir, args...)
 		},
@@ -62,8 +55,9 @@ func NewPushCmd() *cobra.Command {
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
+			cfg := config.FromContext(cmd.Context())
+			if err := os.Chdir(cfg.CatalogDir); err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 			return git.Push(cfg.CatalogDir, args...)
 		},
@@ -78,8 +72,9 @@ func NewResetCmd() *cobra.Command {
 		GroupID: "git",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := changeToCatalogDir(); err != nil {
-				return err
+			cfg := config.FromContext(cmd.Context())
+			if err := os.Chdir(cfg.CatalogDir); err != nil {
+				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
 			return git.Reset(cfg.CatalogDir)
 		},

@@ -10,46 +10,43 @@ import (
 	"github.com/nestoca/joy/internal/dependencies"
 )
 
-var (
-	cfg                   *config.Config
-	configDir, catalogDir string
-)
-
 func main() {
-	rootCmd := NewRootCmd()
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := NewRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func NewRootCmd() *cobra.Command {
-	setupCmd := NewSetupCmd()
+	var (
+		configDir  string
+		catalogDir string
+		setupCmd   = NewSetupCmd(&configDir, &catalogDir)
+	)
 
 	cmd := &cobra.Command{
 		Use:          "joy",
 		Short:        "Manages project, environment and release resources as code",
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			var err error
 			if cmd != setupCmd {
 				dependencies.AllRequiredMustBeInstalled()
 			}
 
-			cfg, err = config.Load(configDir, catalogDir)
+			cfg, err := config.Load(configDir, catalogDir)
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
 			}
 
-			if cmd != setupCmd {
-				err = config.CheckCatalogDir(cfg.CatalogDir)
-				if err != nil {
-					return err
-				}
+			cmd.SetContext(config.ToContext(cmd.Context(), cfg))
+
+			if cmd == setupCmd {
+				return nil
 			}
-			return nil
+
+			return config.CheckCatalogDir(cfg.CatalogDir)
 		},
 	}
+
 	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
 	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
 

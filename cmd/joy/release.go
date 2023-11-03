@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
@@ -38,6 +39,7 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
 			// Filtering
 			var filter filtering.Filter
 			if releases != "" {
@@ -67,6 +69,8 @@ func NewReleasePromoteCmd() *cobra.Command {
 		Short:   "Promote releases across environments",
 		Args:    cobra.RangeArgs(0, 1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
 			// Filtering
 			var filter filtering.Filter
 			if releases != "" {
@@ -140,6 +144,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Aliases: []string{"sel"},
 		Short:   "Select releases to include in listings and promotions",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
 			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
@@ -167,6 +172,7 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
 			return jac.ListReleasePeople(cfg.CatalogDir, args)
 		},
 	}

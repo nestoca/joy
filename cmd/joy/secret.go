@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/secret"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -49,6 +50,8 @@ This command requires the sealed-secrets kubeseal cli to be installed: https://g
 The sealed secrets public certificate must also have been imported into the environment using 'joy secret import' command.
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,

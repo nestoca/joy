@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
 )
 
@@ -28,6 +29,7 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 
 Only selected environments will be included in releases table columns.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
 			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
