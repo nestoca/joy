@@ -1,3 +1,13 @@
+## [0.16.2](https://github.com/nestoca/joy/compare/v0.16.1...v0.16.2) (2023-11-03)
+
+
+### Bug Fixes
+
+* pin build dependencies ([a25361d](https://github.com/nestoca/joy/commit/a25361da3239659c7c9089d19addff5ff0d0a54a))
+* use same import convention as other projects ([39c24c0](https://github.com/nestoca/joy/commit/39c24c0e034d45fde9885a80ff08c306afc8501e)), closes [/github.com/nestoca/joy/pull/35#discussion_r1377915933](https://github.com//github.com/nestoca/joy/pull/35/issues/discussion_r1377915933)
+
+
+
 ## [0.16.1](https://github.com/nestoca/joy/compare/v0.16.0...v0.16.1) (2023-10-30)
 
 
