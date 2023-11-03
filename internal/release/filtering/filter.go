@@ -1,8 +1,9 @@
 package filtering
 
 import (
-	"github.com/nestoca/joy/api/v1alpha1"
 	"strings"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 )
 
 type Filter interface {

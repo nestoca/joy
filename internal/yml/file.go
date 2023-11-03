@@ -3,9 +3,10 @@ package yml
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 // File represents a yaml file loaded into memory in different forms,
@@ -132,7 +133,7 @@ func marshallTreeToYaml(tree *yaml.Node, indent int) ([]byte, error) {
 }
 
 func (y *File) WriteYaml() error {
-	return os.WriteFile(y.Path, y.Yaml, 0644)
+	return os.WriteFile(y.Path, y.Yaml, 0o644)
 }
 
 func (y *File) ToYaml() (string, error) {

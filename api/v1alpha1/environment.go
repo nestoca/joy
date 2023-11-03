@@ -2,10 +2,12 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/yml"
+	"path/filepath"
+
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
-	"path/filepath"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 const EnvironmentKind = "Environment"

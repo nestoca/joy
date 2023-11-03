@@ -2,24 +2,28 @@ package promote_test
 
 import (
 	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
-	"testing"
 )
 
-const devEnvIndex = 0
-const stagingEnvIndex = 1
-const prodEnvIndex = 2
-const sourceEnvIndex = stagingEnvIndex
-const targetEnvIndex = prodEnvIndex
-const sourceEnvName = "staging"
-const targetEnvName = "prod"
+const (
+	devEnvIndex     = 0
+	stagingEnvIndex = 1
+	prodEnvIndex    = 2
+	sourceEnvIndex  = stagingEnvIndex
+	targetEnvIndex  = prodEnvIndex
+	sourceEnvName   = "staging"
+	targetEnvName   = "prod"
+)
 
 type setupArgs struct {
 	t              *testing.T

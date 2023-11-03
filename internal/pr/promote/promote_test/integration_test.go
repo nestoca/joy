@@ -12,12 +12,13 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/nestoca/joy/internal/testutils"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 var (

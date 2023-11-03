@@ -6,6 +6,8 @@ run:
 
 setup:
 	@go install go.uber.org/mock/mockgen@latest
+	@go install mvdan.cc/gofumpt@latest
+	@go install golang.org/x/tools/cmd/goimports@latest
 	@go mod download
 
 build: generate
@@ -27,3 +29,7 @@ test-cov: generate vet
 
 clean:
 	@rm -rf ./reports ./out
+
+fmt:
+	@gofumpt -w .
+	@goimports --local github.com/nestoca/joy,github.com/nestoca -w .

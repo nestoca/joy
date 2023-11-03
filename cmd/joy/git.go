@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/git"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/nestoca/joy/internal/git"
 )
 
 // changeToCatalogDir changes the current directory to the catalog, for commands

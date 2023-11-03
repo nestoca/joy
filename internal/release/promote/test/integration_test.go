@@ -4,14 +4,15 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/testutils"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 )
 
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {

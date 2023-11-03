@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/spf13/cobra"
 )
 
 func NewPRCmd() *cobra.Command {
