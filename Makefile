@@ -5,9 +5,9 @@ run:
 	@echo "Ex: 'go run ./cmd/joy help'"
 
 setup:
-	@go install go.uber.org/mock/mockgen@latest
-	@go install mvdan.cc/gofumpt@latest
-	@go install golang.org/x/tools/cmd/goimports@latest
+	@go install go.uber.org/mock/mockgen@v0.3.0
+	@go install mvdan.cc/gofumpt@v0.5.0
+	@go install golang.org/x/tools/cmd/goimports@v0.14.0
 	@go mod download
 
 build: generate
