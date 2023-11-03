@@ -15,7 +15,15 @@ func CloneToTempDir(t *testing.T, repoName string) string {
 	require.NoError(t, err)
 
 	repoUrl := fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
-	require.NoError(t, exec.Command("git", "clone", repoUrl, tempDir).Run())
+	require.NoError(t, cmd("git", "clone", repoUrl, tempDir).Run())
 
 	return tempDir
+}
+
+func cmd(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd
 }
