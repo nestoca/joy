@@ -32,4 +32,4 @@ clean:
 
 fmt:
 	@gofumpt -w .
-	@goimports --local github.com/nestoca/joy,github.com/nestoca -w .
+	@goimports --local github.com/nestoca/joy -w .
