@@ -2,7 +2,6 @@ package dependencies
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 
 	"github.com/nestoca/joy/internal/style"
@@ -27,11 +26,11 @@ func (d *Dependency) IsInstalled() bool {
 	return cmd.Run() == nil
 }
 
-func (d *Dependency) MustBeInstalled() {
+func (d *Dependency) MustBeInstalled() error {
 	if !d.IsInstalled() {
-		fmt.Printf("😅 Oops! This command requires %s dependency (see: %s)\n", style.Code(d.Command), style.Link(d.Url))
-		os.Exit(1)
+		return fmt.Errorf("😅 Oops! This command requires %s dependency (see: %s)", style.Code(d.Command), style.Link(d.Url))
 	}
+	return nil
 }
 
 var (
@@ -47,7 +46,7 @@ func Add(dep *Dependency) {
 	}
 }
 
-func AllRequiredMustBeInstalled() {
+func AllRequiredMustBeInstalled() error {
 	missingRequired := false
 	for _, dep := range AllRequired {
 		if dep.IsRequired && !dep.IsInstalled() {
@@ -56,7 +55,6 @@ func AllRequiredMustBeInstalled() {
 		}
 	}
 	if missingRequired {
-		fmt.Println("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
-		os.Exit(1)
+		return fmt.Errorf("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
 	}
 }

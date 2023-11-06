@@ -16,9 +16,7 @@ var (
 )
 
 func main() {
-	rootCmd := NewRootCmd()
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := NewRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
@@ -33,7 +31,9 @@ func NewRootCmd() *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 			if cmd != setupCmd {
-				dependencies.AllRequiredMustBeInstalled()
+				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+					return err
+				}
 			}
 
 			cfg, err = config.Load(configDir, catalogDir)

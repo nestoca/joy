@@ -28,7 +28,9 @@ func init() {
 }
 
 func ListProjectPeople(catalogDir string, extraArgs []string) error {
-	dependency.MustBeInstalled()
+	if err := dependency.MustBeInstalled(); err != nil {
+		return err
+	}
 
 	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {
@@ -55,7 +57,9 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 }
 
 func ListReleasePeople(catalogDir string, extraArgs []string) error {
-	dependency.MustBeInstalled()
+	if err := dependency.MustBeInstalled(); err != nil {
+		return err
+	}
 
 	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
 	if err != nil {

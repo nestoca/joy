@@ -27,7 +27,9 @@ func init() {
 }
 
 func ImportCert() error {
-	kubectlDependency.MustBeInstalled()
+	if err := kubectlDependency.MustBeInstalled(); err != nil {
+		return err
+	}
 
 	// Select kube context
 	context, err := selectKubeContext()

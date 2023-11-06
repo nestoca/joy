@@ -57,7 +57,9 @@ func executeAndGetOutput(workDir string, args ...string) (string, error) {
 }
 
 func EnsureInstalledAndAuthenticated() error {
-	dependency.MustBeInstalled()
+	if err := dependency.MustBeInstalled(); err != nil {
+		return err
+	}
 
 	// Check if user is logged in
 	cmd := exec.Command("gh", "auth", "status")
