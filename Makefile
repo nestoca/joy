@@ -20,11 +20,11 @@ generate:
 	@go generate ./...
 
 test: generate vet
-	@go test -v ./...
+	@go test -p 1 -v ./...
 
 test-cov: generate vet
 	@mkdir -p ./reports
-	@go test -v ./... -coverprofile ./reports/coverage.out -covermode count
+	@go test -p 1 -v ./... -coverprofile ./reports/coverage.out -covermode count
 	@go tool cover -func ./reports/coverage.out
 
 clean:

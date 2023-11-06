@@ -23,31 +23,33 @@ func init() {
 }
 
 // executeInteractively runs gh command with given args with full forwarding of stdin, stdout and stderr.
-func executeInteractively(args ...string) error {
+func executeInteractively(workDir string, args ...string) error {
 	err := EnsureInstalledAndAuthenticated()
 	if err != nil {
 		return err
 	}
 
 	cmd := exec.Command("gh", args...)
+	cmd.Dir = workDir
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
+
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
 	}
 	return nil
 }
 
 // executeAndGetOutput runs gh command with given args and returns the stdout output.
-func executeAndGetOutput(args ...string) (string, error) {
-	err := EnsureInstalledAndAuthenticated()
-	if err != nil {
+func executeAndGetOutput(workDir string, args ...string) (string, error) {
+	if err := EnsureInstalledAndAuthenticated(); err != nil {
 		return "", err
 	}
 
 	cmd := exec.Command("gh", args...)
+	cmd.Dir = workDir
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("running gh command with args %q: %w", strings.Join(args, " "), err)
@@ -56,7 +58,9 @@ func executeAndGetOutput(args ...string) (string, error) {
 }
 
 func EnsureInstalledAndAuthenticated() error {
-	dependency.MustBeInstalled()
+	if err := dependency.MustBeInstalled(); err != nil {
+		return err
+	}
 
 	// Check if user is logged in
 	cmd := exec.Command("gh", "auth", "status")

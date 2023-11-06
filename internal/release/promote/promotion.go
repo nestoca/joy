@@ -38,7 +38,7 @@ func NewDefaultPromotion(catalogDir string) *Promotion {
 	return NewPromotion(
 		&InteractivePromptProvider{},
 		NewShellGitProvider(catalogDir),
-		&github.PullRequestProvider{},
+		github.NewPullRequestProvider(catalogDir),
 		&FileSystemYamlWriter{},
 	)
 }

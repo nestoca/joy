@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Copy pasted from nestoca/actions since we cannot import private repos.
+      - name: Set git identity
+        shell: bash
+        run: |-
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
         with:
@@ -30,6 +37,8 @@ jobs:
         run: make setup
 
       - name: Run tests w/ Coverage
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: make test-cov
 
       - name: Build cli binary

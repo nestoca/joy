@@ -3,9 +3,10 @@ package promote
 import (
 	"fmt"
 
+	"github.com/nestoca/joy/internal/git/pr/github"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
-	"github.com/nestoca/joy/internal/git/pr/github"
 )
 
 type Promotion struct {
@@ -27,10 +28,10 @@ func NewPromotion(branchProvider BranchProvider, pullRequestProvider pr.PullRequ
 	}
 }
 
-func NewDefaultPromotion() *Promotion {
+func NewDefaultPromotion(dir string) *Promotion {
 	return NewPromotion(
-		&GitBranchProvider{},
-		&github.PullRequestProvider{},
+		NewGitBranchProvider(dir),
+		github.NewPullRequestProvider(dir),
 		&InteractivePromptProvider{},
 	)
 }

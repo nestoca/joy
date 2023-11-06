@@ -38,7 +38,9 @@ func Setup(configDir, catalogDir, catalogRepo string) error {
 
 	// Check dependencies
 	fmt.Print("🧐 Hmm, let's now see what dependencies you've got humming under the hood...\n\n")
-	checkDependencies()
+	if err := checkDependencies(); err != nil {
+		return err
+	}
 	fmt.Println(separator)
 
 	fmt.Println("🚀 All systems nominal. Houston, we're cleared for launch!")
@@ -81,7 +83,11 @@ func setupCatalog(configDir string, catalogDir string, catalogRepo string) (stri
 		}
 	}
 
-	cat := loadCatalog(catalogDir)
+	cat, err := loadCatalog(catalogDir)
+	if err != nil {
+		return "", err
+	}
+
 	printCatalogSummary(cat)
 	return catalogDir, nil
 }
@@ -122,7 +128,7 @@ func getCatalogDir(configDir string, catalogDir string) (string, error) {
 	return catalogDir, nil
 }
 
-func loadCatalog(catalogDir string) *catalog.Catalog {
+func loadCatalog(catalogDir string) (*catalog.Catalog, error) {
 	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:          catalogDir,
 		LoadEnvs:     true,
@@ -131,10 +137,9 @@ func loadCatalog(catalogDir string) *catalog.Catalog {
 		ResolveRefs:  true,
 	})
 	if err != nil {
-		fmt.Printf("🤯 Whoa! Found the catalog, but failed to load it. Check this error and try again:\n%v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("🤯 Whoa! Found the catalog, but failed to load it. Check this error and try again:\n%v", err)
 	}
-	return cat
+	return cat, nil
 }
 
 func cloneCatalog(catalogRepo, catalogDir string) error {
@@ -172,8 +177,7 @@ func cloneCatalog(catalogRepo, catalogDir string) error {
 		}
 		fmt.Printf("✅ Cloned catalog from %s to %s\n", style.Link(catalogRepo), style.Code(catalogDir))
 	} else {
-		fmt.Println("😬 Sorry, cannot continue without catalog!")
-		os.Exit(1)
+		return fmt.Errorf("😬 Sorry, cannot continue without catalog!")
 	}
 	return nil
 }
@@ -205,7 +209,7 @@ func printCatalogSummary(cat *catalog.Catalog) {
 	}
 }
 
-func checkDependencies() {
+func checkDependencies() error {
 	missingRequired := false
 	for _, dep := range dependencies.AllRequired {
 		if dep.IsInstalled() {
@@ -228,7 +232,8 @@ func checkDependencies() {
 
 	if missingRequired {
 		fmt.Println()
-		fmt.Println("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
-		os.Exit(1)
+		return fmt.Errorf("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
 	}
+
+	return nil
 }
