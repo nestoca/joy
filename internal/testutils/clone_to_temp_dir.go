@@ -14,8 +14,14 @@ func CloneToTempDir(t *testing.T, repoName string) string {
 	tempDir, err := os.MkdirTemp("", repoName+"-")
 	require.NoError(t, err)
 
-	repoUrl := fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
-	require.NoError(t, cmd("git", "clone", repoUrl, tempDir).Run())
+	repoURL := func() string {
+		if gitToken := os.Getenv("GITHUB_TOKEN"); gitToken != "" {
+			return fmt.Sprintf("https://%s@github.com/nestoca/%s.git", gitToken, repoName)
+		}
+		return fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
+	}()
+
+	require.NoError(t, cmd("git", "clone", repoURL, tempDir).Run())
 
 	return tempDir
 }
