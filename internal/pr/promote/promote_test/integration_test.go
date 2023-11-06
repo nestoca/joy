@@ -200,10 +200,13 @@ func requireLabel(t *testing.T, dir, branch, expectedLabel string) {
 
 	cmd := exec.Command("gh", "pr", "list", "--head", branch, "--json", "labels")
 	cmd.Dir = dir
+
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	err := cmd.Run()
-	require.NoError(t, err, "listing labels")
+
+	require.NoError(t, cmd.Run(), "listing labels")
+
+	fmt.Printf("\ndebug: gh pr list: %s\n\n", out.String())
 
 	// Always include common labels
 	expectedLabels := commonLabels
