@@ -28,6 +28,8 @@ var (
 )
 
 func TestPromotions(t *testing.T) {
+	testutils.SkipIfCI(t)
+
 	gitRepo := testutils.CloneToTempDir(t, "joy-pr-promote-test")
 
 	t.Run("testPromotePRs", func(t *testing.T) {

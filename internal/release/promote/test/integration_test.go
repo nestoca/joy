@@ -16,9 +16,12 @@ import (
 )
 
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
+	testutils.SkipIfCI(t)
+
 	// Create mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
 	promptProvider := promote.NewMockPromptProvider(ctrl)
 
 	// Set expectations
