@@ -27,7 +27,7 @@ var (
 	possiblePromotionLabels = []string{"promote:staging", "promote:demo"}
 )
 
-func Test(t *testing.T) {
+func TestPromotions(t *testing.T) {
 	gitRepo := testutils.CloneToTempDir(t, "joy-pr-promote-test")
 
 	t.Run("testPromotePRs", func(t *testing.T) {
