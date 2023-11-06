@@ -79,8 +79,6 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 		return fmt.Errorf("getting promotion environment for branch %s pull request: %w", branch, err)
 	}
 
-	fmt.Println("using promotion environment:", env)
-
 	promotableEnvironmentNames := getPromotableEnvironmentNames(environments)
 	env, err = p.promptProvider.WhichEnvironmentToPromoteTo(promotableEnvironmentNames, env)
 	if err != nil {
