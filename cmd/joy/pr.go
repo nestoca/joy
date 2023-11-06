@@ -38,8 +38,9 @@ func NewPRPromoteCmd() *cobra.Command {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
 
-			promotion := promote.NewDefaultPromotion(cfg.CatalogDir)
-			return promotion.Promote(cat.Environments)
+			return promote.
+				NewDefaultPromotion(".").
+				Promote(cat.Environments)
 		},
 	}
 }

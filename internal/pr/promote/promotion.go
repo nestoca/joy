@@ -28,10 +28,10 @@ func NewPromotion(branchProvider BranchProvider, pullRequestProvider pr.PullRequ
 	}
 }
 
-func NewDefaultPromotion(catalogDir string) *Promotion {
+func NewDefaultPromotion(dir string) *Promotion {
 	return NewPromotion(
-		NewGitBranchProvider(catalogDir),
-		github.NewPullRequestProvider(catalogDir),
+		NewGitBranchProvider(dir),
+		github.NewPullRequestProvider(dir),
 		&InteractivePromptProvider{},
 	)
 }
