@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set git identity
+        uses: nestoca/actions/set-git-identity@v1
+
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
         with:
