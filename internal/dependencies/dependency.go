@@ -57,4 +57,5 @@ func AllRequiredMustBeInstalled() error {
 	if missingRequired {
 		return fmt.Errorf("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
 	}
+	return nil
 }
