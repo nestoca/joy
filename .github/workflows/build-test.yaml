@@ -24,6 +24,10 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: check gh
+        shell: bash
+        run: command -v gh
+
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
         with:
