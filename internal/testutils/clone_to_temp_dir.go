@@ -15,7 +15,7 @@ func CloneToTempDir(t *testing.T, repoName string) string {
 	require.NoError(t, err)
 
 	repoURL := func() string {
-		if gitToken := os.Getenv("GITHUB_TOKEN"); gitToken != "" {
+		if gitToken := os.Getenv("GH_TOKEN"); gitToken != "" {
 			return fmt.Sprintf("https://%s@github.com/nestoca/%s.git", gitToken, repoName)
 		}
 		return fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
