@@ -9,14 +9,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type mergeTest struct {
+type MergeCase struct {
 	Name     string
 	A        string
 	B        string
 	Expected string
 }
 
-var mergeTests = []mergeTest{
+// To be removed once we no longer support comment locks
+var commentLockedMergeTests = []MergeCase{
 	{
 		Name: "MergeLockedSubTreesIntoExistingSubTrees",
 		A: `
@@ -418,51 +419,430 @@ c:
 	},
 }
 
-func TestMergeTableDriven(t *testing.T) {
-	for _, test := range mergeTests {
-		t.Run(test.Name, func(t *testing.T) {
-			// Parse a.yaml
-			var aMap *yaml.Node
-			if test.A != "" {
-				aMap = &yaml.Node{}
-				if err := yaml.Unmarshal([]byte(test.A), aMap); err != nil {
-					t.Fatalf("Failed to parse a.yaml: %v", err)
-				}
-				aMap.Style = 0
-			}
+// Duplicate of comment locked cases but with comment locks hand replaced by tag locks.
+var tagLockedMergeTests = []MergeCase{
+	{
+		Name: "MergeLockedSubTreesIntoExistingSubTrees",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeMultipleComments",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  # Normal comment before lock
+  f: !lock q
+  r: s
+  # Normal comment after lock
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  # Normal comment before lock
+  f: !lock q
+  h: i
+  # Normal comment after lock
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeLineCommentLockMarker",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergePreservingBraces",
+		A: `
+a: {b: c}
+`,
+		B: `
+a: b
+d: !lock e
+`,
+		Expected: `
+a: {b: c}
+d: !lock e
+`,
+	},
+	{
+		Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
+		A: `
+a: b
+c: d
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeWhenAYAMLIsEmpty",
+		A:    `{}`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+e:
+  f: !lock q
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeWhenBYAMLIsEmpty",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `{}`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreEmpty",
+		A:        `{}`,
+		B:        `{}`,
+		Expected: `{}`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreNil",
+		Expected: `{}`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    k: TODO
+`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: l
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: TODO
+`,
+	},
+	{
+		Name: "MergeArrays",
+		A: `
+a: b
+c: d
+e:
+  f:
+    - f
+    - g
+    - h
+    - i
+    - j
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock
+    - q
+    - r
+    - s
+    - t
+    - u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock
+    - q
+    - r
+    - s
+    - t
+    - u
+`,
+	},
+	{
+		Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  l: m
+`,
+		B: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock k
+  l: m
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  j: !lock k
+  l: m
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  f: 
+    g: !lock h
+  d: e
+`,
+		Expected: `
+a: b
+c:
+  f:
+    g: !lock h
+  d: e
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: e
+  f: 
+    g: !lock h
+  k: l
+`,
+		Expected: `
+a: b
+c:
+  d: e
+  f:
+    g: !lock h
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
+		A: `
+a: b
+c:
+  d: !lock e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: f
+  i: j
+`,
+		Expected: `
+a: b
+c:
+  d: f
+  i: j
+`,
+	},
+}
 
-			// Parse b.yaml
-			var bMap *yaml.Node
-			if test.B != "" {
-				bMap = &yaml.Node{}
-				if err := yaml.Unmarshal([]byte(test.B), bMap); err != nil {
-					t.Fatalf("Failed to parse b.yaml: %v", err)
-				}
-				bMap.Style = 0
-			}
+func TestYmlLocking(t *testing.T) {
+	t.Run("comment locked", func(t *testing.T) {
+		for _, test := range commentLockedMergeTests {
+			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
+		}
+	})
 
-			// Merge
-			result := Merge(aMap, bMap)
+	t.Run("tag locked", func(t *testing.T) {
+		for _, test := range tagLockedMergeTests {
+			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
+		}
+	})
+}
 
-			// Marshal the result with custom indentation
-			var buf bytes.Buffer
-			encoder := yaml.NewEncoder(&buf)
-			encoder.SetIndent(2)
+func testMerge(t *testing.T, testcase MergeCase) {
+	// Parse a.yaml
+	var aMap *yaml.Node
+	if testcase.A != "" {
+		aMap = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(testcase.A), aMap); err != nil {
+			t.Fatalf("Failed to parse a.yaml: %v", err)
+		}
+		aMap.Style = 0
+	}
 
-			if err := encoder.Encode(result); err != nil {
-				t.Fatalf("Failed to marshal the result: %v", err)
-			}
+	// Parse b.yaml
+	var bMap *yaml.Node
+	if testcase.B != "" {
+		bMap = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(testcase.B), bMap); err != nil {
+			t.Fatalf("Failed to parse b.yaml: %v", err)
+		}
+		bMap.Style = 0
+	}
 
-			// Get the encoded result
-			cBytes := buf.Bytes()
+	// Merge
+	result := Merge(aMap, bMap)
 
-			// Compare the result with the expected result
-			actual := strings.TrimSpace(string(cBytes))
-			expected := strings.TrimSpace(test.Expected)
-			if actual != expected {
-				t.Errorf("Merged YAML files do not match the expected result.\nActual:\n%s\nExpected:\n%s", actual, expected)
-			}
-		})
+	// Marshal the result with custom indentation
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+
+	if err := encoder.Encode(result); err != nil {
+		t.Fatalf("Failed to marshal the result: %v", err)
+	}
+
+	// Get the encoded result
+	cBytes := buf.Bytes()
+
+	// Compare the result with the expected result
+	actual := strings.TrimSpace(string(cBytes))
+	expected := strings.TrimSpace(testcase.Expected)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Mismatch (-expected +actual):%s", diff)
 	}
 }
 
