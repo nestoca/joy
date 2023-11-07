@@ -1,3 +1,12 @@
+## [0.16.3](https://github.com/nestoca/joy/compare/v0.16.2...v0.16.3) (2023-11-06)
+
+
+### Bug Fixes
+
+* **gh:** not setting proper gh work directory ([#39](https://github.com/nestoca/joy/issues/39)) ([0144aea](https://github.com/nestoca/joy/commit/0144aea0d2f213f1fd721ca9203858a3d9e6e422))
+
+
+
 ## [0.16.2](https://github.com/nestoca/joy/compare/v0.16.1...v0.16.2) (2023-11-03)
 
 

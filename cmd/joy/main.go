@@ -29,7 +29,9 @@ func NewRootCmd() *cobra.Command {
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd != setupCmd {
-				dependencies.AllRequiredMustBeInstalled()
+				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+					return err
+				}
 			}
 
 			cfg, err := config.Load(configDir, catalogDir)
