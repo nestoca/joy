@@ -9,12 +9,12 @@ import (
 var lockMarkerRegex = regexp.MustCompile(`(?i)(?m)^#+\s*lock\s*$`)
 
 func IsLocked(key, value *yaml.Node) bool {
-	commentLocked := isCommentLocked(key) || isCommentLocked(value)
+	commentLocked := IsCommentLocked(key) || IsCommentLocked(value)
 	tagLocked := value != nil && value.Tag == "!lock"
 	return commentLocked || tagLocked
 }
 
-func isCommentLocked(node *yaml.Node) bool {
+func IsCommentLocked(node *yaml.Node) bool {
 	if node == nil {
 		return false
 	}
