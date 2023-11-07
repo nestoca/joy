@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -124,4 +125,15 @@ func (c *Config) Save() error {
 	}
 
 	return nil
+}
+
+type cfgKey struct{}
+
+func ToContext(parent context.Context, cfg *Config) context.Context {
+	return context.WithValue(parent, cfgKey{}, cfg)
+}
+
+func FromContext(ctx context.Context) *Config {
+	cfg, _ := ctx.Value(cfgKey{}).(*Config)
+	return cfg
 }
