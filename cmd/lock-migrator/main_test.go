@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func TestRegexp(t *testing.T) {
+func TestLockMigratorRegexp(t *testing.T) {
 	cases := []struct {
 		Input  string
 		Output string
@@ -14,6 +14,14 @@ func TestRegexp(t *testing.T) {
 		{
 			Input:  "#lock\n# it!",
 			Output: "# it!",
+		},
+		{
+			Input:  "The quick brown fox jumps over the\n### lock \nlazy dog",
+			Output: "The quick brown fox jumps over the\nlazy dog",
+		},
+		{
+			Input:  "The quick brown fox jumps over the lazy dog\n#lock",
+			Output: "The quick brown fox jumps over the lazy dog\n",
 		},
 	}
 
