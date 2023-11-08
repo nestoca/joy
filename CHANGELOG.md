@@ -1,3 +1,12 @@
+## [0.17.1](https://github.com/nestoca/joy/compare/v0.17.0...v0.17.1) (2023-11-08)
+
+
+### Bug Fixes
+
+* **PL-2050:** bugfix locked scalar value merging not writing its value as TODO ([#45](https://github.com/nestoca/joy/issues/45)) ([baad615](https://github.com/nestoca/joy/commit/baad615a9368ea3d26cb0da683471ae13c65b07e))
+
+
+
 # [0.17.0](https://github.com/nestoca/joy/compare/v0.16.3...v0.17.0) (2023-11-08)
 
 
