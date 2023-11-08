@@ -9,8 +9,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestMergeLockedSubTreesIntoExistingSubTrees(t *testing.T) {
-	aContent := `
+type MergeCase struct {
+	Name     string
+	A        string
+	B        string
+	Expected string
+}
+
+// To be removed once we no longer support comment locks
+var commentLockedMergeTests = []MergeCase{
+	{
+		Name: "MergeLockedSubTreesIntoExistingSubTrees",
+		A: `
 a: b
 c: d
 e:
@@ -18,8 +28,8 @@ e:
   h: i
   j:
     k: l
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
@@ -29,8 +39,8 @@ e:
   ## lock
   j:
     t: u
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -40,13 +50,11 @@ e:
   ## lock
   j:
     t: u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeMultipleComments(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeMultipleComments",
+		A: `
 a: b
 c: d
 e:
@@ -54,8 +62,8 @@ e:
   h: i
   j:
     k: l
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
@@ -67,8 +75,8 @@ e:
   # Normal comment after lock
   j:
     t: u
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -80,13 +88,11 @@ e:
   # Normal comment after lock
   j:
     t: u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeLineCommentLockMarker(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeLineCommentLockMarker",
+		A: `
 a: b
 c: d
 e:
@@ -94,8 +100,8 @@ e:
   h: i
   j:
     k: l
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
@@ -103,8 +109,8 @@ e:
   r: s
   j: ##  lock
     t: u
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -112,35 +118,31 @@ e:
   h: i
   j: ##  lock
     t: u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergePreservingBraces(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergePreservingBraces",
+		A: `
 a: {b: c}
-`
-	bContent := `
+`,
+		B: `
 a: b
 ## lock
 d: e
-`
-	expectedContent := `
+`,
+		Expected: `
 a: {b: c}
 ## lock
 d: e
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeLockedSubTreesIntoNonExistingSubTrees(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
+		A: `
 a: b
 c: d
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
@@ -150,8 +152,8 @@ e:
   ## lock
   j:
     t: u
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -160,14 +162,12 @@ e:
   ## lock
   j:
     t: u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeWhenAYAMLIsEmpty(t *testing.T) {
-	aContent := `{}`
-	bContent := `
+`,
+	},
+	{
+		Name: "MergeWhenAYAMLIsEmpty",
+		A:    `{}`,
+		B: `
 m: n
 o: p
 e:
@@ -177,21 +177,19 @@ e:
   ## lock
   j:
     t: u
-`
-	expectedContent := `
+`,
+		Expected: `
 e:
   ## lock
   f: q
   ## lock
   j:
     t: u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeWhenBYAMLIsEmpty(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeWhenBYAMLIsEmpty",
+		A: `
 a: b
 c: d
 e:
@@ -199,9 +197,9 @@ e:
   h: i
   j:
     k: l
-`
-	bContent := `{}`
-	expectedContent := `
+`,
+		B: `{}`,
+		Expected: `
 a: b
 c: d
 e:
@@ -209,27 +207,21 @@ e:
   h: i
   j:
     k: l
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeWhenBothYAMLsAreEmpty(t *testing.T) {
-	aContent := `{}`
-	bContent := `{}`
-	expectedContent := `{}`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeWhenBothYAMLsAreNil(t *testing.T) {
-	expectedContent := `{}`
-
-	testMerge(t, nil, nil, expectedContent)
-}
-
-func TestMergeSanitizeLockedDestinationScalarsAsTodo(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreEmpty",
+		A:        `{}`,
+		B:        `{}`,
+		Expected: `{}`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreNil",
+		Expected: `{}`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
+		A: `
 a: b
 c: d
 e:
@@ -238,16 +230,16 @@ e:
   ## lock
   j:
     k: l
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
   ## lock
   f: q
   r: s
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -257,13 +249,11 @@ e:
   ## lock
   j:
     k: TODO
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func TestMergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
+		A: `
 a: b
 c: d
 e:
@@ -272,9 +262,8 @@ e:
   ## lock
   j:
     k: l
-`
-
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -283,13 +272,11 @@ e:
   ## lock
   j:
     k: TODO
-`
-
-	testMerge(t, &aContent, nil, expectedContent)
-}
-
-func TestMergeArrays(t *testing.T) {
-	aContent := `
+`,
+	},
+	{
+		Name: "MergeArrays",
+		A: `
 a: b
 c: d
 e:
@@ -299,8 +286,8 @@ e:
     - h
     - i
     - j
-`
-	bContent := `
+`,
+		B: `
 m: n
 o: p
 e:
@@ -311,8 +298,8 @@ e:
     - s
     - t
     - u
-`
-	expectedContent := `
+`,
+		Expected: `
 a: b
 c: d
 e:
@@ -323,17 +310,504 @@ e:
     - s
     - t
     - u
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
+`,
+	},
+	{
+		Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  l: m
+`,
+		B: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  ## lock
+  j: k
+  l: m
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  ## lock
+  j: k
+  l: m
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  f: 
+    ## lock
+    g: h
+  d: e
+`,
+		Expected: `
+a: b
+c:
+  f:
+    ## lock
+    g: h
+  d: e
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: e
+  f: 
+    ## lock
+    g: h
+  k: l
+`,
+		Expected: `
+a: b
+c:
+  d: e
+  f:
+    ## lock
+    g: h
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
+		A: `
+a: b
+c:
+  ## lock
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: f
+  i: j
+`,
+		Expected: `
+a: b
+c:
+  ## lock
+  d: f
+  i: j
+`,
+	},
 }
 
-func testMerge(t *testing.T, aContent *string, bContent *string, expectedContent string) {
+// Duplicate of comment locked cases but with comment locks hand replaced by tag locks.
+var tagLockedMergeTests = []MergeCase{
+	{
+		Name: "MergeLockedSubTreesIntoExistingSubTrees",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeMultipleComments",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  # Normal comment before lock
+  f: !lock q
+  r: s
+  # Normal comment after lock
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  # Normal comment before lock
+  f: !lock q
+  h: i
+  # Normal comment after lock
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeLineCommentLockMarker",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergePreservingBraces",
+		A: `
+a: {b: c}
+`,
+		B: `
+a: b
+d: !lock e
+`,
+		Expected: `
+a: {b: c}
+d: !lock e
+`,
+	},
+	{
+		Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
+		A: `
+a: b
+c: d
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeWhenAYAMLIsEmpty",
+		A:    `{}`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+  j: !lock
+    t: u
+`,
+		Expected: `
+e:
+  f: !lock q
+  j: !lock
+    t: u
+`,
+	},
+	{
+		Name: "MergeWhenBYAMLIsEmpty",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+		B: `{}`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j:
+    k: l
+`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreEmpty",
+		A:        `{}`,
+		B:        `{}`,
+		Expected: `{}`,
+	},
+	{
+		Name:     "MergeWhenBothYAMLsAreNil",
+		Expected: `{}`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: l
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock q
+  r: s
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock q
+  h: i
+  j: !lock
+    k: TODO
+`,
+	},
+	{
+		Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: l
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock
+    k: TODO
+`,
+	},
+	{
+		Name: "MergeArrays",
+		A: `
+a: b
+c: d
+e:
+  f:
+    - f
+    - g
+    - h
+    - i
+    - j
+`,
+		B: `
+m: n
+o: p
+e:
+  f: !lock
+    - q
+    - r
+    - s
+    - t
+    - u
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: !lock
+    - q
+    - r
+    - s
+    - t
+    - u
+`,
+	},
+	{
+		Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c: d
+e:
+  f: g
+  l: m
+`,
+		B: `
+a: b
+c: d
+e:
+  f: g
+  h: i
+  j: !lock k
+  l: m
+`,
+		Expected: `
+a: b
+c: d
+e:
+  f: g
+  j: !lock k
+  l: m
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  f: 
+    g: !lock h
+  d: e
+`,
+		Expected: `
+a: b
+c:
+  f:
+    g: !lock h
+  d: e
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+		A: `
+a: b
+c:
+  d: e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: e
+  f: 
+    g: !lock h
+  k: l
+`,
+		Expected: `
+a: b
+c:
+  d: e
+  f:
+    g: !lock h
+  i: j
+`,
+	},
+	{
+		Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
+		A: `
+a: b
+c:
+  d: !lock e
+  i: j
+`,
+		B: `
+a: b
+c:
+  d: f
+  i: j
+`,
+		Expected: `
+a: b
+c:
+  d: f
+  i: j
+`,
+	},
+}
+
+func TestYmlLocking(t *testing.T) {
+	t.Run("comment locked", func(t *testing.T) {
+		for _, test := range commentLockedMergeTests {
+			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
+		}
+	})
+
+	t.Run("tag locked", func(t *testing.T) {
+		for _, test := range tagLockedMergeTests {
+			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
+		}
+	})
+}
+
+func testMerge(t *testing.T, testcase MergeCase) {
 	// Parse a.yaml
 	var aMap *yaml.Node
-	if aContent != nil {
+	if testcase.A != "" {
 		aMap = &yaml.Node{}
-		if err := yaml.Unmarshal([]byte(*aContent), aMap); err != nil {
+		if err := yaml.Unmarshal([]byte(testcase.A), aMap); err != nil {
 			t.Fatalf("Failed to parse a.yaml: %v", err)
 		}
 		aMap.Style = 0
@@ -341,9 +815,9 @@ func testMerge(t *testing.T, aContent *string, bContent *string, expectedContent
 
 	// Parse b.yaml
 	var bMap *yaml.Node
-	if bContent != nil {
+	if testcase.B != "" {
 		bMap = &yaml.Node{}
-		if err := yaml.Unmarshal([]byte(*bContent), bMap); err != nil {
+		if err := yaml.Unmarshal([]byte(testcase.B), bMap); err != nil {
 			t.Fatalf("Failed to parse b.yaml: %v", err)
 		}
 		bMap.Style = 0
@@ -366,9 +840,9 @@ func testMerge(t *testing.T, aContent *string, bContent *string, expectedContent
 
 	// Compare the result with the expected result
 	actual := strings.TrimSpace(string(cBytes))
-	expected := strings.TrimSpace(expectedContent)
-	if actual != expected {
-		t.Errorf("Merged YAML files do not match the expected result.\nActual:\n%s\nExpected:\n%s", actual, expected)
+	expected := strings.TrimSpace(testcase.Expected)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("Mismatch (-expected +actual):%s", diff)
 	}
 }
 
@@ -417,119 +891,6 @@ e:
 	actual := strings.TrimSpace(string(mergedBytes))
 	expected = strings.TrimSpace(expected)
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("Mismatch (-expected +actual):\n%s", diff)
+		t.Errorf("Mismatch (-expected +actual):%s", diff)
 	}
-}
-
-func Test_MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
-	aContent := `
-a: b
-c: d
-e:
-  f: g
-  l: m
-`
-	bContent := `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  ## lock
-  j: k
-  l: m
-`
-	expectedContent := `
-a: b
-c: d
-e:
-  f: g
-  ## lock
-  j: k
-  l: m
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
-	aContent := `
-a: b
-c:
-  d: e
-  i: j
-`
-	bContent := `
-a: b
-c:
-  f: 
-    ## lock
-    g: h
-  d: e
-`
-	expectedContent := `
-a: b
-c:
-  f:
-    ## lock
-    g: h
-  d: e
-  i: j
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func Test_MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder(t *testing.T) {
-	aContent := `
-a: b
-c:
-  d: e
-  i: j
-`
-	bContent := `
-a: b
-c:
-  d: e
-  f: 
-    ## lock
-    g: h
-  k: l
-`
-	expectedContent := `
-a: b
-c:
-  d: e
-  f:
-    ## lock
-    g: h
-  i: j
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
-}
-
-func Test_MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged(t *testing.T) {
-	aContent := `
-a: b
-c:
-  ## lock
-  d: e
-  i: j
-`
-	bContent := `
-a: b
-c:
-  d: f
-  i: j
-`
-	expectedContent := `
-a: b
-c:
-  ## lock
-  d: f
-  i: j
-`
-
-	testMerge(t, &aContent, &bContent, expectedContent)
 }
