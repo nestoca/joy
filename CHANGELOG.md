@@ -1,3 +1,13 @@
+# [0.17.0](https://github.com/nestoca/joy/compare/v0.16.3...v0.17.0) (2023-11-08)
+
+
+### Features
+
+* **PL-1917:** add lock tag support ([20ba644](https://github.com/nestoca/joy/commit/20ba64474d4640fb8894bc9e988c72a0c8606d2e))
+* **PL-1917:** add lock tag support ([#43](https://github.com/nestoca/joy/issues/43)) ([9de4a85](https://github.com/nestoca/joy/commit/9de4a85b317848e0ef233e98c5d8c556f3424f03))
+
+
+
 ## [0.16.3](https://github.com/nestoca/joy/compare/v0.16.2...v0.16.3) (2023-11-06)
 
 
