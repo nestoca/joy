@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -880,11 +881,14 @@ e:
 
 	// Marshal the merged result
 	var buf bytes.Buffer
+
 	encoder := yaml.NewEncoder(&buf)
 	encoder.SetIndent(2)
+
 	if err := encoder.Encode(mergedNode); err != nil {
 		t.Fatalf("Failed to marshal the result: %v", err)
 	}
+
 	mergedBytes := buf.Bytes()
 
 	// Compare the result with the expected result
@@ -892,5 +896,68 @@ e:
 	expected = strings.TrimSpace(expected)
 	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Errorf("Mismatch (-expected +actual):%s", diff)
+	}
+}
+
+func TestTodoMerge(t *testing.T) {
+	testcases := []struct {
+		Name     string
+		Src      string
+		Dst      string
+		Expected string
+	}{
+		{
+			Name:     "source updates empty dst",
+			Src:      "{hello: world}",
+			Dst:      "{}",
+			Expected: "{hello: world}",
+		},
+		{
+			Name:     "locked source updates empty dst",
+			Src:      "{hello: !lock world}",
+			Dst:      "{}",
+			Expected: "{hello: !lock TODO}",
+		},
+		{
+			Name:     "locked complex source updates empty",
+			Src:      "{m: !lock {hello: world, maybe: [oui, non], people: {john: doe}}}",
+			Dst:      "{}",
+			Expected: "{m: !lock {hello: TODO, maybe: [TODO, TODO], people: {john: TODO}}}",
+		},
+		{
+			Name:     "empty source removes destination keys",
+			Src:      "{}",
+			Dst:      "{hello: world}",
+			Expected: "{}",
+		},
+		{
+			Name:     "empty source does not affect locked dst keys",
+			Src:      "{}",
+			Dst:      "{hello: !lock world, john: doe}",
+			Expected: "{hello: !lock world}",
+		},
+		{
+			Name:     "lock source key does not affect lock destination key",
+			Src:      "{hello: !lock no}",
+			Dst:      "{hello: !lock yes}",
+			Expected: "{hello: !lock yes}",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(t *testing.T) {
+			var src yaml.Node
+			require.NoError(t, yaml.Unmarshal([]byte(tc.Src), &src))
+
+			var dst yaml.Node
+			require.NoError(t, yaml.Unmarshal([]byte(tc.Dst), &dst))
+
+			result, err := yaml.Marshal(Merge(&src, &dst).Content[0])
+			require.NoError(t, err)
+
+			result = bytes.TrimSpace(result)
+
+			require.Equal(t, tc.Expected, string(result))
+		})
 	}
 }
