@@ -168,21 +168,11 @@ func setLockedScalarValuesAsTodo(node *yaml.Node, locked bool) {
 		for i := 0; i < len(node.Content); i += 2 {
 			keyNode := node.Content[i]
 			valueNode := node.Content[i+1]
-
-			if locked {
-				if valueNode.Kind == yaml.ScalarNode {
-					valueNode.Value = "TODO"
-					valueNode.Style = 0
-				} else {
-					setLockedScalarValuesAsTodo(valueNode, true)
-				}
-			} else {
-				setLockedScalarValuesAsTodo(valueNode, IsKeyValueLocked(keyNode, valueNode))
-			}
+			setLockedScalarValuesAsTodo(valueNode, locked || IsKeyValueLocked(keyNode, valueNode))
 		}
 	case yaml.SequenceNode:
 		for _, item := range node.Content {
-			setLockedScalarValuesAsTodo(item, locked)
+			setLockedScalarValuesAsTodo(item, locked || IsLocked(item))
 		}
 	}
 }
