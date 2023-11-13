@@ -53,7 +53,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 				if !semver.IsValid(version) {
 					var ok bool
-					prompt := &survey.Confirm{Message: "you are running joy on a development build. Do you wish to continue?"}
+					prompt := &survey.Confirm{Message: "you are running joy on a development build (not recommended). Do you wish to continue?"}
 					if err := survey.AskOne(prompt, &ok); err != nil || !ok {
 						return err
 					}
