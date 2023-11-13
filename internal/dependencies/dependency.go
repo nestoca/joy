@@ -2,7 +2,6 @@ package dependencies
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 
 	"github.com/nestoca/joy/internal/style"
@@ -23,11 +22,10 @@ type Dependency struct {
 }
 
 func (d *Dependency) IsInstalled() bool {
-	cmd := exec.Command("command", "-v", d.Command)
+	cmd := exec.Command("/bin/bash", "-c", "command -v "+d.Command)
 
 	out, err := cmd.CombinedOutput()
 	fmt.Printf("checking dep: %s: %q - %v\n", d.Command, out, err)
-	fmt.Println("PATH:", os.Getenv("PATH"))
 
 	return err == nil
 }
