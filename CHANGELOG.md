@@ -1,3 +1,12 @@
+# [0.18.0](https://github.com/nestoca/joy/compare/v0.17.1...v0.18.0) (2023-11-13)
+
+
+### Features
+
+* **PL-2089:** add min version to joyrc and root validations ([6c4963a](https://github.com/nestoca/joy/commit/6c4963abba55310465e0178512cbe1c5a7ae206f))
+
+
+
 ## [0.17.1](https://github.com/nestoca/joy/compare/v0.17.0...v0.17.1) (2023-11-08)
 
 
