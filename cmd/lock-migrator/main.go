@@ -11,8 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/nestoca/joy/internal/yml"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
 func main() {

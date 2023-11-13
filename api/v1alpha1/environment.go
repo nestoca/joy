@@ -3,8 +3,8 @@ package v1alpha1
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/internal/yml"

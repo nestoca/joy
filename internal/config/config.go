@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,6 +26,9 @@ type Config struct {
 
 	// Releases user has selected to work with.
 	Releases Releases `yaml:"releases,omitempty"`
+
+	// MinVersion is the minimum version of the joy CLI required
+	MinVersion string `yaml:"minVersion,omitempty"`
 
 	// FilePath is the path to the config file that was loaded, used to write back to the same file.
 	FilePath string `yaml:"-"`
@@ -58,20 +62,35 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 
 	// Load config from .joyrc in configDir
-	var cfg *Config
 	joyrcPath := filepath.Join(configDir, joyrcFile)
-	cfg, err = LoadFile(joyrcPath)
+
+	cfg, err := LoadFile(joyrcPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
 	}
 
-	// Set defaults and in-memory values
 	if catalogDir != "" {
 		cfg.CatalogDir = catalogDir
-	} else if cfg.CatalogDir == "" {
+	}
+
+	if cfg.CatalogDir == "" {
 		cfg.CatalogDir = filepath.Join(homeDir, joyDefaultDir)
 	}
-	cfg.FilePath = joyrcPath
+
+	catalogJoyrc := filepath.Join(cfg.CatalogDir, joyrcFile)
+
+	catalogCfg, err := LoadFile(catalogJoyrc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load catalog configuration: %w", err)
+	}
+
+	if catalogCfg.MinVersion != "" {
+		cfg.MinVersion = catalogCfg.MinVersion
+	}
+
+	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
+		return nil, fmt.Errorf("invalid minimum version: %s", cfg.MinVersion)
+	}
 
 	return cfg, nil
 }
@@ -89,25 +108,22 @@ func CheckCatalogDir(catalogDir string) error {
 }
 
 func LoadFile(file string) (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{FilePath: file}
 
-	_, err := os.Stat(file)
-	if err == nil {
-		// Load config from file if it exists
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return nil, fmt.Errorf("loading config %s: %w", file, err)
-		}
-		if err := yaml.Unmarshal(content, &cfg); err != nil {
-			return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	// Load config from file if it exists
+	content, err := os.ReadFile(file)
+	if err != nil {
 		// It's ok if config file does not exist, but not any other errors.
-		return nil, fmt.Errorf("checking for config file %s: %w", file, err)
+		if errors.Is(err, os.ErrNotExist) {
+			return cfg, nil
+		}
+		return nil, fmt.Errorf("loading config %s: %w", file, err)
 	}
 
-	// Saving file location
-	cfg.FilePath = file
+	if err := yaml.Unmarshal(content, &cfg); err != nil {
+		return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
+	}
+
 	return cfg, nil
 }
 
