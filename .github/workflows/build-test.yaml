@@ -40,6 +40,8 @@ jobs:
         run: |
           which gh
           which git
+          command -v gh
+          command -v git
 
       - name: Run tests w/ Coverage
         env:
