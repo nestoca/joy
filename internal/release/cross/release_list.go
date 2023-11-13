@@ -2,10 +2,9 @@ package cross
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
-
-	"golang.org/x/exp/slices"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"

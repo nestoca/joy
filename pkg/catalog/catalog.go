@@ -3,10 +3,10 @@ package catalog
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
-	"golang.org/x/exp/slices"
 	"gopkg.in/godo.v2/glob"
 
 	"github.com/nestoca/joy/api/v1alpha1"

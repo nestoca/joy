@@ -22,8 +22,7 @@ type Dependency struct {
 }
 
 func (d *Dependency) IsInstalled() bool {
-	cmd := exec.Command("command", "-v", d.Command)
-	return cmd.Run() == nil
+	return exec.Command("/bin/bash", "-c", "command -v "+d.Command).Run() == nil
 }
 
 func (d *Dependency) MustBeInstalled() error {
