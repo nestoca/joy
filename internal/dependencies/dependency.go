@@ -2,7 +2,6 @@ package dependencies
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 
 	"github.com/nestoca/joy/internal/style"
@@ -25,9 +24,11 @@ type Dependency struct {
 func (d *Dependency) IsInstalled() bool {
 	fmt.Println("checking dep:", d.Command)
 	cmd := exec.Command("command", "-v", d.Command)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run() == nil
+
+	out, err := cmd.CombinedOutput()
+	fmt.Printf("checking dep: %s: %q - %v\n", d.Command, out, err)
+
+	return err == nil
 }
 
 func (d *Dependency) MustBeInstalled() error {
