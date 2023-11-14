@@ -13,14 +13,14 @@ import (
 func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	catalogDir, err := filepath.Abs("testdata/freeform")
 	assert.NoError(t, err)
-	loadOpts := catalog.LoadOpts{
+
+	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             catalogDir,
 		LoadEnvs:        true,
 		LoadReleases:    true,
 		LoadProjects:    true,
 		SortEnvsByOrder: true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	})
 	assert.NoError(t, err)
 
 	// Environments
