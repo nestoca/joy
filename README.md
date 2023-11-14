@@ -53,7 +53,7 @@ Download from GitHub [releases](https://github.com/nestoca/joy/releases/latest) 
 $ git clone git@github.com:<OWNER>/<CATALOG>.git ~/.joy
 ```
 
-That is the default location where joy will look for your catalog repo. If you want to clone your catalog in a different location for convenience, create a `~/.joy/config.yaml` file with the following content to redirect joy to it:
+That is the default location where joy will look for your catalog repo. If you want to clone your catalog in a different location for convenience, create a `~/.joyrc` file with the following content to redirect joy to it:
 
 ```yaml
 catalog-dir: /absolute/path/to/your/catalog
