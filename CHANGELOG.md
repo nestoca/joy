@@ -1,3 +1,12 @@
+## [0.18.1](https://github.com/nestoca/joy/compare/v0.18.0...v0.18.1) (2023-11-14)
+
+
+### Bug Fixes
+
+* **PL-2090:** validate yaml tags in release files ([734b036](https://github.com/nestoca/joy/commit/734b03685200c396a653e09e29bc0d8956b65555))
+
+
+
 # [0.18.0](https://github.com/nestoca/joy/compare/v0.17.1...v0.18.0) (2023-11-13)
 
 
