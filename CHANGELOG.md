@@ -1,3 +1,12 @@
+## [0.18.2](https://github.com/nestoca/joy/compare/v0.18.1...v0.18.2) (2023-11-14)
+
+
+### Bug Fixes
+
+* **README.md:** config file location and name ([17688fe](https://github.com/nestoca/joy/commit/17688fe498f66d10d4b73d62eb72ea91b4065953))
+
+
+
 ## [0.18.1](https://github.com/nestoca/joy/compare/v0.18.0...v0.18.1) (2023-11-14)
 
 
