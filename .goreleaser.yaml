@@ -8,7 +8,7 @@ builds:
       - linux
       - darwin
     ldflags:
-      - -X "main.version=v{{ .Version }}"
+      - -X "main.version={{ .Version }}"
 archives:
   - format: tar.gz
     wrap_in_directory: false
@@ -32,3 +32,16 @@ brews:
     homepage: "https://github.com/nestoca/joy"
     description: "A CLI for happily managing and deploying applications"
     license: "MIT"
+nfpms:
+  - package_name: joy
+    file_name_template: "{{ .ConventionalFileName }}"
+    vendor: nestoca
+    homepage: https://github.com/nestoca/joy
+    description: |-
+      A CLI for happily managing and deploying applications
+    license: MIT
+    maintainer: Mathieu Frenette <mathieu.frenette@nesto.ca>
+    formats:
+      - deb
+    dependencies:
+      - git
