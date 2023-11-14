@@ -102,6 +102,14 @@ func Load(opts LoadOpts) (*Catalog, error) {
 	// Load cross-releases
 	if opts.LoadReleases {
 		allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
+		if err := validateTagsForFiles(allReleaseFiles); err != nil {
+			return nil, fmt.Errorf("release files with invalid tags: %w", err)
+		}
+
+		for _, file := range allReleaseFiles {
+			validateTags(file.Tree)
+		}
+
 		c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
 		if err != nil {
 			return nil, fmt.Errorf("loading cross-environment releases: %w", err)
