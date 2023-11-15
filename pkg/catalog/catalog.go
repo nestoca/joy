@@ -1,7 +1,9 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -63,6 +65,13 @@ func Load(opts LoadOpts) (*Catalog, error) {
 	}
 	dir = filepath.Clean(dir)
 
+	// Ensure directory exists
+	if _, err := os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("catalog directory not found: %q", dir)
+		}
+	}
+
 	// Find all files matching the glob expression
 	globExpr := filepath.Join(dir, "**/*.yaml")
 	fileAssets, _, err := glob.Glob([]string{globExpr})
@@ -117,25 +126,33 @@ func Load(opts LoadOpts) (*Catalog, error) {
 	}
 
 	// Resolve references
-	if opts.ResolveRefs && opts.LoadReleases {
-		// Resolve references from releases to projects
-		if opts.LoadProjects {
-			err = c.Releases.ResolveProjectRefs(c.Projects)
-			if err != nil {
-				return nil, fmt.Errorf("resolving project references: %w", err)
-			}
-		}
-
-		// Resolve references from releases to environments
-		if opts.LoadEnvs {
-			err = c.Releases.ResolveEnvRefs(c.Environments)
-			if err != nil {
-				return nil, fmt.Errorf("resolving environment references: %w", err)
-			}
+	if opts.ResolveRefs {
+		err = c.ResolveRefs()
+		if err != nil {
+			return nil, fmt.Errorf("resolving references: %w", err)
 		}
 	}
 
 	return c, nil
+}
+
+func (c *Catalog) ResolveRefs() error {
+	var errs []error
+	if len(c.Releases.Items) > 0 {
+		// Resolve references from releases to projects
+		if len(c.Projects) > 0 {
+			err := c.Releases.ResolveProjectRefs(c.Projects)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		// Resolve references from releases to environments
+		if len(c.Environments) > 0 {
+			c.Releases.ResolveEnvRefs(c.Environments)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func isValid(file *yml.File) bool {

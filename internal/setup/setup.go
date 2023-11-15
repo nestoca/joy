@@ -7,10 +7,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/nestoca/joy/internal/diagnose"
+
 	"github.com/AlecAivazis/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -20,7 +21,7 @@ const (
 	separator         = "————————————————————————————————————————————————————————————————————————————————"
 )
 
-func Setup(configDir, catalogDir, catalogRepo string) error {
+func Setup(version, configDir, catalogDir, catalogRepo string) error {
 	fmt.Println("👋 Hey there, let's kickstart your most joyful CD experience! ☀️")
 	fmt.Println(separator)
 
@@ -30,38 +31,38 @@ func Setup(configDir, catalogDir, catalogRepo string) error {
 	if err != nil {
 		return err
 	}
-	err = setupConfig(configDir, catalogDir)
+	cfg, err := setupConfig(configDir, catalogDir)
 	if err != nil {
 		return err
 	}
 	fmt.Println(separator)
 
-	// Check dependencies
-	fmt.Print("🧐 Hmm, let's now see what dependencies you've got humming under the hood...\n\n")
-	if err := checkDependencies(); err != nil {
+	// Run diagnostics
+	fmt.Print("🔍 Let's run a few diagnostics to check everything is in order...\n\n")
+	builder := diagnose.NewPrintDiagnosticBuilder()
+	err = diagnose.Diagnose(version, cfg, builder)
+	if err != nil {
 		return err
 	}
-	fmt.Println(separator)
-
-	fmt.Println("🚀 All systems nominal. Houston, we're cleared for launch!")
-	return nil
+	_, err = fmt.Println(builder.String())
+	return err
 }
 
-func setupConfig(configDir string, catalogDir string) error {
+func setupConfig(configDir string, catalogDir string) (*config.Config, error) {
 	// Try loading config file from given or default location
 	cfg, err := config.Load(configDir, catalogDir)
 	if err != nil {
-		return fmt.Errorf("loading config: %w", err)
+		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
 	// Save config file
 	cfg.CatalogDir = catalogDir
 	err = cfg.Save()
 	if err != nil {
-		return fmt.Errorf("saving config: %w", err)
+		return nil, fmt.Errorf("saving config: %w", err)
 	}
 	fmt.Printf("✅ Saved config to file %s\n", style.Code(cfg.FilePath))
-	return nil
+	return cfg, nil
 }
 
 func setupCatalog(configDir string, catalogDir string, catalogRepo string) (string, error) {
@@ -83,12 +84,6 @@ func setupCatalog(configDir string, catalogDir string, catalogRepo string) (stri
 		}
 	}
 
-	cat, err := loadCatalog(catalogDir)
-	if err != nil {
-		return "", err
-	}
-
-	printCatalogSummary(cat)
 	return catalogDir, nil
 }
 
@@ -179,61 +174,5 @@ func cloneCatalog(catalogRepo, catalogDir string) error {
 	} else {
 		return fmt.Errorf("😬 Sorry, cannot continue without catalog!")
 	}
-	return nil
-}
-
-func printCatalogSummary(cat *catalog.Catalog) {
-	envCount := len(cat.Environments)
-	projectCount := len(cat.Projects)
-	releaseCount := len(cat.Releases.Items)
-	if envCount == 0 || projectCount == 0 || releaseCount == 0 {
-		fmt.Print("🦗 Crickets... No ")
-		if envCount == 0 {
-			fmt.Print("environments")
-		}
-		if projectCount == 0 {
-			if envCount == 0 {
-				fmt.Print("/")
-			}
-			fmt.Print("projects")
-		}
-		if releaseCount == 0 {
-			if envCount == 0 || projectCount == 0 {
-				fmt.Print("/")
-			}
-			fmt.Print("releases")
-		}
-		fmt.Println(" found. Please add some to the catalog.")
-	} else {
-		fmt.Printf("✅ Catalog loaded! You've got %d environments, %d projects, and %d releases. Nice! 👍\n", envCount, projectCount, releaseCount)
-	}
-}
-
-func checkDependencies() error {
-	missingRequired := false
-	for _, dep := range dependencies.AllRequired {
-		if dep.IsInstalled() {
-			fmt.Printf("✅ Found %s required dependency.\n", style.Code(dep.Command))
-		} else {
-			fmt.Printf("❌ The %s required dependency is missing (see %s).\n", style.Code(dep.Command), style.Link(dep.Url))
-			missingRequired = true
-		}
-	}
-	for _, dep := range dependencies.AllOptional {
-		if dep.IsInstalled() {
-			fmt.Printf("✅ Found %s optional dependency.\n", style.Code(dep.Command))
-		} else {
-			fmt.Printf(fmt.Sprintf("🤷 The %s optional dependency is missing (see: %s) but only required by those commands:\n", style.Code(dep.Command), style.Link(dep.Url)))
-			for _, cmd := range dep.RequiredBy {
-				fmt.Printf(" 🔹 %s\n", style.Code("joy "+cmd))
-			}
-		}
-	}
-
-	if missingRequired {
-		fmt.Println()
-		return fmt.Errorf("😅 Oops! Joy requires those dependencies to operate. Please install them and try again! 🙏")
-	}
-
 	return nil
 }
