@@ -10,19 +10,16 @@ import (
 )
 
 func EnsureCleanAndUpToDateWorkingCopy(dir string) error {
-	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
-	outputBytes, err := cmd.CombinedOutput()
+	changes, err := GetUncommittedChanges(dir)
 	if err != nil {
-		return fmt.Errorf("checking git status: %s", string(outputBytes))
+		return fmt.Errorf("getting uncommitted changes: %w", err)
 	}
-
-	output := strings.TrimSpace(string(outputBytes))
-	if len(output) > 0 {
-		return fmt.Errorf("uncommitted changes detected:\n%s", style.Warning(output))
+	if len(changes) > 0 {
+		return fmt.Errorf("uncommitted changes detected:\n%s", style.Warning(strings.Join(changes, "\n")))
 	}
 
 	buf := bytes.Buffer{}
-	cmd = exec.Command("git", "-C", dir, "pull")
+	cmd := exec.Command("git", "-C", dir, "pull")
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 	err = cmd.Run()

@@ -17,7 +17,9 @@ func NewRootCmd(version string) *cobra.Command {
 		configDir        string
 		catalogDir       string
 		skipVersionCheck bool
-		setupCmd         = NewSetupCmd(&configDir, &catalogDir)
+		setupCmd         = NewSetupCmd(version, &configDir, &catalogDir)
+		diagnoseCmd      = NewDiagnoseCmd(version)
+		versionCmd       = NewVersionCmd(version)
 	)
 
 	cmd := &cobra.Command{
@@ -25,7 +27,8 @@ func NewRootCmd(version string) *cobra.Command {
 		Short:        "Manages project, environment and release resources as code",
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd != setupCmd {
+			skipChecks := cmd == versionCmd || cmd == setupCmd || cmd == diagnoseCmd
+			if !skipChecks {
 				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
 					return err
 				}
@@ -48,7 +51,7 @@ func NewRootCmd(version string) *cobra.Command {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			if !skipVersionCheck {
+			if !skipVersionCheck && !skipChecks {
 				if version != "" && semver.Compare(version, cfg.MinVersion) < 0 {
 					return fmt.Errorf("current version %q is less than required minimum version %q. Please update joy", version, cfg.MinVersion)
 				}
@@ -64,7 +67,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 			}
 
-			if cmd == setupCmd {
+			if !skipChecks {
 				return nil
 			}
 
@@ -95,8 +98,9 @@ func NewRootCmd(version string) *cobra.Command {
 
 	// Additional commands
 	cmd.AddCommand(NewSecretCmd())
-	cmd.AddCommand(NewVersionCmd(version))
+	cmd.AddCommand(versionCmd)
 	cmd.AddCommand(setupCmd)
+	cmd.AddCommand(diagnoseCmd)
 
 	return cmd
 }
