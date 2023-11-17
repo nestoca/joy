@@ -7,13 +7,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/nestoca/joy/internal/diagnose"
-
 	"github.com/AlecAivazis/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/diagnostics"
 	"github.com/nestoca/joy/internal/style"
-	"github.com/nestoca/joy/pkg/catalog"
 )
 
 const (
@@ -39,12 +37,7 @@ func Setup(version, configDir, catalogDir, catalogRepo string) error {
 
 	// Run diagnostics
 	fmt.Print("🔍 Let's run a few diagnostics to check everything is in order...\n\n")
-	builder := diagnose.NewPrintDiagnosticBuilder()
-	err = diagnose.Diagnose(version, cfg, builder)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Println(builder.String())
+	_, err = fmt.Println(diagnostics.Evaluate(version, cfg).String())
 	return err
 }
 
@@ -121,20 +114,6 @@ func getCatalogDir(configDir string, catalogDir string) (string, error) {
 		catalogDir = path.Join(homeDir, strings.TrimPrefix(catalogDir, homePrefix))
 	}
 	return catalogDir, nil
-}
-
-func loadCatalog(catalogDir string) (*catalog.Catalog, error) {
-	cat, err := catalog.Load(catalog.LoadOpts{
-		Dir:          catalogDir,
-		LoadEnvs:     true,
-		LoadProjects: true,
-		LoadReleases: true,
-		ResolveRefs:  true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("🤯 Whoa! Found the catalog, but failed to load it. Check this error and try again:\n%v", err)
-	}
-	return cat, nil
 }
 
 func cloneCatalog(catalogRepo, catalogDir string) error {
