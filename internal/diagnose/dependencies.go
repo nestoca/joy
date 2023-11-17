@@ -5,7 +5,7 @@ import (
 	"github.com/nestoca/joy/internal/style"
 )
 
-func diagnoseDependencies(builder DiagnosticBuilder) {
+func diagnoseDependencies(requiredDependencies, optionalDependencies []*dependencies.Dependency, builder DiagnosticBuilder) {
 	builder.StartDiagnostic("Dependencies")
 	defer builder.EndDiagnostic()
 
@@ -13,7 +13,7 @@ func diagnoseDependencies(builder DiagnosticBuilder) {
 		builder.StartSection("Required dependencies")
 		defer builder.EndSection()
 
-		for _, dep := range dependencies.AllRequired {
+		for _, dep := range requiredDependencies {
 			if dep.IsInstalled() {
 				builder.AddSuccess("%s installed", style.Code(dep.Command))
 			} else {
@@ -25,7 +25,7 @@ func diagnoseDependencies(builder DiagnosticBuilder) {
 	func() {
 		builder.StartSection("Optional dependencies")
 		defer builder.EndSection()
-		for _, dep := range dependencies.AllOptional {
+		for _, dep := range optionalDependencies {
 			if dep.IsInstalled() {
 				builder.AddSuccess("%s installed", style.Code(dep.Command))
 			} else {
