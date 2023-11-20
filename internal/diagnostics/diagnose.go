@@ -16,7 +16,7 @@ func Evaluate(cliVersion string, cfg *config.Config) Groups {
 		diagnoseExecutable(cfg, cliVersion, ExecutableOptions{}),
 		diagnoseDependencies(dependencies.AllRequired, dependencies.AllOptional),
 		diagnoseConfig(cfg, ConfigOpts{}),
-		diagnoseCatalog(cfg.CatalogDir),
+		diagnoseCatalog(cfg.CatalogDir, CatalopOpts{}),
 	}
 }
 

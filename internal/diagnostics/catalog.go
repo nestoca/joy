@@ -2,7 +2,9 @@ package diagnostics
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
+	"reflect"
 
 	"github.com/nestoca/joy/internal/style"
 
@@ -13,14 +15,50 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func diagnoseCatalog(catalogDir string) (group Group) {
+type GitOpts struct {
+	IsValid               func(string) bool
+	GetUncommittedChanges func(string) ([]string, error)
+	GetDefaultBranch      func(string) (string, error)
+	GetCurrentBranch      func(string) (string, error)
+	IsInSyncWithRemote    func(string, string) (bool, error)
+	GetCurrentCommit      func(string) (string, error)
+}
+
+type CatalopOpts struct {
+	Stat         func(string) (fs.FileInfo, error)
+	LoadCatalog  func(catalog.LoadOpts) (*catalog.Catalog, error)
+	CheckCatalog func(string) error
+	Git          GitOpts
+}
+
+func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
+	if opts.Stat == nil {
+		opts.Stat = os.Stat
+	}
+	if opts.CheckCatalog == nil {
+		opts.CheckCatalog = config.CheckCatalogDir
+	}
+	if opts.LoadCatalog == nil {
+		opts.LoadCatalog = catalog.Load
+	}
+	if reflect.ValueOf(opts.Git).IsZero() {
+		opts.Git = GitOpts{
+			IsValid:               git.IsValid,
+			GetUncommittedChanges: git.GetUncommittedChanges,
+			GetDefaultBranch:      git.GetDefaultBranch,
+			GetCurrentBranch:      git.GetCurrentBranch,
+			IsInSyncWithRemote:    git.IsBranchInSyncWithRemote,
+			GetCurrentCommit:      git.GetCurrentCommit,
+		}
+	}
+
 	group.Title = "Catalog"
 	group.toplevel = true
 
 	group.SubGroups = append(group.SubGroups, func() (group Group) {
 		group.Title = "Git working copy"
 
-		if _, err := os.Stat(catalogDir); os.IsNotExist(err) {
+		if _, err := opts.Stat(catalogDir); os.IsNotExist(err) {
 			group.AddMsg(failed, label("Directory does not exist", catalogDir))
 			return
 		}
@@ -33,7 +71,7 @@ func diagnoseCatalog(catalogDir string) (group Group) {
 
 		group.AddMsg(success, "working copy is valid")
 
-		uncommittedChanges, err := git.GetUncommittedChanges(catalogDir)
+		uncommittedChanges, err := opts.Git.GetUncommittedChanges(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed checking for uncommitted changes", err.Error()))
 		}
@@ -47,12 +85,12 @@ func diagnoseCatalog(catalogDir string) (group Group) {
 			group.AddMsg(success, "Working copy has no uncommitted changes")
 		}
 
-		defaultBranch, err := git.GetDefaultBranch(catalogDir)
+		defaultBranch, err := opts.Git.GetDefaultBranch(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting default branch", err.Error()))
 		}
 
-		currentBranch, err := git.GetCurrentBranch(catalogDir)
+		currentBranch, err := opts.Git.GetCurrentBranch(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current branch", err.Error()))
 		} else {
@@ -67,7 +105,7 @@ func diagnoseCatalog(catalogDir string) (group Group) {
 			}
 		}
 
-		isInSync, err := git.IsBranchInSyncWithRemote(catalogDir, defaultBranch)
+		isInSync, err := opts.Git.IsInSyncWithRemote(catalogDir, defaultBranch)
 		if err != nil {
 			group.AddMsg(failed, label("Failed checking default branch sync state", err.Error()))
 		} else {
@@ -82,7 +120,7 @@ func diagnoseCatalog(catalogDir string) (group Group) {
 			}
 		}
 
-		commit, err := git.GetCurrentCommit(catalogDir)
+		commit, err := opts.Git.GetCurrentCommit(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current commit", err.Error()))
 		} else {
@@ -101,14 +139,14 @@ func diagnoseCatalog(catalogDir string) (group Group) {
 		group.Title = "Loading catalog"
 
 		// Check catalog dir
-		if err := config.CheckCatalogDir(catalogDir); err != nil {
+		if err := opts.CheckCatalog(catalogDir); err != nil {
 			group.AddMsg(failed, label("Catalog not detected", err.Error()))
 			return
 		}
 
 		group.AddMsg(success, "Catalog detected")
 
-		cata, err := catalog.Load(catalog.LoadOpts{
+		cata, err := opts.LoadCatalog(catalog.LoadOpts{
 			Dir:          catalogDir,
 			LoadEnvs:     true,
 			LoadProjects: true,
