@@ -28,7 +28,7 @@ func diagnoseDependencies(required, optional []*dependencies.Dependency) (group 
 		for _, dep := range optional {
 			if !dep.IsInstalled() {
 				group.AddMsg(
-					failed,
+					warning,
 					fmt.Sprintf("%s missing (see %s) but only required by:", style.Code(dep.Command), style.Link(dep.Url)),
 					func() (msgs Messages) {
 						for _, cmd := range dep.RequiredBy {
