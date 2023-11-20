@@ -6,12 +6,10 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/nestoca/joy/internal/style"
-
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/references"
-
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 

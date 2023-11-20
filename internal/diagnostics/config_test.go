@@ -6,8 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/nestoca/joy/internal/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nestoca/joy/internal/config"
 )
 
 func TestConfigDiagnostics(t *testing.T) {
