@@ -3,8 +3,9 @@ package diagnostics
 import (
 	"testing"
 
-	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nestoca/joy/internal/dependencies"
 )
 
 func TestDependencies(t *testing.T) {

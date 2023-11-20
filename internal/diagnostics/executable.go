@@ -7,12 +7,23 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"github.com/nestoca/joy/internal/style"
-
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/style"
 )
 
-func diagnoseExecutable(cfg *config.Config, cliVersion string) (group Group) {
+type ExecutableOptions struct {
+	LookupExectuble func() (string, error)
+	AbsolutePath    func(string) (string, error)
+}
+
+func diagnoseExecutable(cfg *config.Config, cliVersion string, opts ExecutableOptions) (group Group) {
+	if opts.LookupExectuble == nil {
+		opts.LookupExectuble = os.Executable
+	}
+	if opts.AbsolutePath == nil {
+		opts.AbsolutePath = filepath.Abs
+	}
+
 	group.Title = "Executable"
 	group.toplevel = true
 
@@ -36,13 +47,13 @@ func diagnoseExecutable(cfg *config.Config, cliVersion string) (group Group) {
 	group.AddMsg(success, fmt.Sprintf("Version meets minimum of %s required by catalog", style.Code(cfg.MinVersion)))
 
 	// Executable path
-	execPath, err := os.Executable()
+	execPath, err := opts.LookupExectuble()
 	if err != nil {
 		group.AddMsg(failed, "failed to get executable path: "+err.Error())
 		return
 	}
 
-	absolutePath, err := filepath.Abs(execPath)
+	absolutePath, err := opts.AbsolutePath(execPath)
 	if err != nil {
 		group.AddMsg(failed, "failed to get absolute path of executable: "+err.Error())
 		return
