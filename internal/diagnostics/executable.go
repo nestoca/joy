@@ -12,20 +12,20 @@ import (
 )
 
 type ExecutableOptions struct {
-	LookupExectuble func() (string, error)
-	AbsolutePath    func(string) (string, error)
+	LookupExecutable func() (string, error)
+	AbsolutePath     func(string) (string, error)
 }
 
 func diagnoseExecutable(cfg *config.Config, cliVersion string, opts ExecutableOptions) (group Group) {
-	if opts.LookupExectuble == nil {
-		opts.LookupExectuble = os.Executable
+	if opts.LookupExecutable == nil {
+		opts.LookupExecutable = os.Executable
 	}
 	if opts.AbsolutePath == nil {
 		opts.AbsolutePath = filepath.Abs
 	}
 
 	group.Title = "Executable"
-	group.toplevel = true
+	group.topLevel = true
 
 	group.AddMsg(info, label("Version", cliVersion))
 
@@ -47,15 +47,15 @@ func diagnoseExecutable(cfg *config.Config, cliVersion string, opts ExecutableOp
 	group.AddMsg(success, fmt.Sprintf("Version meets minimum of %s required by catalog", style.Code(cfg.MinVersion)))
 
 	// Executable path
-	execPath, err := opts.LookupExectuble()
+	execPath, err := opts.LookupExecutable()
 	if err != nil {
-		group.AddMsg(failed, "failed to get executable path: "+err.Error())
+		group.AddMsg(failed, "Failed to get executable path: "+err.Error())
 		return
 	}
 
 	absolutePath, err := opts.AbsolutePath(execPath)
 	if err != nil {
-		group.AddMsg(failed, "failed to get absolute path of executable: "+err.Error())
+		group.AddMsg(failed, "Failed to get absolute path of executable: "+err.Error())
 		return
 	}
 

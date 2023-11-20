@@ -48,7 +48,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 					{
 						Title: "Git working copy", Messages: Messages{
 							{Type: "info", Value: "Directory exists: catalogDir"},
-							{Type: "failed", Value: "working copy is invalid"},
+							{Type: "failed", Value: "Working copy is invalid"},
 						},
 					},
 					{
@@ -70,7 +70,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 						},
 					},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 						},
 					},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 		{
@@ -113,7 +113,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 					{
 						Title: "Git working copy", Messages: Messages{
 							{Type: "info", Value: "Directory exists: catalogDir"},
-							{Type: "failed", Value: "working copy is invalid"},
+							{Type: "failed", Value: "Working copy is invalid"},
 						},
 					},
 					{
@@ -121,7 +121,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 							{Type: "failed", Value: "Catalog not detected: no joy catalog found at \"catalogDir\""},
 						},
 					},
-				}, toplevel: true,
+				}, topLevel: true,
 			},
 		},
 	}

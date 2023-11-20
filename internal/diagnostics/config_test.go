@@ -29,7 +29,7 @@ func TestConfigDiagnostics(t *testing.T) {
 					{Type: "info", Value: "Selected environments: <all>"},
 					{Type: "info", Value: "Selected releases: <all>"},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 		{
@@ -41,7 +41,7 @@ func TestConfigDiagnostics(t *testing.T) {
 				Messages: Messages{
 					{Type: "failed", Value: "File does not exist: .joyrc"},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 		{
@@ -51,9 +51,9 @@ func TestConfigDiagnostics(t *testing.T) {
 			Expected: Group{
 				Title: "Config",
 				Messages: Messages{
-					{Type: "failed", Value: "failed to get config file: corrupted disk!"},
+					{Type: "failed", Value: "Failed to get config file: corrupted disk!"},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 	}

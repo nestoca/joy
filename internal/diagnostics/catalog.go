@@ -51,7 +51,7 @@ func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
 	}
 
 	group.Title = "Catalog"
-	group.toplevel = true
+	group.topLevel = true
 
 	group.SubGroups = append(group.SubGroups, func() (group Group) {
 		group.Title = "Git working copy"
@@ -63,11 +63,11 @@ func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
 		group.AddMsg(info, label("Directory exists", catalogDir))
 
 		if !git.IsValid(catalogDir) {
-			group.AddMsg(failed, "working copy is invalid")
+			group.AddMsg(failed, "Working copy is invalid")
 			return
 		}
 
-		group.AddMsg(success, "working copy is valid")
+		group.AddMsg(success, "Working copy is valid")
 
 		uncommittedChanges, err := opts.Git.GetUncommittedChanges(catalogDir)
 		if err != nil {

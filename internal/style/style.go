@@ -85,8 +85,8 @@ func DiagnosticHeader(s any) string {
 	return color.InBold(color.InWhite(s))
 }
 
-// DiagnosticSection is for the header of a diagnostic section
-func DiagnosticSection(s any) string {
+// DiagnosticGroup is for the header of a diagnostic section
+func DiagnosticGroup(s any) string {
 	return color.InBold(color.InBlue(s))
 }
 

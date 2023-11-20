@@ -26,7 +26,7 @@ func TestExecutableDiagnostics(t *testing.T) {
 			AbsolutePath:     func(string) (string, error) { return "absolute_binary_path", nil },
 			Expected: Group{
 				Title:    "Executable",
-				toplevel: true,
+				topLevel: true,
 				Messages: Messages{
 					{Type: "info", Value: "Version: v1.0.0"},
 					{Type: "success", Value: "Version meets minimum of v1.0.0 required by catalog"},
@@ -40,7 +40,7 @@ func TestExecutableDiagnostics(t *testing.T) {
 			MinVersion: "v1.0.0",
 			Expected: Group{
 				Title:    "Executable",
-				toplevel: true,
+				topLevel: true,
 				Messages: Messages{
 					{
 						Type:  "info",
@@ -59,7 +59,7 @@ func TestExecutableDiagnostics(t *testing.T) {
 			MinVersion: "v2.0.0",
 			Expected: Group{
 				Title:    "Executable",
-				toplevel: true,
+				topLevel: true,
 				Messages: Messages{
 					{
 						Type:  "info",
@@ -84,9 +84,9 @@ func TestExecutableDiagnostics(t *testing.T) {
 				Title: "Executable", Messages: Messages{
 					{Type: "info", Value: "Version: v1.0.0"},
 					{Type: "success", Value: "Version meets minimum of v1.0.0 required by catalog"},
-					{Type: "failed", Value: "failed to get executable path: exe not in path"},
+					{Type: "failed", Value: "Failed to get executable path: exe not in path"},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 		{
@@ -99,9 +99,9 @@ func TestExecutableDiagnostics(t *testing.T) {
 				Title: "Executable", Messages: Messages{
 					{Type: "info", Value: "Version: v1.0.0"},
 					{Type: "success", Value: "Version meets minimum of v1.0.0 required by catalog"},
-					{Type: "failed", Value: "failed to get absolute path of executable: FS make no sense!"},
+					{Type: "failed", Value: "Failed to get absolute path of executable: FS make no sense!"},
 				},
-				toplevel: true,
+				topLevel: true,
 			},
 		},
 	}
@@ -109,8 +109,8 @@ func TestExecutableDiagnostics(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			opts := ExecutableOptions{
-				LookupExectuble: tc.LookupExecutable,
-				AbsolutePath:    tc.AbsolutePath,
+				LookupExecutable: tc.LookupExecutable,
+				AbsolutePath:     tc.AbsolutePath,
 			}
 			require.Equal(
 				t,

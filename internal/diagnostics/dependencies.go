@@ -9,7 +9,7 @@ import (
 
 func diagnoseDependencies(required, optional []*dependencies.Dependency) (group Group) {
 	group.Title = "Dependencies"
-	group.toplevel = true
+	group.topLevel = true
 
 	group.AddSubGroup(func() (group Group) {
 		group.Title = "Required dependencies"

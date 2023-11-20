@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TwiN/go-color"
 	"github.com/acarl005/stripansi"
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/style"
 )
 
 func Evaluate(cliVersion string, cfg *config.Config) Groups {
@@ -77,7 +77,7 @@ type Group struct {
 	Messages  Messages
 	SubGroups Groups
 
-	toplevel bool
+	topLevel bool
 }
 
 func (group *Group) AddMsg(typ string, value string, details ...Message) *Group {
@@ -127,8 +127,8 @@ func (group Group) StripAnsi() Group {
 
 func (group Group) String() string {
 	title := func() string {
-		if !group.toplevel {
-			return color.InBold(color.InBlue(group.Title))
+		if !group.topLevel {
+			return style.DiagnosticGroup(group.Title)
 		}
 		emoji := func() string {
 			stats := group.Stats()
@@ -141,7 +141,7 @@ func (group Group) String() string {
 				return "✅"
 			}
 		}()
-		return emoji + " " + color.InBold(group.Title)
+		return emoji + " " + style.DiagnosticHeader(group.Title)
 	}()
 
 	return title + "\n" + indent(group.Messages.String()+group.SubGroups.String())
@@ -189,5 +189,21 @@ func msg(typ string, value string, details ...Message) Message {
 }
 
 func label(label string, value any) string {
-	return fmt.Sprintf("%s %v", color.InBold(label+":"), value)
+	return fmt.Sprintf("%s %v", style.DiagnosticLabel(label+":"), value)
+}
+
+type StatGroup interface {
+	fmt.Stringer
+	Stats() Stats
+}
+
+func OutputWithGlobalStats(group StatGroup) string {
+	statMsg := func() string {
+		if stats := group.Stats(); stats.Failed+stats.Warnings > 0 {
+			return fmt.Sprintf("🚨 Diagnostics completed with %d error(s) and %d warning(s)", stats.Failed, stats.Warnings)
+		}
+		return "🚀 All systems nominal. Houston, we're cleared for launch!"
+	}()
+
+	return group.String() + "\n" + statMsg
 }

@@ -18,14 +18,14 @@ func diagnoseConfig(cfg *config.Config, opts ConfigOpts) (group Group) {
 	}
 
 	group.Title = "Config"
-	group.toplevel = true
+	group.topLevel = true
 
 	if _, err := opts.Stat(cfg.FilePath); err != nil {
 		if os.IsNotExist(err) {
 			group.AddMsg(failed, label("File does not exist", cfg.FilePath))
 			return
 		}
-		group.AddMsg(failed, fmt.Sprintf("failed to get config file: %v", err))
+		group.AddMsg(failed, fmt.Sprintf("Failed to get config file: %v", err))
 		return
 	}
 

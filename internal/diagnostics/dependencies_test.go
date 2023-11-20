@@ -38,7 +38,7 @@ func TestDependencies(t *testing.T) {
 			Optional: nil,
 			Expected: Group{
 				Title:    "Dependencies",
-				toplevel: true,
+				topLevel: true,
 				SubGroups: Groups{
 					{Title: "Required dependencies"},
 					{Title: "Optional dependencies"},
@@ -51,7 +51,7 @@ func TestDependencies(t *testing.T) {
 			Optional: []*dependencies.Dependency{bash, sh},
 			Expected: Group{
 				Title:    "Dependencies",
-				toplevel: true,
+				topLevel: true,
 				SubGroups: Groups{
 					{
 						Title: "Required dependencies",
@@ -76,7 +76,7 @@ func TestDependencies(t *testing.T) {
 			Optional: []*dependencies.Dependency{bash, sh},
 			Expected: Group{
 				Title:    "Dependencies",
-				toplevel: true,
+				topLevel: true,
 				SubGroups: Groups{
 					{
 						Title: "Required dependencies",
@@ -101,7 +101,7 @@ func TestDependencies(t *testing.T) {
 			Optional: []*dependencies.Dependency{bash, missing},
 			Expected: Group{
 				Title:    "Dependencies",
-				toplevel: true,
+				topLevel: true,
 				SubGroups: Groups{
 					{
 						Title: "Required dependencies",

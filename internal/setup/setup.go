@@ -37,7 +37,7 @@ func Setup(version, configDir, catalogDir, catalogRepo string) error {
 
 	// Run diagnostics
 	fmt.Print("🔍 Let's run a few diagnostics to check everything is in order...\n\n")
-	_, err = fmt.Println(diagnostics.Evaluate(version, cfg).String())
+	_, err = fmt.Println(diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(version, cfg)))
 	return err
 }
 
