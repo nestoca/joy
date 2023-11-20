@@ -2,17 +2,30 @@ package diagnostics
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/nestoca/joy/internal/config"
 )
 
-func diagnoseConfig(cfg *config.Config) (group Group) {
+type ConfigOpts struct {
+	Stat func(string) (fs.FileInfo, error)
+}
+
+func diagnoseConfig(cfg *config.Config, opts ConfigOpts) (group Group) {
+	if opts.Stat == nil {
+		opts.Stat = os.Stat
+	}
+
 	group.Title = "Config"
 	group.toplevel = true
 
-	if _, err := os.Stat(cfg.FilePath); os.IsNotExist(err) {
-		group.AddMsg(failed, label("File does not exist", cfg.FilePath))
+	if _, err := opts.Stat(cfg.FilePath); err != nil {
+		if os.IsNotExist(err) {
+			group.AddMsg(failed, label("File does not exist", cfg.FilePath))
+			return
+		}
+		group.AddMsg(failed, fmt.Sprintf("failed to get config file: %v", err))
 		return
 	}
 
