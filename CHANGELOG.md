@@ -1,3 +1,12 @@
+## [0.18.3](https://github.com/nestoca/joy/compare/v0.18.2...v0.18.3) (2023-11-15)
+
+
+### Bug Fixes
+
+* **help:** run help without invoking pre run checks ([c470a3f](https://github.com/nestoca/joy/commit/c470a3f85ef49673f66d492ebd1a285750a4a24f))
+
+
+
 ## [0.18.2](https://github.com/nestoca/joy/compare/v0.18.1...v0.18.2) (2023-11-14)
 
 
