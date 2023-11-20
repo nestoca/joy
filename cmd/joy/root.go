@@ -31,11 +31,12 @@ func NewRootCmd(version string) *cobra.Command {
 				return nil
 			}
 
-			skipChecks := cmd == setupCmd || cmd == diagnoseCmd
-			if !skipChecks {
-				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
-					return err
-				}
+			if cmd == setupCmd || cmd == diagnoseCmd {
+				return nil
+			}
+
+			if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+				return err
 			}
 
 			cfg, err := func() (*config.Config, error) {
@@ -55,7 +56,7 @@ func NewRootCmd(version string) *cobra.Command {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			if !skipVersionCheck && !skipChecks {
+			if !skipVersionCheck {
 				if version != "" && semver.Compare(version, cfg.MinVersion) < 0 {
 					return fmt.Errorf("current version %q is less than required minimum version %q. Please update joy", version, cfg.MinVersion)
 				}
@@ -71,7 +72,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 			}
 
-			if !skipChecks {
+			if cmd == setupCmd {
 				return nil
 			}
 
