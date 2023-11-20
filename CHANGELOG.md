@@ -1,3 +1,12 @@
+# [0.19.0](https://github.com/nestoca/joy/compare/v0.18.3...v0.19.0) (2023-11-20)
+
+
+### Features
+
+* **PL-2017:** joy diagnose cmd ([586796e](https://github.com/nestoca/joy/commit/586796ef7b7a07db175642306ba436c70ec5437e))
+
+
+
 ## [0.18.3](https://github.com/nestoca/joy/compare/v0.18.2...v0.18.3) (2023-11-15)
 
 
