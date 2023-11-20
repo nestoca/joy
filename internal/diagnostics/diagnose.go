@@ -8,36 +8,38 @@ import (
 	"github.com/acarl005/stripansi"
 
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/dependencies"
 )
 
 func Evaluate(cliVersion string, cfg *config.Config) Groups {
 	return Groups{
 		diagnoseExecutable(cfg, cliVersion),
-		diagnoseDependencies(),
+		diagnoseDependencies(dependencies.AllRequired, dependencies.AllOptional),
 		diagnoseConfig(cfg),
 		diagnoseCatalog(cfg.CatalogDir),
 	}
 }
 
 const (
-	success = iota
-	warning
-	failed
-	hint
-	info
+	success = "success"
+	warning = "warning"
+	failed  = "failed"
+	hint    = "hint"
+	info    = "info"
 )
 
 type Message struct {
-	Type    int
+	Type    string
 	Value   string
 	Details Messages
 }
 
-func (msg *Message) StripAnsi() {
+func (msg Message) StripAnsi() Message {
 	msg.Value = stripansi.Strip(msg.Value)
-	for i := range msg.Details {
-		msg.Details[i].StripAnsi()
+	for i, detail := range msg.Details {
+		msg.Details[i] = detail.StripAnsi()
 	}
+	return msg
 }
 
 func (msg Message) String() string {
@@ -78,7 +80,7 @@ type Group struct {
 	toplevel bool
 }
 
-func (group *Group) AddMsg(typ int, value string, details ...Message) *Group {
+func (group *Group) AddMsg(typ string, value string, details ...Message) *Group {
 	group.Messages = append(group.Messages, msg(typ, value, details...))
 	return group
 }
@@ -112,14 +114,15 @@ func (group Group) Stats() (result Stats) {
 	return
 }
 
-func (group *Group) StripAnsi() {
+func (group Group) StripAnsi() Group {
 	group.Title = stripansi.Strip(group.Title)
-	for i := range group.Messages {
-		group.Messages[i].StripAnsi()
+	for i, msg := range group.Messages {
+		group.Messages[i] = msg.StripAnsi()
 	}
-	for i := range group.SubGroups {
-		group.SubGroups[i].StripAnsi()
+	for i, sub := range group.SubGroups {
+		group.SubGroups[i] = sub.StripAnsi()
 	}
+	return group
 }
 
 func (group Group) String() string {
@@ -177,7 +180,7 @@ func indent(value string) string {
 	return "  " + strings.ReplaceAll(value, "\n", "\n  ")
 }
 
-func msg(typ int, value string, details ...Message) Message {
+func msg(typ string, value string, details ...Message) Message {
 	return Message{
 		Type:    typ,
 		Value:   value,

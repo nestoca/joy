@@ -7,27 +7,27 @@ import (
 	"github.com/nestoca/joy/internal/style"
 )
 
-func diagnoseDependencies() (group Group) {
+func diagnoseDependencies(required, optional []*dependencies.Dependency) (group Group) {
 	group.Title = "Dependencies"
 	group.toplevel = true
 
-	group.AddSubGroup(func() (required Group) {
-		required.Title = "Required dependencies"
-		for _, dep := range dependencies.AllRequired {
+	group.AddSubGroup(func() (group Group) {
+		group.Title = "Required dependencies"
+		for _, dep := range required {
 			if !dep.IsInstalled() {
-				required.AddMsg(failed, fmt.Sprintf("%s missing (see %s)", style.Code(dep.Command), style.Link(dep.Url)))
+				group.AddMsg(failed, fmt.Sprintf("%s missing (see %s)", style.Code(dep.Command), style.Link(dep.Url)))
 				continue
 			}
-			required.AddMsg(success, fmt.Sprintf("%s installed", style.Code(dep.Command)))
+			group.AddMsg(success, fmt.Sprintf("%s installed", style.Code(dep.Command)))
 		}
 		return
 	}())
 
-	group.AddSubGroup(func() (optional Group) {
-		optional.Title = "Optional dependencies"
-		for _, dep := range dependencies.AllOptional {
+	group.AddSubGroup(func() (group Group) {
+		group.Title = "Optional dependencies"
+		for _, dep := range optional {
 			if !dep.IsInstalled() {
-				optional.AddMsg(
+				group.AddMsg(
 					failed,
 					fmt.Sprintf("%s missing (see %s) but only required by:", style.Code(dep.Command), style.Link(dep.Url)),
 					func() (msgs Messages) {
@@ -39,7 +39,7 @@ func diagnoseDependencies() (group Group) {
 				)
 				continue
 			}
-			optional.AddMsg(success, fmt.Sprintf("%s installed", style.Code(dep.Command)))
+			group.AddMsg(success, fmt.Sprintf("%s installed", style.Code(dep.Command)))
 		}
 		return
 	}())
