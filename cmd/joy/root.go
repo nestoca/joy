@@ -27,7 +27,7 @@ func NewRootCmd(version string) *cobra.Command {
 		Short:        "Manages project, environment and release resources as code",
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			skipChecks := cmd == versionCmd || cmd == setupCmd || cmd == diagnoseCmd
+			skipChecks := cmd == setupCmd || cmd == diagnoseCmd
 			if !skipChecks {
 				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
 					return err
