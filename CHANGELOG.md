@@ -1,3 +1,12 @@
+## [0.19.1](https://github.com/nestoca/joy/compare/v0.19.0...v0.19.1) (2023-11-20)
+
+
+### Bug Fixes
+
+* goreleaser tagging ([83303cf](https://github.com/nestoca/joy/commit/83303cf6c5089c394014623080acc9f6078f82e7))
+
+
+
 # [0.19.0](https://github.com/nestoca/joy/compare/v0.18.3...v0.19.0) (2023-11-20)
 
 
