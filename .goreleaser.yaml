@@ -8,7 +8,7 @@ builds:
       - linux
       - darwin
     ldflags:
-      - -X "main.version={{ .Version }}"
+      - -X "main.version=v{{ trimprefix .Version "v" }}"
 archives:
   - format: tar.gz
     wrap_in_directory: false
