@@ -31,12 +31,10 @@ func NewRootCmd(version string) *cobra.Command {
 				return nil
 			}
 
-			if cmd == setupCmd || cmd == diagnoseCmd {
-				return nil
-			}
-
-			if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
-				return err
+			if cmd != diagnoseCmd && cmd != setupCmd {
+				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+					return err
+				}
 			}
 
 			cfg, err := func() (*config.Config, error) {
@@ -69,6 +67,7 @@ func NewRootCmd(version string) *cobra.Command {
 					if !ok {
 						return errors.New("aborting run")
 					}
+					fmt.Println()
 				}
 			}
 
