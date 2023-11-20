@@ -1,9 +1,12 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -33,6 +36,68 @@ func Run(dir string, args []string) error {
 		return fmt.Errorf("running git command: %w", err)
 	}
 	return nil
+}
+
+func IsValid(dir string) bool {
+	// Must have a .git directory directly under given directory
+	dotGitDir := filepath.Join(dir, ".git")
+	_, err := os.Stat(dotGitDir)
+	if err != nil {
+		return false
+	}
+
+	return exec.Command("git", "-C", dir, "status").Run() == nil
+}
+
+func GetUncommittedChanges(dir string) ([]string, error) {
+	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
+	outputBytes, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("executing git status: %s", string(outputBytes))
+	}
+	trimmed := strings.TrimSpace(string(outputBytes))
+	if trimmed == "" {
+		return nil, nil
+	}
+	return strings.Split(trimmed, "\n"), nil
+}
+
+func GetDefaultBranch(dir string) (string, error) {
+	cmd := exec.Command("git", "-C", dir, "symbolic-ref", "refs/remotes/origin/HEAD")
+	outputBytes, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	longName := strings.TrimSpace(string(outputBytes))
+	return strings.TrimPrefix(longName, "refs/remotes/origin/"), nil
+}
+
+func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
+	// Fetch the latest changes from the remote
+	fetchCmd := exec.Command("git", "-C", dir, "fetch", "origin", branch)
+	if err := fetchCmd.Run(); err != nil {
+		fmt.Println("Error fetching from remote:", err)
+		return false, err
+	}
+
+	// Use git status --porcelain to check the sync status
+	statusCmd := exec.Command("git", "-C", dir, "status", "--porcelain", "-b")
+	var out bytes.Buffer
+	statusCmd.Stdout = &out
+	if err := statusCmd.Run(); err != nil {
+		fmt.Println("Error checking git status:", err)
+		return false, err
+	}
+
+	// Regular expression to match branch status
+	branchStatusRegex := regexp.MustCompile(`## [^ ]+( \[(ahead \d+|behind \d+|diverged \d+ and \d+)\])?`)
+	matches := branchStatusRegex.FindStringSubmatch(out.String())
+
+	// Check if the branch is either ahead, behind or diverged
+	if len(matches) > 1 && matches[1] != "" {
+		return false, nil
+	}
+	return true, nil
 }
 
 func Checkout(dir, branch string) error {
@@ -153,4 +218,22 @@ func Reset(dir string) error {
 	}
 	fmt.Println("✅ Uncommitted changes discarded successfully!")
 	return nil
+}
+
+func GetCurrentBranch(dir string) (string, error) {
+	cmd := exec.Command("git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("getting current branch: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func GetCurrentCommit(dir string) (string, error) {
+	cmd := exec.Command("git", "-C", dir, "rev-parse", "HEAD")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("getting current commit: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
 }

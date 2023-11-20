@@ -79,3 +79,23 @@ func ReleaseNotAvailable(s any) string {
 func Link(s any) string {
 	return color.InUnderline(color.InBlue(s))
 }
+
+// DiagnosticHeader is for the header of a diagnostic
+func DiagnosticHeader(s any) string {
+	return color.InBold(color.InWhite(s))
+}
+
+// DiagnosticGroup is for the header of a diagnostic section
+func DiagnosticGroup(s any) string {
+	return color.InBold(color.InBlue(s))
+}
+
+// DiagnosticLabel is for the label of a diagnostic item
+func DiagnosticLabel(s any) string {
+	return color.InBold(s)
+}
+
+// ResourceKind is for a kind of resource (eg: `Release`, `Project`, `Environment`)
+func ResourceKind(s any) string {
+	return color.InBold(s)
+}

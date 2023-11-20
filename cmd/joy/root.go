@@ -17,7 +17,9 @@ func NewRootCmd(version string) *cobra.Command {
 		configDir        string
 		catalogDir       string
 		skipVersionCheck bool
-		setupCmd         = NewSetupCmd(&configDir, &catalogDir)
+		setupCmd         = NewSetupCmd(version, &configDir, &catalogDir)
+		diagnoseCmd      = NewDiagnoseCmd(version)
+		versionCmd       = NewVersionCmd(version)
 	)
 
 	cmd := &cobra.Command{
@@ -29,7 +31,7 @@ func NewRootCmd(version string) *cobra.Command {
 				return nil
 			}
 
-			if cmd != setupCmd {
+			if cmd != diagnoseCmd && cmd != setupCmd {
 				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
 					return err
 				}
@@ -65,6 +67,7 @@ func NewRootCmd(version string) *cobra.Command {
 					if !ok {
 						return errors.New("aborting run")
 					}
+					fmt.Println()
 				}
 			}
 
@@ -99,8 +102,9 @@ func NewRootCmd(version string) *cobra.Command {
 
 	// Additional commands
 	cmd.AddCommand(NewSecretCmd())
-	cmd.AddCommand(NewVersionCmd(version))
+	cmd.AddCommand(versionCmd)
 	cmd.AddCommand(setupCmd)
+	cmd.AddCommand(diagnoseCmd)
 
 	return cmd
 }

@@ -1,10 +1,13 @@
 package cross
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/nestoca/joy/internal/references"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
@@ -158,6 +161,7 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 }
 
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
+	var errs []error
 	for _, crossRelease := range r.Items {
 		for _, rel := range crossRelease.Releases {
 			if rel == nil || rel.Spec.Project == "" {
@@ -165,15 +169,15 @@ func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
 			}
 			proj := findProjectForRelease(projects, rel)
 			if proj == nil {
-				return fmt.Errorf("project %s not found for release %s", rel.Spec.Project, rel.Name)
+				errs = append(errs, references.NewMissingError("Release", rel.Name, "Project", rel.Spec.Project))
 			}
 			rel.Project = proj
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
-func (r *ReleaseList) ResolveEnvRefs(environments []*v1alpha1.Environment) error {
+func (r *ReleaseList) ResolveEnvRefs(environments []*v1alpha1.Environment) {
 	for _, crossRelease := range r.Items {
 		for i, rel := range crossRelease.Releases {
 			if rel != nil {
@@ -181,7 +185,6 @@ func (r *ReleaseList) ResolveEnvRefs(environments []*v1alpha1.Environment) error
 			}
 		}
 	}
-	return nil
 }
 
 func findProjectForRelease(projects []*v1alpha1.Project, rel *v1alpha1.Release) *v1alpha1.Project {
