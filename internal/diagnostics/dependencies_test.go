@@ -115,7 +115,7 @@ func TestDependencies(t *testing.T) {
 						Messages: Messages{
 							{Type: "success", Value: "bash installed"},
 							{
-								Type: "warning", Value: "missing-dependency missing (see https://example.com/missing) but only required by:",
+								Type: "info", Value: "missing-dependency missing (see https://example.com/missing) but only required by:",
 								Details: Messages{
 									{Type: "info", Value: "joy cmd1"},
 									{Type: "info", Value: "joy cmd2"},
