@@ -1,3 +1,12 @@
+# [0.20.0](https://github.com/nestoca/joy/compare/v0.19.1...v0.20.0) (2023-11-22)
+
+
+### Features
+
+* **PL-2009:** Add annotations and labels for all joy resources ([adbcb4e](https://github.com/nestoca/joy/commit/adbcb4eeed3a3e1dcdc1632c33ca0c638120c9d8))
+
+
+
 ## [0.19.1](https://github.com/nestoca/joy/compare/v0.19.0...v0.19.1) (2023-11-20)
 
 
