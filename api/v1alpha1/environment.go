@@ -15,6 +15,12 @@ const EnvironmentKind = "Environment"
 type EnvironmentMetadata struct {
 	// Name is the name of the environment.
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
+
+	// Labels is the list of labels for the environment.
+	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+
+	// Annotations is the list of annotations for the environment.
+	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 }
 
 type Promotion struct {

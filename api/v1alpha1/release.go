@@ -13,6 +13,12 @@ const ReleaseKind = "Release"
 type ReleaseMetadata struct {
 	// Name is the name of the release.
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
+
+	// Labels is the list of labels for the release.
+	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+
+	// Annotations is the list of annotations for the release.
+	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 }
 
 type ReleaseChart struct {
