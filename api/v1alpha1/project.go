@@ -13,6 +13,12 @@ const ProjectKind = "Project"
 type ProjectMetadata struct {
 	// Name is the name of the project.
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
+
+	// Labels is the list of labels for the project.
+	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+
+	// Annotations is the list of annotations for the project.
+	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 }
 
 type ProjectSpec struct {
