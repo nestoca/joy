@@ -1,3 +1,12 @@
+## [0.20.1](https://github.com/nestoca/joy/compare/v0.20.0...v0.20.1) (2023-11-27)
+
+
+### Bug Fixes
+
+* **PL-2110:** add lock migrator yaml file extension check ([093d09f](https://github.com/nestoca/joy/commit/093d09fae706a38c3d9b8cc18a61f69aec4ad19b))
+
+
+
 # [0.20.0](https://github.com/nestoca/joy/compare/v0.19.1...v0.20.0) (2023-11-22)
 
 
