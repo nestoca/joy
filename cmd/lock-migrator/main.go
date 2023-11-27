@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -49,9 +48,13 @@ func run() error {
 		}
 
 		if d.IsDir() {
-			if isHiddenDir(path) {
+			if isHidden(path) {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+
+		if ext := filepath.Ext(path); ext != ".yml" && ext != ".yaml" {
 			return nil
 		}
 
@@ -128,8 +131,7 @@ func (n Node) MarshalYAML() (any, error) {
 
 var lockExpression = regexp.MustCompile(`(?i)(?m)^#+\s*lock\s*\n?`)
 
-func isHiddenDir(name string) bool {
-	return slices.ContainsFunc(filepath.SplitList(name), func(segment string) bool {
-		return segment != "." && strings.HasPrefix(segment, ".")
-	})
+func isHidden(name string) bool {
+	base := filepath.Base(name)
+	return base != "." && strings.HasSuffix(base, ".")
 }
