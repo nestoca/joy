@@ -58,7 +58,14 @@ func TestYmlMerge(t *testing.T) {
 			Src:      "!lock [1, 2, 3]",
 			Dst:      "[]",
 			Joy:      "!lock [1, 2, 3]",
-			Proposal: "!lock [!!int TODO, !!int TODO, !!int TODO]",
+			Proposal: "[]",
+		},
+		{
+			Name:     "locked seq with dst values",
+			Src:      "!lock [1, 2, 3]",
+			Dst:      "[4, 5, 6]",
+			Joy:      "!lock [1, 2, 3]",
+			Proposal: "[4, 5, 6]",
 		},
 		{
 			Name:     "seq with dst longer",
