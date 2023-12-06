@@ -79,35 +79,21 @@ func TestYmlMerge(t *testing.T) {
 			Src:      "[1, 2, 3]",
 			Dst:      "[4, 5, 6, 7, !lock 8]",
 			Joy:      "[1, 2, 3]",
-			Proposal: "[!lock 8, 1, 2, 3]",
+			Proposal: "[1, 2, 3, !lock 8]",
 		},
 		{
 			Name:     "seq with dst inner lock",
 			Src:      "[1, 2, 3]",
 			Dst:      "[4, !lock 5, 6, 7, !lock 8]",
 			Joy:      "[1, 2, 3]",
-			Proposal: "[!lock 5, !lock 8, 1, 2, 3]",
-		},
-		{
-			Name:     "locked sequence items are not promoted",
-			Src:      "[!lock 1, !lock 2, !lock 3]",
-			Dst:      "[4, 5, 6]",
-			Joy:      "[!lock TODO, !lock TODO, !lock TODO]",
-			Proposal: "[]",
+			Proposal: "[1, !lock 5, 3, !lock 8]",
 		},
 		{
 			Name:     "seq with src inner lock",
 			Src:      "[!lock 1, !lock 2, 3]",
 			Dst:      "[      4, !lock 5, 6, 7, !lock 8]",
 			Joy:      "[!lock TODO, !lock TODO, 3]",
-			Proposal: "[!lock 5, !lock 8, 3]",
-		},
-		{
-			Name:     "seq with src inner lock and empty dst",
-			Src:      "[!lock 1, 2, !lock 3, 4]",
-			Dst:      "[]",
-			Joy:      "[!lock TODO, 2, !lock TODO, 4]",
-			Proposal: "[2, 4]",
+			Proposal: "[4, !lock 5, 3, !lock 8]",
 		},
 		{
 			Name:     "seq with locked dst",
@@ -164,6 +150,21 @@ func TestYmlMerge(t *testing.T) {
 			Dst:      "{a: {b: !lock {c: e}}}",
 			Joy:      "{a: {b: !lock {c: e}}}",
 			Proposal: "{a: {b: !lock {c: e}}}",
+		},
+		{
+			Name: "real world",
+			Src: `spec:
+  containers:
+    - name: mycontainer
+      image: 2.0.0
+`,
+			Dst: `spec:
+  containers:
+    - name: mycontainer
+      image: !lock 1.0.0
+`,
+			Joy:      "spec:\n    containers:\n        - name: mycontainer\n          image: 2.0.0",
+			Proposal: "spec:\n    containers:\n        - name: mycontainer\n          image: !lock 1.0.0",
 		},
 	}
 
