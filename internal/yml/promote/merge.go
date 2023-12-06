@@ -62,8 +62,12 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 		}
 	}
 
-	dst.Content = content
-	return dst
+	return &yaml.Node{
+		Kind:    yaml.MappingNode,
+		Content: content,
+		Style:   src.Style & dst.Style,
+		Tag:     dst.Tag,
+	}
 }
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
@@ -84,8 +88,12 @@ func mergeSeq(dst, src *yaml.Node) *yaml.Node {
 		}
 	}
 
-	dst.Content = content
-	return dst
+	return &yaml.Node{
+		Kind:    yaml.SequenceNode,
+		Style:   src.Style & dst.Style,
+		Content: content,
+		Tag:     dst.Tag,
+	}
 }
 
 func unwrapDocument(node *yaml.Node) *yaml.Node {
@@ -96,13 +104,6 @@ func unwrapDocument(node *yaml.Node) *yaml.Node {
 		node = node.Content[0]
 	}
 	return node
-}
-
-func at(node *yaml.Node, i int) *yaml.Node {
-	if i >= len(node.Content) {
-		return nil
-	}
-	return node.Content[i]
 }
 
 func clone(node *yaml.Node) *yaml.Node {
