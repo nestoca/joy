@@ -32,19 +32,18 @@ func merge(dst, src *yaml.Node) *yaml.Node {
 		return src
 	}
 
+	if isLocked(src) {
+		return dst
+	}
+
 	switch src.Kind {
 	case yaml.MappingNode:
 		return mergeMap(dst, src)
 	case yaml.SequenceNode:
 		return mergeSeq(dst, src)
-	case yaml.ScalarNode:
-		if isLocked(src) {
-			return dst
-		}
+	default:
 		return src
 	}
-
-	return src
 }
 
 func mergeMap(dst, src *yaml.Node) *yaml.Node {
