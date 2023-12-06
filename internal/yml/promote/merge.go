@@ -62,20 +62,30 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 		}
 	}
 
-	src.Content = content
-	return src
+	dst.Content = content
+	return dst
 }
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
-	maxLen := max(len(dst.Content), len(src.Content))
-	content := make([]*yaml.Node, 0, maxLen)
-	for i := 0; i < maxLen; i++ {
-		if value := merge(at(dst, i), at(src, i)); value != nil {
-			content = append(content, value)
+	var (
+		maxLen  = max(len(dst.Content), len(src.Content))
+		content = make([]*yaml.Node, 0, maxLen)
+	)
+
+	for _, node := range dst.Content {
+		if isLocked(node) {
+			content = append(content, node)
 		}
 	}
-	src.Content = content
-	return src
+
+	for _, node := range src.Content {
+		if !isLocked(node) {
+			content = append(content, node)
+		}
+	}
+
+	dst.Content = content
+	return dst
 }
 
 func unwrapDocument(node *yaml.Node) *yaml.Node {
