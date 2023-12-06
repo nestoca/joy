@@ -24,16 +24,18 @@ func Merge(dst, src *yaml.Node) *yaml.Node {
 }
 
 func merge(dst, src *yaml.Node) *yaml.Node {
-	if isLocked(dst) {
+	// If destination is locked, it does not matter what source is.
+	// If destination exists but source is locked, disregard source.
+	if isLocked(dst) || (dst != nil && isLocked(src)) {
 		return dst
 	}
 
+	// If destination is nil, create the node from source.
+	// If source is nil we can set the return to nil which will remove the node
+	// in map and sequence merges. This is fine because we know dst is not locked.
+	// If the kind is different we simply go with the updating source.
 	if dst == nil || src == nil || dst.Kind != src.Kind {
 		return src
-	}
-
-	if isLocked(src) {
-		return dst
 	}
 
 	switch src.Kind {
@@ -41,7 +43,7 @@ func merge(dst, src *yaml.Node) *yaml.Node {
 		return mergeMap(dst, src)
 	case yaml.SequenceNode:
 		return mergeSeq(dst, src)
-	default:
+	default: // Scalar and Alias nodes
 		return src
 	}
 }
