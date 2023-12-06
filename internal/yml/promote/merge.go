@@ -62,29 +62,28 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 		}
 	}
 
-	return &yaml.Node{
-		Kind:    yaml.MappingNode,
-		Content: content,
-		Style:   src.Style & dst.Style,
-		Tag:     dst.Tag,
-	}
+	dst.Content = content
+	dst.Style = mergeStyle(dst.Style, src.Style)
+
+	return dst
 }
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
-	maxLen := max(len(dst.Content), len(src.Content))
-	content := make([]*yaml.Node, 0, maxLen)
+	var (
+		maxLen  = max(len(dst.Content), len(src.Content))
+		content = make([]*yaml.Node, 0, maxLen)
+	)
+
 	for i := 0; i < maxLen; i++ {
 		if value := merge(at(dst, i), at(src, i)); value != nil {
 			content = append(content, value)
 		}
 	}
 
-	return &yaml.Node{
-		Kind:    yaml.SequenceNode,
-		Style:   src.Style & dst.Style,
-		Content: content,
-		Tag:     dst.Tag,
-	}
+	dst.Content = content
+	dst.Style = mergeStyle(dst.Style, src.Style)
+
+	return dst
 }
 
 func at(node *yaml.Node, i int) *yaml.Node {
@@ -168,4 +167,11 @@ func strNode(value string) *yaml.Node {
 		Tag:   "!!str",
 		Value: value,
 	}
+}
+
+func mergeStyle(dst, src yaml.Style) yaml.Style {
+	if src&yaml.FlowStyle == 0 {
+		dst &^= yaml.FlowStyle
+	}
+	return dst
 }

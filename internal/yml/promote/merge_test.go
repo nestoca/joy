@@ -166,6 +166,34 @@ func TestYmlMerge(t *testing.T) {
 			Joy:      "spec:\n    containers:\n        - name: mycontainer\n          image: 2.0.0",
 			Proposal: "spec:\n    containers:\n        - name: mycontainer\n          image: !lock 1.0.0",
 		},
+		{
+			Name:     "styling discourage flow/do not use flow style if src does not",
+			Src:      `- a`,
+			Dst:      "[b]",
+			Joy:      "- a",
+			Proposal: "- a",
+		},
+		{
+			Name:     "styling discourage flow/do not use flow style if dst does not",
+			Src:      `[a]`,
+			Dst:      "- b",
+			Joy:      "[a]",
+			Proposal: "- a",
+		},
+		{
+			Name:     "styling discourage flow/do not use flow style if none use flow",
+			Src:      `- a`,
+			Dst:      "- b",
+			Joy:      "- a",
+			Proposal: "- a",
+		},
+		{
+			Name:     "styling discourage flow/use flow if and only if both use flow",
+			Src:      `[a]`,
+			Dst:      "[b]",
+			Joy:      "[a]",
+			Proposal: "[a]",
+		},
 	}
 
 	for _, tc := range cases {
