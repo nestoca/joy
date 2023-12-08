@@ -12,16 +12,16 @@ import (
 
 type MergeCase struct {
 	Name     string
-	A        string
-	B        string
+	Src      string
+	Dst      string
 	Expected string
 }
 
-// To be removed once we no longer support comment locks
-var commentLockedMergeTests = []MergeCase{
-	{
-		Name: "MergeLockedSubTreesIntoExistingSubTrees",
-		A: `
+func TestYmlLocking(t *testing.T) {
+	mergeTests := []MergeCase{
+		{
+			Name: "MergeLockedSubTreesIntoExistingSubTrees",
+			Src: `
 a: b
 c: d
 e:
@@ -30,32 +30,28 @@ e:
   j:
     k: l
 `,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
-  ## lock
-  f: q
+  f: !lock q
   r: s
-  ## lock
-  j:
+  j: !lock
     t: u
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
-  ## lock
-  f: q
+  f: !lock q
   h: i
-  ## lock
-  j:
+  j: !lock
     t: u
 `,
-	},
-	{
-		Name: "MergeMultipleComments",
-		A: `
+		},
+		{
+			Name: "MergeMultipleComments",
+			Src: `
 a: b
 c: d
 e:
@@ -64,36 +60,32 @@ e:
   j:
     k: l
 `,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
   # Normal comment before lock
-  ## lock
-  f: q
+  f: !lock q
   r: s
-  ## lock
   # Normal comment after lock
-  j:
+  j: !lock
     t: u
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
   # Normal comment before lock
-  ## lock
-  f: q
+  f: !lock q
   h: i
-  ## lock
   # Normal comment after lock
-  j:
+  j: !lock
     t: u
 `,
-	},
-	{
-		Name: "MergeLineCommentLockMarker",
-		A: `
+		},
+		{
+			Name: "MergeLineCommentLockMarker",
+			Src: `
 a: b
 c: d
 e:
@@ -102,95 +94,76 @@ e:
   j:
     k: l
 `,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
-  f: q ##  lock
+  f: !lock q
   r: s
-  j: ##  lock
+  j: !lock
     t: u
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
-  f: q ##  lock
+  f: !lock q
   h: i
-  j: ##  lock
+  j: !lock
     t: u
 `,
-	},
-	{
-		Name: "MergePreservingBraces",
-		A: `
+		},
+		{
+			Name: "MergePreservingBraces",
+			Src: `
 a: {b: c}
 `,
-		B: `
+			Dst: `
 a: b
-## lock
-d: e
+d: !lock e
 `,
-		Expected: `
+			Expected: `
 a: {b: c}
-## lock
-d: e
+d: !lock e
 `,
-	},
-	{
-		Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
-		A: `
+		},
+		{
+			Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
+			Src: `
 a: b
 c: d
 `,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
-  ## lock
-  f: q
+  f: !lock q
   r: s
-  ## lock
-  j:
+  j: !lock
     t: u
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
-e:
-  ## lock
-  f: q
-  ## lock
-  j:
-    t: u
 `,
-	},
-	{
-		Name: "MergeWhenAYAMLIsEmpty",
-		A:    `{}`,
-		B: `
+		},
+		{
+			Name: "MergeWhenAYAMLIsEmpty",
+			Src:  `{}`,
+			Dst: `
 m: n
 o: p
 e:
-  ## lock
-  f: q
+  f: !lock q
   r: s
-  ## lock
-  j:
+  j: !lock
     t: u
 `,
-		Expected: `
-e:
-  ## lock
-  f: q
-  ## lock
-  j:
-    t: u
-`,
-	},
-	{
-		Name: "MergeWhenBYAMLIsEmpty",
-		A: `
+			Expected: `{}`,
+		},
+		{
+			Name: "MergeWhenBYAMLIsEmpty",
+			Src: `
 a: b
 c: d
 e:
@@ -199,8 +172,8 @@ e:
   j:
     k: l
 `,
-		B: `{}`,
-		Expected: `
+			Dst: `{}`,
+			Expected: `
 a: b
 c: d
 e:
@@ -209,75 +182,69 @@ e:
   j:
     k: l
 `,
-	},
-	{
-		Name:     "MergeWhenBothYAMLsAreEmpty",
-		A:        `{}`,
-		B:        `{}`,
-		Expected: `{}`,
-	},
-	{
-		Name:     "MergeWhenBothYAMLsAreNil",
-		Expected: `{}`,
-	},
-	{
-		Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
-		A: `
+		},
+		{
+			Name:     "MergeWhenBothYAMLsAreEmpty",
+			Src:      `{}`,
+			Dst:      `{}`,
+			Expected: `{}`,
+		},
+		{
+			Name:     "MergeWhenBothYAMLsAreNil",
+			Expected: `{}`,
+		},
+		{
+			Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
+			Src: `
 a: b
 c: d
 e:
   f: g
   h: i
-  ## lock
-  j:
+  j: !lock
     k: l
 `,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
-  ## lock
-  f: q
+  f: !lock q
   r: s
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
-  ## lock
-  f: q
+  f: !lock q
   h: i
-  ## lock
-  j:
+  j: !lock
     k: TODO
 `,
-	},
-	{
-		Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
-		A: `
+		},
+		{
+			Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
+			Src: `
 a: b
 c: d
 e:
   f: g
   h: i
-  ## lock
-  j:
+  j: !lock
     k: l
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
   f: g
   h: i
-  ## lock
-  j:
+  j: !lock
     k: TODO
 `,
-	},
-	{
-		Name: "MergeArrays",
-		A: `
+		},
+		{
+			Name: "MergeArrays",
+			Src: `
 a: b
 c: d
 e:
@@ -288,386 +255,7 @@ e:
     - i
     - j
 `,
-		B: `
-m: n
-o: p
-e:
-  ## lock
-  f:
-    - q
-    - r
-    - s
-    - t
-    - u
-`,
-		Expected: `
-a: b
-c: d
-e:
-  ## lock
-  f:
-    - q
-    - r
-    - s
-    - t
-    - u
-`,
-	},
-	{
-		Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  l: m
-`,
-		B: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  ## lock
-  j: k
-  l: m
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: g
-  ## lock
-  j: k
-  l: m
-`,
-	},
-	{
-		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
-a: b
-c:
-  d: e
-  i: j
-`,
-		B: `
-a: b
-c:
-  f: 
-    ## lock
-    g: h
-  d: e
-`,
-		Expected: `
-a: b
-c:
-  f:
-    ## lock
-    g: h
-  d: e
-  i: j
-`,
-	},
-	{
-		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
-a: b
-c:
-  d: e
-  i: j
-`,
-		B: `
-a: b
-c:
-  d: e
-  f: 
-    ## lock
-    g: h
-  k: l
-`,
-		Expected: `
-a: b
-c:
-  d: e
-  f:
-    ## lock
-    g: h
-  i: j
-`,
-	},
-	{
-		Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
-		A: `
-a: b
-c:
-  ## lock
-  d: e
-  i: j
-`,
-		B: `
-a: b
-c:
-  d: f
-  i: j
-`,
-		Expected: `
-a: b
-c:
-  ## lock
-  d: f
-  i: j
-`,
-	},
-}
-
-// Duplicate of comment locked cases but with comment locks hand replaced by tag locks.
-var tagLockedMergeTests = []MergeCase{
-	{
-		Name: "MergeLockedSubTreesIntoExistingSubTrees",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j:
-    k: l
-`,
-		B: `
-m: n
-o: p
-e:
-  f: !lock q
-  r: s
-  j: !lock
-    t: u
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: !lock q
-  h: i
-  j: !lock
-    t: u
-`,
-	},
-	{
-		Name: "MergeMultipleComments",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j:
-    k: l
-`,
-		B: `
-m: n
-o: p
-e:
-  # Normal comment before lock
-  f: !lock q
-  r: s
-  # Normal comment after lock
-  j: !lock
-    t: u
-`,
-		Expected: `
-a: b
-c: d
-e:
-  # Normal comment before lock
-  f: !lock q
-  h: i
-  # Normal comment after lock
-  j: !lock
-    t: u
-`,
-	},
-	{
-		Name: "MergeLineCommentLockMarker",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j:
-    k: l
-`,
-		B: `
-m: n
-o: p
-e:
-  f: !lock q
-  r: s
-  j: !lock
-    t: u
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: !lock q
-  h: i
-  j: !lock
-    t: u
-`,
-	},
-	{
-		Name: "MergePreservingBraces",
-		A: `
-a: {b: c}
-`,
-		B: `
-a: b
-d: !lock e
-`,
-		Expected: `
-a: {b: c}
-d: !lock e
-`,
-	},
-	{
-		Name: "MergeLockedSubTreesIntoNonExistingSubTrees",
-		A: `
-a: b
-c: d
-`,
-		B: `
-m: n
-o: p
-e:
-  f: !lock q
-  r: s
-  j: !lock
-    t: u
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: !lock q
-  j: !lock
-    t: u
-`,
-	},
-	{
-		Name: "MergeWhenAYAMLIsEmpty",
-		A:    `{}`,
-		B: `
-m: n
-o: p
-e:
-  f: !lock q
-  r: s
-  j: !lock
-    t: u
-`,
-		Expected: `
-e:
-  f: !lock q
-  j: !lock
-    t: u
-`,
-	},
-	{
-		Name: "MergeWhenBYAMLIsEmpty",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j:
-    k: l
-`,
-		B: `{}`,
-		Expected: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j:
-    k: l
-`,
-	},
-	{
-		Name:     "MergeWhenBothYAMLsAreEmpty",
-		A:        `{}`,
-		B:        `{}`,
-		Expected: `{}`,
-	},
-	{
-		Name:     "MergeWhenBothYAMLsAreNil",
-		Expected: `{}`,
-	},
-	{
-		Name: "MergeSanitizeLockedDestinationScalarsAsTodo",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j: !lock
-    k: l
-`,
-		B: `
-m: n
-o: p
-e:
-  f: !lock q
-  r: s
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: !lock q
-  h: i
-  j: !lock
-    k: TODO
-`,
-	},
-	{
-		Name: "MergeSanitizeLockedDestinationScalarsAsTodoWhenTargetIsNil",
-		A: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j: !lock
-    k: l
-`,
-		Expected: `
-a: b
-c: d
-e:
-  f: g
-  h: i
-  j: !lock
-    k: TODO
-`,
-	},
-	{
-		Name: "MergeArrays",
-		A: `
-a: b
-c: d
-e:
-  f:
-    - f
-    - g
-    - h
-    - i
-    - j
-`,
-		B: `
+			Dst: `
 m: n
 o: p
 e:
@@ -678,7 +266,7 @@ e:
     - t
     - u
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
@@ -689,17 +277,17 @@ e:
     - t
     - u
 `,
-	},
-	{
-		Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
+		},
+		{
+			Name: "MergingLockedElementOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+			Src: `
 a: b
 c: d
 e:
   f: g
   l: m
 `,
-		B: `
+			Dst: `
 a: b
 c: d
 e:
@@ -708,48 +296,46 @@ e:
   j: !lock k
   l: m
 `,
-		Expected: `
+			Expected: `
 a: b
 c: d
 e:
   f: g
-  j: !lock k
   l: m
+  j: !lock k
 `,
-	},
-	{
-		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
+		},
+		{
+			Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndFirstOfHisSiblings_ShouldPreserveItsOrder",
+			Src: `
 a: b
 c:
   d: e
   i: j
 `,
-		B: `
+			Dst: `
 a: b
 c:
   f: 
     g: !lock h
   d: e
 `,
-		Expected: `
-a: b
-c:
-  f:
-    g: !lock h
-  d: e
-  i: j
-`,
-	},
-	{
-		Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
-		A: `
+			Expected: `
 a: b
 c:
   d: e
   i: j
 `,
-		B: `
+		},
+		{
+			Name: "MergingLockedElementWithinParentOnlyPresentInTargetAndNotLastOfHisSiblings_ShouldPreserveItsOrder",
+			Src: `
+a: b
+c:
+  d: e
+  i: j
+`,
+			Dst: `
 a: b
 c:
   d: e
@@ -757,75 +343,64 @@ c:
     g: !lock h
   k: l
 `,
-		Expected: `
+			Expected: `
 a: b
 c:
   d: e
-  f:
-    g: !lock h
   i: j
 `,
-	},
-	{
-		Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
-		A: `
+		},
+		{
+			Name: "MergingLockedElementToExistingUnlockedTargetElement_ShouldLockTargetElementAndLeaveItsValueUnchanged",
+			Src: `
 a: b
 c:
   d: !lock e
   i: j
 `,
-		B: `
+			Dst: `
 a: b
 c:
   d: f
   i: j
 `,
-		Expected: `
+			Expected: `
 a: b
 c:
   d: f
   i: j
 `,
-	},
-}
+		},
+	}
 
-func TestYmlLocking(t *testing.T) {
-	t.Run("comment locked", func(t *testing.T) {
-		for _, test := range commentLockedMergeTests {
-			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
-		}
-	})
-
-	t.Run("tag locked", func(t *testing.T) {
-		for _, test := range tagLockedMergeTests {
-			t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
-		}
-	})
+	for _, test := range mergeTests {
+		t.Run(test.Name, func(t *testing.T) { testMerge(t, test) })
+	}
 }
 
 func testMerge(t *testing.T, testcase MergeCase) {
 	// Parse a.yaml
-	var aMap *yaml.Node
-	if testcase.A != "" {
-		aMap = &yaml.Node{}
-		if err := yaml.Unmarshal([]byte(testcase.A), aMap); err != nil {
+	var src *yaml.Node
+	if testcase.Src != "" {
+		src = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(testcase.Src), src); err != nil {
 			t.Fatalf("Failed to parse a.yaml: %v", err)
 		}
-		aMap.Style = 0
+		src.Style = 0
 	}
 
 	// Parse b.yaml
-	var bMap *yaml.Node
-	if testcase.B != "" {
-		bMap = &yaml.Node{}
-		if err := yaml.Unmarshal([]byte(testcase.B), bMap); err != nil {
+	var dst *yaml.Node
+	if testcase.Dst != "" {
+		dst = &yaml.Node{}
+		if err := yaml.Unmarshal([]byte(testcase.Dst), dst); err != nil {
 			t.Fatalf("Failed to parse b.yaml: %v", err)
 		}
-		bMap.Style = 0
+		dst.Style = 0
 	}
 
 	// Merge
-	result := Merge(aMap, bMap)
+	result := Merge(dst, src)
 
 	// Marshal the result with custom indentation
 	var buf bytes.Buffer
@@ -856,8 +431,7 @@ c: d
 e:	
   f: g
   h: i
-  ## lock
-  j:
+  j: !lock
     k: l
 `
 	var sourceNode yaml.Node
@@ -872,12 +446,11 @@ c: d
 e:
   f: g
   h: i
-  ## lock
-  j:
+  j: !lock
     k: TODO
 `
 	// Merge YAML nodes
-	mergedNode := Merge(&sourceNode, nil)
+	mergedNode := Merge(nil, &sourceNode)
 
 	// Marshal the merged result
 	var buf bytes.Buffer
@@ -952,12 +525,190 @@ func TestTodoMerge(t *testing.T) {
 			var dst yaml.Node
 			require.NoError(t, yaml.Unmarshal([]byte(tc.Dst), &dst))
 
-			result, err := yaml.Marshal(Merge(&src, &dst).Content[0])
+			result, err := yaml.Marshal(Merge(&dst, &src).Content[0])
 			require.NoError(t, err)
 
 			result = bytes.TrimSpace(result)
 
 			require.Equal(t, tc.Expected, string(result))
+		})
+	}
+}
+
+func TestYmlMerge(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Src      string
+		Dst      string
+		Expected string
+	}{
+		{
+			Name:     "conflicting types",
+			Src:      "{key: 1}",
+			Dst:      "{key: hello}",
+			Expected: "{key: 1}",
+		},
+		{
+			Name:     "conflicting types locked dst",
+			Src:      "{key: 1}",
+			Dst:      "{key: !lock hello}",
+			Expected: "{key: !lock hello}",
+		},
+		{
+			Name:     "conflicting types inner locked dst",
+			Src:      "{key: 1}",
+			Dst:      "{key: [!lock hello]}",
+			Expected: "{key: 1}",
+		},
+		{
+			Name:     "conflicting types locked src",
+			Src:      "{key: !lock 1}",
+			Dst:      "{key: hello}",
+			Expected: "{key: hello}",
+		},
+		{
+			Name:     "seq",
+			Src:      "[1, 2, 3]",
+			Dst:      "[]",
+			Expected: "[1, 2, 3]",
+		},
+		{
+			Name:     "locked seq",
+			Src:      "!lock [1, 2, 3]",
+			Dst:      "[]",
+			Expected: "[]",
+		},
+		{
+			Name:     "locked seq with dst values",
+			Src:      "!lock [1, 2, 3]",
+			Dst:      "[4, 5, 6]",
+			Expected: "[4, 5, 6]",
+		},
+		{
+			Name:     "seq with dst longer",
+			Src:      "[1, 2, 3]",
+			Dst:      "[4, 5, 6, 7, 8]",
+			Expected: "[1, 2, 3]",
+		},
+		{
+			Name:     "seq with dst longer and lock",
+			Src:      "[1, 2, 3]",
+			Dst:      "[4, 5, 6, 7, !lock 8]",
+			Expected: "[1, 2, 3, !lock 8]",
+		},
+		{
+			Name:     "seq with dst inner lock",
+			Src:      "[1, 2, 3]",
+			Dst:      "[4, !lock 5, 6, 7, !lock 8]",
+			Expected: "[1, !lock 5, 3, !lock 8]",
+		},
+		{
+			Name:     "seq with src inner lock",
+			Src:      "[!lock 1, !lock 2, 3]",
+			Dst:      "[      4, !lock 5, 6, 7, !lock 8]",
+			Expected: "[4, !lock 5, 3, !lock 8]",
+		},
+		{
+			Name:     "seq with locked dst",
+			Src:      "[1, 2, 3]",
+			Dst:      "!lock [4, 5, 6]",
+			Expected: "!lock [4, 5, 6]",
+		},
+		{
+			Name:     "map",
+			Src:      "{key: 5}",
+			Dst:      "{key: 3}",
+			Expected: "{key: 5}",
+		},
+		{
+			Name:     "map disjoint",
+			Src:      "{key: 5}",
+			Dst:      "{value: 3}",
+			Expected: "{key: 5}",
+		},
+		{
+			Name:     "map disjoint with dst lock",
+			Src:      "{key: 5}",
+			Dst:      "{value: !lock 3, foo: bar}",
+			Expected: "{key: 5, value: !lock 3}",
+		},
+		{
+			Name:     "map with special keys",
+			Src:      "{key:1: a}",
+			Dst:      "{}",
+			Expected: "{'key:1': a}",
+		},
+		{
+			Name:     "alias",
+			Src:      "{a: &one 1, b: *one}",
+			Dst:      "{a: &two 2, b: *two}",
+			Expected: "{a: &one 1, b: *one}",
+		},
+		{
+			Name:     "nested",
+			Src:      "{a: {b: {c: d}}}",
+			Dst:      "{a: {b: {c: e}}}",
+			Expected: "{a: {b: {c: d}}}",
+		},
+		{
+			Name:     "nested lock",
+			Src:      "{a: {b: {c: d}}}",
+			Dst:      "{a: {b: !lock {c: e}}}",
+			Expected: "{a: {b: !lock {c: e}}}",
+		},
+		{
+			Name: "real world",
+			Src: `spec:
+  containers:
+    - name: mycontainer
+      image: 2.0.0
+`,
+			Dst: `spec:
+  containers:
+    - name: mycontainer
+      image: !lock 1.0.0
+`,
+			Expected: "spec:\n    containers:\n        - name: mycontainer\n          image: !lock 1.0.0",
+		},
+		{
+			Name:     "styling discourage flow/do not use flow style if src does not",
+			Src:      `- a`,
+			Dst:      "[b]",
+			Expected: "- a",
+		},
+		{
+			Name:     "styling discourage flow/do not use flow style if dst does not",
+			Src:      `[a]`,
+			Dst:      "- b",
+			Expected: "- a",
+		},
+		{
+			Name: "styling discourage flow/do not use flow style if none use flow",
+			Src:  `- a`,
+			Dst:  "- b",
+
+			Expected: "- a",
+		},
+		{
+			Name:     "styling discourage flow/use flow if and only if both use flow",
+			Src:      `[a]`,
+			Dst:      "[b]",
+			Expected: "[a]",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			var src, dst yaml.Node
+			require.NoError(t, yaml.Unmarshal([]byte(tc.Src), &src))
+			require.NoError(t, yaml.Unmarshal([]byte(tc.Dst), &dst))
+
+			actual, err := yaml.Marshal(Merge(&dst, &src))
+			require.NoError(t, err)
+
+			actual = bytes.TrimSpace(actual)
+
+			require.Equal(t, tc.Expected, string(actual))
 		})
 	}
 }
