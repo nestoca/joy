@@ -40,7 +40,7 @@ func (r *Release) ComputePromotedFile(targetEnv *v1alpha1.Environment) error {
 	var err error
 	if targetRelease != nil && targetRelease.File != nil {
 		// Promote source release to existing target
-		mergedTree := yml.Merge(sourceRelease.File.Tree, targetRelease.File.Tree)
+		mergedTree := yml.Merge(targetRelease.File.Tree, sourceRelease.File.Tree)
 		promotedFile, err = targetRelease.File.CopyWithNewTree(mergedTree)
 		if err != nil {
 			return fmt.Errorf("creating in-memory copy of target file using merged result: %w", err)
@@ -50,7 +50,7 @@ func (r *Release) ComputePromotedFile(targetEnv *v1alpha1.Environment) error {
 		promotedFile, err = yml.NewFileFromTree(
 			filepath.Join(targetEnv.Dir, "releases", sourceRelease.Name+".yaml"),
 			sourceRelease.File.Indent,
-			yml.Merge(sourceRelease.File.Tree, nil))
+			yml.Merge(nil, sourceRelease.File.Tree))
 		if err != nil {
 			return fmt.Errorf("creating in-memory file from tree for missing target release: %w", err)
 		}

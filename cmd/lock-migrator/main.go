@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/nestoca/joy/internal/yml"
 )
 
 func main() {
@@ -91,7 +89,7 @@ func RewriteYAML(name string) (err error) {
 }
 
 func rewriteLocks(node *yaml.Node) {
-	if yml.IsCommentLocked(node) {
+	if IsCommentLocked(node) {
 		node.Tag = "!lock"
 		node.LineComment = lockExpression.ReplaceAllString(node.LineComment, "")
 		node.HeadComment = lockExpression.ReplaceAllString(node.LineComment, "")
@@ -100,7 +98,7 @@ func rewriteLocks(node *yaml.Node) {
 	if node.Kind == yaml.MappingNode {
 		for i := 0; i < len(node.Content); i += 2 {
 			key, value := node.Content[i], node.Content[i+1]
-			if yml.IsCommentLocked(key) || yml.IsCommentLocked(value) {
+			if IsCommentLocked(key) || IsCommentLocked(value) {
 				value.Tag = "!lock"
 				key.HeadComment = lockExpression.ReplaceAllString(key.HeadComment, "")
 				value.LineComment = lockExpression.ReplaceAllString(value.LineComment, "")

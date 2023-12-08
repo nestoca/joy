@@ -1,191 +1,204 @@
 package yml
 
 import (
+	"slices"
+
 	"gopkg.in/yaml.v3"
 )
 
-// Merge merges the source release into the destination release, preserving the
-// destination release's locked values. Source and destination releases are
-// left unchanged and a new release node tree is returned.
-func Merge(src *yaml.Node, dest *yaml.Node) *yaml.Node {
-	if src == nil {
-		src = &yaml.Node{
-			Kind: yaml.DocumentNode,
-			Content: []*yaml.Node{{
-				Kind: yaml.MappingNode,
-			}},
+func Merge(dst, src *yaml.Node) *yaml.Node {
+	dst = clone(dst)
+
+	doc := func() *yaml.Node {
+		if dst != nil && dst.Kind == yaml.DocumentNode {
+			return dst
+		}
+		return &yaml.Node{Kind: yaml.DocumentNode}
+	}()
+
+	dst = unwrapDocument(dst)
+	src = markLockedValuesAsTodo(clone(unwrapDocument(src)), false)
+
+	result := merge(dst, src)
+	if result == nil {
+		result = &yaml.Node{Kind: yaml.MappingNode}
+	}
+
+	doc.Content = []*yaml.Node{result}
+	return doc
+}
+
+func merge(dst, src *yaml.Node) *yaml.Node {
+	// If destination is locked, it does not matter what source is.
+	// If destination exists but source is locked, disregard source.
+	if isLocked(dst) || (dst != nil && isLocked(src)) {
+		return dst
+	}
+
+	// If destination is nil, create the node from source.
+	// If source is nil we can set the return to nil which will remove the node
+	// in map and sequence merges. This is fine because we know dst is not locked.
+	// If the kind is different we simply go with the updating source.
+	if dst == nil || src == nil || dst.Kind != src.Kind {
+		return src
+	}
+
+	switch src.Kind {
+	case yaml.MappingNode:
+		return mergeMap(dst, src)
+	case yaml.SequenceNode:
+		return mergeSeq(dst, src)
+	default: // Scalar and Alias nodes
+		return src
+	}
+}
+
+func mergeMap(dst, src *yaml.Node) *yaml.Node {
+	var (
+		dstMap  = asMap(dst)
+		srcMap  = asMap(src)
+		keys    = dedup(append(keysOf(src), keysOf(dst)...))
+		content = make([]*yaml.Node, 0, len(src.Content)+len(dst.Content))
+	)
+
+	for _, key := range keys {
+		dstKV, srcKV := dstMap[key], srcMap[key]
+		if value := merge(dstKV.Value, srcKV.Value); value != nil {
+			content = append(content, firstNonNil(dstKV.Key, srcKV.Key), value)
 		}
 	}
 
-	result := DeepCopyNode(src)
+	dst.Content = content
+	dst.Style = mergeStyle(dst.Style, src.Style)
 
-	if dest == nil {
-		dest = &yaml.Node{
-			Kind: yaml.DocumentNode,
-			Content: []*yaml.Node{{
-				Kind: yaml.MappingNode,
-			}},
+	return dst
+}
+
+func mergeSeq(dst, src *yaml.Node) *yaml.Node {
+	var (
+		maxLen  = max(len(dst.Content), len(src.Content))
+		content = make([]*yaml.Node, 0, maxLen)
+	)
+
+	for i := 0; i < maxLen; i++ {
+		if value := merge(at(dst, i), at(src, i)); value != nil {
+			content = append(content, value)
 		}
-	} else {
-		dest = DeepCopyNode(dest)
 	}
 
-	if src.Kind != yaml.DocumentNode || dest.Kind != yaml.DocumentNode {
+	dst.Content = content
+	dst.Style = mergeStyle(dst.Style, src.Style)
+
+	return dst
+}
+
+func at(node *yaml.Node, i int) *yaml.Node {
+	if node == nil || i >= len(node.Content) {
+		return nil
+	}
+	return node.Content[i]
+}
+
+func unwrapDocument(node *yaml.Node) *yaml.Node {
+	for node != nil && node.Kind == yaml.DocumentNode {
+		if len(node.Content) == 0 {
+			return nil
+		}
+		node = node.Content[0]
+	}
+	return node
+}
+
+func clone(node *yaml.Node) *yaml.Node {
+	if node == nil {
 		return nil
 	}
 
-	setLockedScalarValuesAsTodo(result.Content[0], false)
+	copy := *node
+	copy.Content = make([]*yaml.Node, len(node.Content))
 
-	merged := mergeSubTrees(result.Content[0], dest.Content[0])
-	if merged != nil {
-		result.Content[0] = merged
+	for i, node := range node.Content {
+		copy.Content[i] = clone(node)
+	}
+	return &copy
+}
+
+func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
+	if node == nil {
+		return nil
+	}
+
+	locked = locked || isLocked(node)
+
+	switch node.Kind {
+	case yaml.ScalarNode:
+		if locked {
+			node.Value = "TODO"
+		}
+	case yaml.SequenceNode:
+		for i, n := range node.Content {
+			node.Content[i] = markLockedValuesAsTodo(n, locked)
+		}
+	case yaml.MappingNode:
+		for i := 1; i < len(node.Content); i += 2 {
+			node.Content[i] = markLockedValuesAsTodo(node.Content[i], locked)
+		}
+	}
+
+	return node
+}
+
+func isLocked(node *yaml.Node) bool {
+	return node != nil && node.Tag == "!lock"
+}
+
+type KeyValuePair struct {
+	Key   *yaml.Node
+	Value *yaml.Node
+}
+
+func asMap(node *yaml.Node) map[string]KeyValuePair {
+	result := make(map[string]KeyValuePair, len(node.Content)/2)
+	for i := 0; i < len(node.Content); i += 2 {
+		result[node.Content[i].Value] = KeyValuePair{
+			Key:   node.Content[i],
+			Value: node.Content[i+1],
+		}
 	}
 	return result
 }
 
-// mergeSubTrees merges the locked subtrees from dest into src, which is basically equivalent to
-// merging src into dest, but preserving locked values in dest.
-func mergeSubTrees(src, dest *yaml.Node) *yaml.Node {
-	lockMarkerFound := false
-
-	if src == nil {
-		src = &yaml.Node{
-			Kind:        yaml.MappingNode,
-			Content:     []*yaml.Node{},
-			HeadComment: dest.HeadComment,
-			LineComment: dest.LineComment,
-			FootComment: dest.FootComment,
-		}
+func keysOf(node *yaml.Node) []string {
+	keys := make([]string, 0, len(node.Content)/2)
+	for i := 0; i < len(node.Content); i += 2 {
+		keys = append(keys, node.Content[i].Value)
 	}
+	return keys
+}
 
-	if src.Kind != yaml.MappingNode || dest.Kind != yaml.MappingNode {
-		return nil
-	}
-
-	for i := 0; i < len(dest.Content)-1; i += 2 {
-		// Read key and value
-		destKeyNode := dest.Content[i]
-		destValueNode := dest.Content[i+1]
-		if destKeyNode.Kind != yaml.ScalarNode {
+func dedup(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if slices.Contains(result, value) {
 			continue
 		}
-		key := destKeyNode.Value
-
-		// Find source location
-		srcIndex := findKey(src, key)
-		var srcValueNode *yaml.Node
-		var srcKeyNode *yaml.Node
-		if srcIndex != -1 {
-			srcKeyNode = src.Content[srcIndex]
-			srcValueNode = src.Content[srcIndex+1]
-		}
-
-		var subtree *yaml.Node
-		if IsKeyValueLocked(destKeyNode, destValueNode) || (srcValueNode != nil && IsKeyValueLocked(srcKeyNode, srcValueNode)) {
-			lockMarkerFound = true
-			subtree = destValueNode
-		} else {
-			subtree = mergeSubTrees(srcValueNode, destValueNode)
-		}
-
-		// Copy source lock comment if any
-		if destKeyNode != nil && IsKeyValueLocked(srcKeyNode, srcValueNode) {
-			destKeyNode.HeadComment = srcKeyNode.HeadComment
-			destKeyNode.LineComment = srcKeyNode.LineComment
-		}
-
-		// Was a subtree with some locked nodes in it found?
-		if subtree != nil {
-			lockMarkerFound = true
-			// Are we overwriting an existing node?
-			if srcIndex != -1 {
-				src.Content[srcIndex] = destKeyNode
-				src.Content[srcIndex+1] = subtree
-			} else {
-				// We are adding a new node
-				insertIndex := 0
-				if i > 0 {
-					insertIndex = findInsertionIndex(src, dest, key)
-				}
-				if insertIndex != -1 {
-					// Insert at the correct position
-					src.Content = append(src.Content[:insertIndex], append([]*yaml.Node{destKeyNode, subtree}, src.Content[insertIndex:]...)...)
-				} else {
-					// Append at the end
-					src.Content = append(src.Content, destKeyNode, subtree)
-				}
-			}
-		}
+		result = append(result, value)
 	}
+	return result
+}
 
-	if lockMarkerFound {
-		src.Style = dest.Style
-		return src
+func mergeStyle(dst, src yaml.Style) yaml.Style {
+	if src&yaml.FlowStyle == 0 {
+		dst &^= yaml.FlowStyle
+	}
+	return dst
+}
+
+func firstNonNil(nodes ...*yaml.Node) *yaml.Node {
+	for _, node := range nodes {
+		if node != nil {
+			return node
+		}
 	}
 	return nil
-}
-
-func findInsertionIndex(src, dest *yaml.Node, key string) int {
-	// Look at all keys in dest that come before the key we are looking for
-	// and find the first index in src that comes after them.
-	index := -1
-	for i := 0; i < len(dest.Content)-1; i += 2 {
-		// Read dest key
-		destKeyNode := dest.Content[i]
-		if destKeyNode.Kind != yaml.ScalarNode {
-			continue
-		}
-		destKey := destKeyNode.Value
-
-		// We've reached the key we are looking for, we're done
-		if destKey == key {
-			break
-		}
-
-		// Look in src for the key
-		srcIndex := findKey(src, destKey)
-		if srcIndex != -1 {
-			// We should insert _at_least_ after that key
-			index = srcIndex + 2
-		}
-	}
-	return index
-}
-
-// setLockedScalarValuesAsTodo sets all scalar values in locked subtrees to "TODO" to remind developers to manually
-// update them to environment-specific values.
-func setLockedScalarValuesAsTodo(node *yaml.Node, locked bool) {
-	if node == nil {
-		return
-	}
-
-	switch node.Kind {
-	case yaml.ScalarNode:
-		if IsLocked(node) || locked {
-			node.Value = "TODO"
-		}
-	case yaml.MappingNode:
-		for i := 0; i < len(node.Content); i += 2 {
-			keyNode := node.Content[i]
-			valueNode := node.Content[i+1]
-			setLockedScalarValuesAsTodo(valueNode, locked || IsKeyValueLocked(keyNode, valueNode))
-		}
-	case yaml.SequenceNode:
-		for _, item := range node.Content {
-			setLockedScalarValuesAsTodo(item, locked || IsLocked(item))
-		}
-	}
-}
-
-func findKey(node *yaml.Node, key string) int {
-	if node == nil || node.Kind != yaml.MappingNode {
-		return -1
-	}
-	for i := 0; i < len(node.Content)-1; i += 2 {
-		keyNode := node.Content[i]
-		if keyNode.Kind == yaml.ScalarNode && keyNode.Value == key {
-			return i
-		}
-	}
-	return -1
 }
