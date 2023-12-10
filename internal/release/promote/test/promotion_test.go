@@ -71,12 +71,10 @@ func TestPromotion(t *testing.T) {
 				opts := args.opts
 				opts.Catalog.Releases.Items[0].Releases[sourceEnvIndex] = newRelease("release1", `spec:
   values:
-    ## lock
-    key: value1`, sourceEnvName)
+    key: !lock value1`, sourceEnvName)
 				opts.Catalog.Releases.Items[0].Releases[targetEnvIndex] = newRelease("release1", `spec:
   values:
-    ## lock
-    key: value2`, targetEnvName)
+    key: !lock value2`, targetEnvName)
 				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 			},
@@ -91,23 +89,21 @@ func TestPromotion(t *testing.T) {
 				targetEnv := opts.Catalog.Environments[targetEnvIndex]
 				sourceRelease := newRelease("release1", `spec:
   values:
-    ## lock
-    key: value1
+    key: !lock value1
     env:
       ENV_VAR: value1`, sourceEnvName)
 				targetRelease := newRelease("release1", `spec:
   values:
-    ## lock
-    key: value2
+    key: !lock value2
     env:
       ENV_VAR: value2`, targetEnvName)
 				expectedPromotedFile := newYamlFile("release1", `spec:
   values:
-    ## lock
-    key: value2
+    key: !lock value2
     env:
       ENV_VAR: value1
 `, targetEnvName)
+
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = targetRelease
 
@@ -142,19 +138,18 @@ func TestPromotion(t *testing.T) {
 				targetEnv := opts.Catalog.Environments[targetEnvIndex]
 				sourceRelease := newRelease("release1", `spec:
   values:
-    ## lock
-    key: TODO
+    key: !lock TODO
     env:
       ENV_VAR: value1`, sourceEnvName)
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = nil
 				expectedPromotedFile := newYamlFile("release1", `spec:
   values:
-    ## lock
-    key: TODO
+    key: !lock TODO
     env:
       ENV_VAR: value1
 `, targetEnvName)
+
 				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/release1.yaml", targetEnv.Dir)
 
 				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)

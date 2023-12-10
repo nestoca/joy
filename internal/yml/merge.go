@@ -7,17 +7,20 @@ import (
 )
 
 func Merge(dst, src *yaml.Node) *yaml.Node {
-	dst = clone(dst)
+	dst, src = clone(dst), clone(src)
 
 	doc := func() *yaml.Node {
 		if dst != nil && dst.Kind == yaml.DocumentNode {
 			return dst
 		}
+		if src != nil && src.Kind == yaml.DocumentNode {
+			return src
+		}
 		return &yaml.Node{Kind: yaml.DocumentNode}
 	}()
 
 	dst = unwrapDocument(dst)
-	src = markLockedValuesAsTodo(clone(unwrapDocument(src)), false)
+	src = markLockedValuesAsTodo(unwrapDocument(src), false)
 
 	result := merge(dst, src)
 	if result == nil {
@@ -58,7 +61,7 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 		dstMap  = asMap(dst)
 		srcMap  = asMap(src)
 		keys    = dedup(append(keysOf(src), keysOf(dst)...))
-		content = make([]*yaml.Node, 0, len(src.Content)+len(dst.Content))
+		content []*yaml.Node
 	)
 
 	for _, key := range keys {
@@ -77,7 +80,7 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
 	var (
 		maxLen  = max(len(dst.Content), len(src.Content))
-		content = make([]*yaml.Node, 0, maxLen)
+		content []*yaml.Node
 	)
 
 	for i := 0; i < maxLen; i++ {
@@ -115,11 +118,13 @@ func clone(node *yaml.Node) *yaml.Node {
 	}
 
 	copy := *node
-	copy.Content = make([]*yaml.Node, len(node.Content))
-
-	for i, node := range node.Content {
-		copy.Content[i] = clone(node)
+	if len(node.Content) > 0 {
+		copy.Content = make([]*yaml.Node, len(node.Content))
+		for i, node := range node.Content {
+			copy.Content[i] = clone(node)
+		}
 	}
+
 	return &copy
 }
 
