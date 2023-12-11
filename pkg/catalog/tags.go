@@ -46,7 +46,7 @@ func buildUnknownTagsSet(node *yaml.Node, set map[string]struct{}) map[string]st
 		set = make(map[string]struct{})
 	}
 
-	if !slices.Contains(knownsTags, node.Tag) {
+	if !slices.Contains(yml.KnownTags, node.Tag) {
 		set[node.Tag] = struct{}{}
 	}
 
@@ -55,18 +55,4 @@ func buildUnknownTagsSet(node *yaml.Node, set map[string]struct{}) map[string]st
 	}
 
 	return set
-}
-
-var knownsTags = []string{
-	// Standard tags
-	"",
-	"!!int",
-	"!!bool",
-	"!!float",
-	"!!map",
-	"!!str",
-	"!!seq",
-
-	// Custom tags
-	"!lock",
 }

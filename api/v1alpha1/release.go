@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"slices"
 
 	"gopkg.in/yaml.v3"
 
@@ -69,6 +70,11 @@ type Release struct {
 	Environment *Environment `yaml:"-" json:"-"`
 }
 
+func (release *Release) UnmarshalYAML(node *yaml.Node) error {
+	type raw Release
+	return stripCustomTags(yml.Clone(node)).Decode((*raw)(release))
+}
+
 func IsValidRelease(apiVersion, kind string) bool {
 	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == ReleaseKind
 }
@@ -81,4 +87,14 @@ func LoadRelease(file *yml.File) (*Release, error) {
 	}
 	rel.File = file
 	return &rel, nil
+}
+
+func stripCustomTags(node *yaml.Node) *yaml.Node {
+	if slices.Contains(yml.CustomTags, node.Tag) {
+		node.Tag = ""
+	}
+	for i, content := range node.Content {
+		node.Content[i] = stripCustomTags(content)
+	}
+	return node
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func Merge(dst, src *yaml.Node) *yaml.Node {
-	dst, src = clone(dst), clone(src)
+	dst, src = Clone(dst), Clone(src)
 
 	doc := func() *yaml.Node {
 		if dst != nil && dst.Kind == yaml.DocumentNode {
@@ -112,7 +112,7 @@ func unwrapDocument(node *yaml.Node) *yaml.Node {
 	return node
 }
 
-func clone(node *yaml.Node) *yaml.Node {
+func Clone(node *yaml.Node) *yaml.Node {
 	if node == nil {
 		return nil
 	}
@@ -121,7 +121,7 @@ func clone(node *yaml.Node) *yaml.Node {
 	if len(node.Content) > 0 {
 		copy.Content = make([]*yaml.Node, len(node.Content))
 		for i, node := range node.Content {
-			copy.Content[i] = clone(node)
+			copy.Content[i] = Clone(node)
 		}
 	}
 
