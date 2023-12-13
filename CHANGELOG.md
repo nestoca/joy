@@ -1,3 +1,19 @@
+## [0.20.2](https://github.com/nestoca/joy/compare/v0.20.1...v0.20.2) (2023-12-13)
+
+
+### Bug Fixes
+
+* check kind difference after source locking ([ae0748c](https://github.com/nestoca/joy/commit/ae0748c9d1004d308c42a2d18e548f285a2d62e3))
+* locked values of seq or map type should not overwrite empty but non-nil dst values ([2f83575](https://github.com/nestoca/joy/commit/2f8357597ce5c470ae5b6705c991474a7af21ca7))
+* merged mapping and sequence top level node ([1571d9c](https://github.com/nestoca/joy/commit/1571d9cd69d3dfc91985ca74d217fa835ae40f68))
+
+
+### Reverts
+
+* Revert "proposal: new sequence merging strategy" ([376de2b](https://github.com/nestoca/joy/commit/376de2ba84c0b3f737730c9a763ba19fc996e38c))
+
+
+
 ## [0.20.1](https://github.com/nestoca/joy/compare/v0.20.0...v0.20.1) (2023-11-27)
 
 
