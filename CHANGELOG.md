@@ -1,3 +1,12 @@
+## [0.20.3](https://github.com/nestoca/joy/compare/v0.20.2...v0.20.3) (2023-12-14)
+
+
+### Bug Fixes
+
+* **PL-2156:** fix promoted filepath to be the same relative to source ([6a77474](https://github.com/nestoca/joy/commit/6a77474084da4c0cdeedd7e0647211cd66439744))
+
+
+
 ## [0.20.2](https://github.com/nestoca/joy/compare/v0.20.1...v0.20.2) (2023-12-13)
 
 
