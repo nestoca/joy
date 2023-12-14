@@ -135,12 +135,16 @@ func TestPromotion(t *testing.T) {
 			setup: func(args setupArgs) {
 				opts := args.opts
 				crossRel0 := opts.Catalog.Releases.Items[0]
+				sourceEnv := opts.Catalog.Environments[sourceEnvIndex]
 				targetEnv := opts.Catalog.Environments[targetEnvIndex]
 				sourceRelease := newRelease("release1", `spec:
   values:
     key: !lock TODO
     env:
       ENV_VAR: value1`, sourceEnvName)
+
+				sourceRelease.File.Path = fmt.Sprintf("%s/releases/testing/test.yaml", sourceEnv.Dir)
+
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = nil
 				expectedPromotedFile := newYamlFile("release1", `spec:
@@ -150,7 +154,7 @@ func TestPromotion(t *testing.T) {
       ENV_VAR: value1
 `, targetEnvName)
 
-				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/release1.yaml", targetEnv.Dir)
+				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/testing/test.yaml", targetEnv.Dir)
 
 				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
