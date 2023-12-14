@@ -26,7 +26,7 @@ type Release struct {
 // ComputePromotedFile computes the promotion merged file for release from source to target environment,
 // assuming the only environments are respectively source and target. If merged result is same as target,
 // then no promotion is needed and PromotedFile is nil.
-func (r *Release) ComputePromotedFile(targetEnv *v1alpha1.Environment) error {
+func (r *Release) ComputePromotedFile(sourceEnv, targetEnv *v1alpha1.Environment) error {
 	sourceRelease := r.Releases[0]
 	targetRelease := r.Releases[1]
 
@@ -46,11 +46,16 @@ func (r *Release) ComputePromotedFile(targetEnv *v1alpha1.Environment) error {
 			return fmt.Errorf("creating in-memory copy of target file using merged result: %w", err)
 		}
 	} else {
+		relativePath, err := filepath.Rel(sourceEnv.Dir, sourceRelease.File.Path)
+		if err != nil {
+			return fmt.Errorf("failed to get promoted file's relative path within environment: %w", err)
+		}
+
 		// Promote source release to empty target
-		promotedFile, err = yml.NewFileFromTree(
-			filepath.Join(targetEnv.Dir, "releases", sourceRelease.Name+".yaml"),
-			sourceRelease.File.Indent,
-			yml.Merge(nil, sourceRelease.File.Tree))
+		promoted := yml.Merge(nil, sourceRelease.File.Tree)
+		targetPath := filepath.Join(targetEnv.Dir, relativePath)
+
+		promotedFile, err = yml.NewFileFromTree(targetPath, sourceRelease.File.Indent, promoted)
 		if err != nil {
 			return fmt.Errorf("creating in-memory file from tree for missing target release: %w", err)
 		}

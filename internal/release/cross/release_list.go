@@ -151,7 +151,7 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
 		// Compute promoted file
-		err := newItem.ComputePromotedFile(targetEnv)
+		err := newItem.ComputePromotedFile(sourceEnv, targetEnv)
 		if err != nil {
 			return nil, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
 		}
