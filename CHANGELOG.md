@@ -1,3 +1,12 @@
+## [0.20.4](https://github.com/nestoca/joy/compare/v0.20.3...v0.20.4) (2023-12-21)
+
+
+### Bug Fixes
+
+* **PL-1894:** fix ci tests ([fa9672e](https://github.com/nestoca/joy/commit/fa9672e1e42bceeff66c6e698c907675cbc91327))
+
+
+
 ## [0.20.3](https://github.com/nestoca/joy/compare/v0.20.2...v0.20.3) (2023-12-14)
 
 
