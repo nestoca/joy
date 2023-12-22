@@ -69,7 +69,12 @@ func List(opts Opts) error {
 		inSync := crossRelease.AreVersionsInSync()
 		row := []string{style.ReleaseInSyncOrNot(crossRelease.Name, inSync)}
 		for _, rel := range crossRelease.Releases {
-			displayVersion := cross.GetReleaseDisplayVersion(rel, inSync)
+			displayVersion := cross.GetReleaseDisplayVersion(rel)
+			if displayVersion == "-" {
+				displayVersion = style.ReleaseNotAvailable(displayVersion)
+			} else {
+				displayVersion = style.ReleaseInSyncOrNot(displayVersion, inSync)
+			}
 			row = append(row, displayVersion)
 		}
 		table.Append(row)

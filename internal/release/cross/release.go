@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -88,12 +87,37 @@ func (r *Release) AreVersionsInSync() bool {
 	return true
 }
 
-func GetReleaseDisplayVersion(rel *v1alpha1.Release, inSync bool) string {
+func (r *Release) AreValuesInSync(promotedFile *yml.File) bool {
+	target := yml.Clone(promotedFile.Tree)
+
+	if err := yml.SetOrAddNodeValue(target, "spec.version", ""); err != nil {
+		return false
+	}
+
+	for _, release := range r.Releases {
+		if release == nil {
+			return false
+		}
+
+		item := yml.Clone(release.File.Tree)
+		if err := yml.SetOrAddNodeValue(item, "spec.version", ""); err != nil {
+			return false
+		}
+
+		if !yml.EqualWithoutLocks(target, item) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func GetReleaseDisplayVersion(rel *v1alpha1.Release) string {
 	if rel == nil {
-		return style.ReleaseNotAvailable("-")
+		return "-"
 	}
 	if rel.Spec.Version == "" {
-		return style.ReleaseInSyncOrNot("n/a", inSync)
+		return "n/a"
 	}
-	return style.ReleaseInSyncOrNot(rel.Spec.Version, inSync)
+	return rel.Spec.Version
 }

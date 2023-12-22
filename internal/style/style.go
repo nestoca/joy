@@ -14,7 +14,11 @@ func SecondaryInfo(s any) string {
 
 // Resource is for the name of resources and entities such as releases, projects, environments, clusters, etc.
 func Resource(s any) string {
-	return color.InBold(color.InYellow(s))
+	return (color.InYellow(s))
+}
+
+func MutedResource(s any) string {
+	return color.InGray(s)
 }
 
 // ResourceEnvPrefix is for the environment prefix in front of a resource name (eg: `staging` in `staging/<release-name>`)

@@ -38,3 +38,31 @@ func deepEqualNode(node1, node2 *yaml.Node) bool {
 
 	return true
 }
+
+func EqualWithoutLocks(a, b *yaml.Node) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if isLocked(a) || isLocked(b) {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	if a.Kind != b.Kind || a.Value != b.Value {
+		return false
+	}
+
+	if len(a.Content) != len(b.Content) {
+		return false
+	}
+
+	for i := range a.Content {
+		if !EqualWithoutLocks(a.Content[i], b.Content[i]) {
+			return false
+		}
+	}
+
+	return true
+}

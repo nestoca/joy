@@ -61,12 +61,27 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 	// Format releases for user selection.
 	var choices []string
 	for _, item := range list.Items {
-		inSync := item.AreVersionsInSync()
-		choice := fmt.Sprintf("%s\t%s\t>\t%s\t",
-			style.Resource(item.Name),
-			cross.GetReleaseDisplayVersion(item.Releases[1], inSync),
-			cross.GetReleaseDisplayVersion(item.Releases[0], inSync))
-		choices = append(choices, choice)
+		displayOld := cross.GetReleaseDisplayVersion(item.Releases[1])
+		displayNew := cross.GetReleaseDisplayVersion(item.Releases[0])
+
+		if item.PromotedFile == nil {
+			choices = append(choices, fmt.Sprintf("%s\t%s", style.MutedResource(item.Name), style.MutedResource(displayOld)))
+			continue
+		}
+
+		if !item.AreValuesInSync(item.PromotedFile) {
+			if displayOld != "-" && displayOld != "n/a" {
+				displayOld += "*"
+			}
+			if displayNew != "-" && displayNew != "n/a" {
+				displayNew += "*"
+			}
+		}
+
+		choices = append(
+			choices,
+			fmt.Sprintf("%s\t%s\t>\t%s\t", style.Resource(item.Name), style.ReleaseOutOfSync(displayOld), style.ReleaseInSync(displayNew)),
+		)
 	}
 	choices = alignColumns(choices)
 
@@ -120,12 +135,7 @@ func alignColumns(lines []string) []string {
 	formattedOutput := buf.String()
 
 	// Convert the bytes to strings
-	formattedLines := strings.Split(strings.TrimSpace(formattedOutput), "\n")
-	result := make([]string, len(formattedLines))
-	for i, line := range formattedLines {
-		result[i] = line
-	}
-	return result
+	return strings.Split(strings.TrimSpace(formattedOutput), "\n")
 }
 
 func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool, error) {
