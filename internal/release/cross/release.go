@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -21,6 +20,9 @@ type Release struct {
 	// are respectively source and target. If merged result is same as target, then no promotion is needed and
 	// PromotedFile is nil. This must be explicitly computed via ComputePromotedFile().
 	PromotedFile *yml.File
+
+	VersionInSync bool
+	ValuesInSync  bool
 }
 
 // ComputePromotedFile computes the promotion merged file for release from source to target environment,
@@ -32,6 +34,8 @@ func (r *Release) ComputePromotedFile(sourceEnv, targetEnv *v1alpha1.Environment
 
 	// Skip missing source releases, which obviously cannot be promoted
 	if sourceRelease == nil {
+		r.VersionInSync = true
+		r.ValuesInSync = true
 		return nil
 	}
 
@@ -62,7 +66,14 @@ func (r *Release) ComputePromotedFile(sourceEnv, targetEnv *v1alpha1.Environment
 	}
 
 	// Only consider promotion if the new merged result is different from existing target
-	if targetRelease == nil || !yml.Compare(targetRelease.File.Yaml, promotedFile.Yaml) {
+	if targetRelease != nil {
+		r.VersionInSync = targetRelease.Spec.Version == sourceRelease.Spec.Version
+		r.ValuesInSync = yml.EqualWithExclusion(targetRelease.File.Tree, promotedFile.Tree, "spec", "version")
+	} else {
+		r.VersionInSync = false
+		r.ValuesInSync = false
+	}
+	if targetRelease == nil || !r.VersionInSync || !r.ValuesInSync {
 		r.PromotedFile = promotedFile
 	} else {
 		r.PromotedFile = nil
@@ -75,25 +86,4 @@ func NewRelease(name string, environments []*v1alpha1.Environment) *Release {
 		Name:     name,
 		Releases: make([]*v1alpha1.Release, len(environments)),
 	}
-}
-
-func (r *Release) AreVersionsInSync() bool {
-	for i := 0; i < len(r.Releases)-1; i++ {
-		if r.Releases[i] == nil ||
-			r.Releases[i+1] == nil ||
-			r.Releases[i].Spec.Version != r.Releases[i+1].Spec.Version {
-			return false
-		}
-	}
-	return true
-}
-
-func GetReleaseDisplayVersion(rel *v1alpha1.Release, inSync bool) string {
-	if rel == nil {
-		return style.ReleaseNotAvailable("-")
-	}
-	if rel.Spec.Version == "" {
-		return style.ReleaseInSyncOrNot("n/a", inSync)
-	}
-	return style.ReleaseInSyncOrNot(rel.Spec.Version, inSync)
 }

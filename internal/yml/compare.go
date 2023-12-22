@@ -38,3 +38,51 @@ func deepEqualNode(node1, node2 *yaml.Node) bool {
 
 	return true
 }
+
+func EqualWithExclusion(a, b *yaml.Node, excludedPath ...string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	// Handling document nodes
+	if a.Kind == yaml.DocumentNode && b.Kind == yaml.DocumentNode {
+		if !EqualWithExclusion(a.Content[0], b.Content[0], excludedPath...) {
+			return false
+		}
+		return true
+	}
+
+	if a.Kind != b.Kind || a.Value != b.Value {
+		return false
+	}
+	if len(a.Content) != len(b.Content) {
+		return false
+	}
+
+	// Determine current key and rest of path
+	excludedKey := ""
+	if len(excludedPath) == 1 {
+		excludedKey = excludedPath[0]
+	}
+	var excludedSubPath []string
+	if len(excludedPath) > 0 {
+		excludedSubPath = excludedPath[1:]
+	}
+
+	for i := 0; i < len(a.Content); i++ {
+		if a.Kind == yaml.MappingNode && i%2 == 0 && a.Content[i].Value == excludedKey {
+			// Skip this key and its corresponding value node
+			i++
+			continue
+		}
+
+		if !EqualWithExclusion(a.Content[i], b.Content[i], excludedSubPath...) {
+			return false
+		}
+	}
+
+	return true
+}

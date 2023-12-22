@@ -61,11 +61,18 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 	// Format releases for user selection.
 	var choices []string
 	for _, item := range list.Items {
-		inSync := item.AreVersionsInSync()
-		choice := fmt.Sprintf("%s\t%s\t>\t%s\t",
-			style.Resource(item.Name),
-			cross.GetReleaseDisplayVersion(item.Releases[1], inSync),
-			cross.GetReleaseDisplayVersion(item.Releases[0], inSync))
+		inSync := item.VersionInSync && item.ValuesInSync
+		var choice string
+		if inSync {
+			choice = fmt.Sprintf("%s\t%s",
+				style.PromotableRelease(item.Name, false),
+				GetReleaseDisplayVersion(item.Releases[1], true, true, true))
+		} else {
+			choice = fmt.Sprintf("%s\t%s\t>\t%s\t",
+				style.PromotableRelease(item.Name, !inSync),
+				GetReleaseDisplayVersion(item.Releases[1], item.VersionInSync, item.ValuesInSync, true),
+				GetReleaseDisplayVersion(item.Releases[0], item.VersionInSync, item.ValuesInSync, false))
+		}
 		choices = append(choices, choice)
 	}
 	choices = alignColumns(choices)
@@ -107,6 +114,26 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 		selectedReleaseNames = append(selectedReleaseNames, list.Items[index].Name)
 	}
 	return list.OnlySpecificReleases(selectedReleaseNames), nil
+}
+
+func GetReleaseDisplayVersion(rel *v1alpha1.Release, versionsInSync, valuesInSync, isBefore bool) string {
+	version := "-"
+	if rel != nil {
+		version = rel.Spec.Version
+	}
+	if version == "" {
+		version = "no version"
+	}
+	if !valuesInSync && version != "-" {
+		version += "*"
+	}
+	if versionsInSync && valuesInSync {
+		return style.InSyncReleaseVersion(version)
+	}
+	if isBefore {
+		return style.DiffBefore(version)
+	}
+	return style.DiffAfter(version)
 }
 
 // alignColumns formats the given lines based on tab separators and aligns the columns.
