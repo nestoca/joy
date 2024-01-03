@@ -40,6 +40,11 @@ func deepEqualNode(node1, node2 *yaml.Node) bool {
 }
 
 func EqualWithExclusion(a, b *yaml.Node, excludedPath ...string) bool {
+	return equalWithExclusion(a, b, excludedPath, nil)
+}
+
+func equalWithExclusion(a, b *yaml.Node, excludedPath, currentPath []string) bool {
+	// Special cases for nil nodes
 	if a == nil && b == nil {
 		return true
 	}
@@ -47,14 +52,15 @@ func EqualWithExclusion(a, b *yaml.Node, excludedPath ...string) bool {
 		return false
 	}
 
-	// Handling document nodes
+	// Skip right into content of document nodes
 	if a.Kind == yaml.DocumentNode && b.Kind == yaml.DocumentNode {
-		if !EqualWithExclusion(a.Content[0], b.Content[0], excludedPath...) {
+		if !equalWithExclusion(a.Content[0], b.Content[0], excludedPath, currentPath) {
 			return false
 		}
 		return true
 	}
 
+	// Compare kinds and content lengths
 	if a.Kind != b.Kind || a.Value != b.Value {
 		return false
 	}
@@ -62,24 +68,36 @@ func EqualWithExclusion(a, b *yaml.Node, excludedPath ...string) bool {
 		return false
 	}
 
-	// Determine current key and rest of path
-	excludedKey := ""
-	if len(excludedPath) == 1 {
-		excludedKey = excludedPath[0]
-	}
-	var excludedSubPath []string
-	if len(excludedPath) > 0 {
-		excludedSubPath = excludedPath[1:]
-	}
-
-	for i := 0; i < len(a.Content); i++ {
-		if a.Kind == yaml.MappingNode && i%2 == 0 && a.Content[i].Value == excludedKey {
-			// Skip this key and its corresponding value node
-			i++
+	// Assuming each even index in Content array is a key and the following odd index is its value
+	for i := 0; i < len(a.Content) && i < len(b.Content); i += 2 {
+		// Check if the current path is excluded
+		childCurrentPath := append(currentPath, a.Content[i].Value)
+		if isPathExcluded(childCurrentPath, excludedPath) {
 			continue
 		}
 
-		if !EqualWithExclusion(a.Content[i], b.Content[i], excludedSubPath...) {
+		// Compare key
+		if a.Content[i].Value != b.Content[i].Value {
+			return false
+		}
+
+		// Recursively compare children
+		if !equalWithExclusion(a.Content[i+1], b.Content[i+1], excludedPath, childCurrentPath) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Utility function to check if a path is excluded
+func isPathExcluded(currentPath, excludedPath []string) bool {
+	if len(currentPath) != len(excludedPath) {
+		return false
+	}
+
+	for i := range currentPath {
+		if currentPath[i] != excludedPath[i] {
 			return false
 		}
 	}

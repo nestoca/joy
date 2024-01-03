@@ -24,6 +24,11 @@ type InteractivePromptProvider struct {
 
 var Separator = strings.Repeat("—", 80)
 
+const (
+	sourceEnvIndex = 0
+	targetEnvIndex = 1
+)
+
 func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
 	var index int
 	err := survey.AskOne(&survey.Select{
@@ -55,23 +60,22 @@ func (i *InteractivePromptProvider) SelectTargetEnvironment(environments []*v1al
 }
 
 func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cross.ReleaseList, error) {
-	sourceEnv := list.Environments[0]
-	targetEnv := list.Environments[1]
+	sourceEnv := list.Environments[sourceEnvIndex]
+	targetEnv := list.Environments[targetEnvIndex]
 
 	// Format releases for user selection.
 	var choices []string
-	for _, item := range list.Items {
-		inSync := item.VersionInSync && item.ValuesInSync
+	for _, crossRel := range list.Items {
 		var choice string
-		if inSync {
+		if crossRel.VersionInSync && crossRel.ValuesInSync {
 			choice = fmt.Sprintf("%s\t%s",
-				style.PromotableRelease(item.Name, false),
-				GetReleaseDisplayVersion(item.Releases[1], true, true, true))
+				style.InSyncRelease(crossRel.Name),
+				inSyncDisplayReleaseVersion(crossRel))
 		} else {
 			choice = fmt.Sprintf("%s\t%s\t>\t%s\t",
-				style.PromotableRelease(item.Name, !inSync),
-				GetReleaseDisplayVersion(item.Releases[1], item.VersionInSync, item.ValuesInSync, true),
-				GetReleaseDisplayVersion(item.Releases[0], item.VersionInSync, item.ValuesInSync, false))
+				style.OutOfSyncRelease(crossRel.Name),
+				outOfSyncDisplayReleaseVersionBefore(crossRel),
+				outOfSyncDisplayReleaseVersionAfter(crossRel))
 		}
 		choices = append(choices, choice)
 	}
@@ -116,24 +120,33 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 	return list.OnlySpecificReleases(selectedReleaseNames), nil
 }
 
-func GetReleaseDisplayVersion(rel *v1alpha1.Release, versionsInSync, valuesInSync, isBefore bool) string {
+func inSyncDisplayReleaseVersion(crossRel *cross.Release) string {
+	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], true)
+	return style.InSyncReleaseVersion(version)
+}
+
+func outOfSyncDisplayReleaseVersionBefore(crossRel *cross.Release) string {
+	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], crossRel.ValuesInSync)
+	return style.DiffBefore(version)
+}
+
+func outOfSyncDisplayReleaseVersionAfter(crossRel *cross.Release) string {
+	version := releaseDisplayVersion(crossRel.Releases[sourceEnvIndex], crossRel.ValuesInSync)
+	return style.DiffAfter(version)
+}
+
+func releaseDisplayVersion(rel *v1alpha1.Release, valuesInSync bool) string {
 	version := "-"
 	if rel != nil {
 		version = rel.Spec.Version
 	}
 	if version == "" {
-		version = "no version"
+		version = "unversioned"
 	}
 	if !valuesInSync && version != "-" {
 		version += "*"
 	}
-	if versionsInSync && valuesInSync {
-		return style.InSyncReleaseVersion(version)
-	}
-	if isBefore {
-		return style.DiffBefore(version)
-	}
-	return style.DiffAfter(version)
+	return version
 }
 
 // alignColumns formats the given lines based on tab separators and aligns the columns.

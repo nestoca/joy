@@ -17,12 +17,12 @@ func Resource(s any) string {
 	return color.InBold(color.InYellow(s))
 }
 
-// PromotableRelease is for the name of resources and entities such as releases, projects, environments, clusters, etc.
-func PromotableRelease(s any, promotable bool) string {
-	if promotable {
-		return color.InYellow(s)
-	}
-	return InSyncReleaseVersion(s)
+func OutOfSyncRelease(s any) string {
+	return color.InYellow(s)
+}
+
+func InSyncRelease(s any) string {
+	return color.InGray(s)
 }
 
 func InSyncReleaseVersion(s any) string {

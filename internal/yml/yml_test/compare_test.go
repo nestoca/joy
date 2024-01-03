@@ -144,118 +144,59 @@ func TestEqualWithExclusion(t *testing.T) {
 		expected     bool
 	}{
 		{
-			name: "Identical trees without exclusion",
-			yaml1: `
-foo:
-  bar: baz
-  nested:
-    - item1
-    - item2
-`,
-			yaml2: `
-foo:
-  bar: baz
-  nested:
-    - item1
-    - item2
-`,
+			name:         "Identical trees without exclusion",
+			yaml1:        "foo: { bar: baz, nested: [item1, item2] }",
+			yaml2:        "foo: { bar: baz, nested: [item1, item2] }",
 			excludedPath: nil,
 			expected:     true,
 		},
 		{
-			name: "Different trees without exclusion",
-			yaml1: `
-foo:
-  bar: baz
-  nested:
-    - item1
-    - item2
-`,
-			yaml2: `
-foo:
-  bar: bam
-  nested:
-    - item1
-    - item2
-`,
+			name:         "Different trees without exclusion",
+			yaml1:        "foo: { bar: baz, nested: [item1, item2] }",
+			yaml2:        "foo: { bar: bam, nested: [item1, item2] }",
 			excludedPath: nil,
 			expected:     false,
 		},
 		{
-			name: "Identical trees excluding node at root level",
-			yaml1: `
-foo: baz
-bar: qux
-`,
-			yaml2: `
-foo: bam
-bar: qux
-`,
+			name:         "Identical trees excluding node at root level",
+			yaml1:        "{ foo: baz, bar: qux }",
+			yaml2:        "{ foo: bam, bar: qux }",
 			excludedPath: []string{"foo"},
 			expected:     true,
 		},
 		{
-			name: "Identical trees excluding nested node",
-			yaml1: `
-foo:
-  bar: baz
-  nested:
-    - item1
-    - item2
-`,
-			yaml2: `
-foo:
-  bar: baz
-  nested:
-    - item3
-    - item4
-`,
+			name:         "Identical trees excluding nested node",
+			yaml1:        "foo: { bar: baz, nested: [item1, item2] }",
+			yaml2:        "foo: { bar: baz, nested: [item3, item4] }",
 			excludedPath: []string{"foo", "nested"},
 			expected:     true,
 		},
 		{
-			name: "Different trees excluding node at root level",
-			yaml1: `
-foo: baz
-bar: qux
-`,
-			yaml2: `
-foo: bam
-bar: qul
-`,
+			name:         "Different trees excluding node at root level",
+			yaml1:        "{ foo: baz, bar: qux }",
+			yaml2:        "{ foo: bam, bar: qul }",
 			excludedPath: []string{"foo"},
 			expected:     false,
 		},
 		{
-			name: "Different trees excluding nested node",
-			yaml1: `
-foo:
-  bar: baz
-  nested:
-    - item1
-    - item2
-`,
-			yaml2: `
-foo:
-  bar: bak
-  nested:
-    - item3
-    - item4
-`,
+			name:         "Different trees excluding nested node",
+			yaml1:        "foo: { bar: baz, nested: [item1, item2] }",
+			yaml2:        "foo: { bar: bak, nested: [item3, item4] }",
 			excludedPath: []string{"foo", "nested"},
 			expected:     false,
 		},
 		{
-			name: "Different trees with non-matching exclusion",
-			yaml1: `
-foo:
-  bar: baz
-`,
-			yaml2: `
-foo:
-  bar: bam
-`,
+			name:         "Different trees with non-matching exclusion",
+			yaml1:        "foo: { bar: baz }",
+			yaml2:        "foo: { bar: bam }",
 			excludedPath: []string{"foo", "nested"},
+			expected:     false,
+		},
+		{
+			name:         "Different trees with excluded path matching only last level",
+			yaml1:        "foo: { bar: baz }",
+			yaml2:        "foo: { bar: bam }",
+			excludedPath: []string{"faa", "bar"},
 			expected:     false,
 		},
 	}
