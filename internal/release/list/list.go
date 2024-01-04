@@ -5,10 +5,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/nestoca/joy/api/v1alpha1"
+
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -66,10 +67,9 @@ func List(opts Opts) error {
 
 	// Add rows
 	for _, crossRelease := range releases.Items {
-		inSync := crossRelease.AreVersionsInSync()
-		row := []string{style.ReleaseInSyncOrNot(crossRelease.Name, inSync)}
+		row := []string{crossRelease.Name}
 		for _, rel := range crossRelease.Releases {
-			displayVersion := cross.GetReleaseDisplayVersion(rel, inSync)
+			displayVersion := GetReleaseDisplayVersion(rel)
 			row = append(row, displayVersion)
 		}
 		table.Append(row)
@@ -77,4 +77,15 @@ func List(opts Opts) error {
 
 	table.Render()
 	return nil
+}
+
+func GetReleaseDisplayVersion(rel *v1alpha1.Release) string {
+	if rel == nil {
+		return style.ReleaseNotAvailable("-")
+	}
+	version := rel.Spec.Version
+	if version == "" {
+		version = "no version"
+	}
+	return version
 }

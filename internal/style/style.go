@@ -17,6 +17,18 @@ func Resource(s any) string {
 	return color.InBold(color.InYellow(s))
 }
 
+func OutOfSyncRelease(s any) string {
+	return color.InYellow(s)
+}
+
+func InSyncRelease(s any) string {
+	return color.InGray(s)
+}
+
+func InSyncReleaseVersion(s any) string {
+	return color.InGray(s)
+}
+
 // ResourceEnvPrefix is for the environment prefix in front of a resource name (eg: `staging` in `staging/<release-name>`)
 func ResourceEnvPrefix(s any) string {
 	return color.Colorize(darkYellow, s)
@@ -60,14 +72,6 @@ func ReleaseInSync(s any) string {
 // ReleaseOutOfSync is for releases that are not in sync across environments
 func ReleaseOutOfSync(s any) string {
 	return color.InRed(s)
-}
-
-// ReleaseInSyncOrNot is for releases that are in sync across environments or not
-func ReleaseInSyncOrNot(s any, inSync bool) string {
-	if inSync {
-		return ReleaseInSync(s)
-	}
-	return ReleaseOutOfSync(s)
 }
 
 // ReleaseNotAvailable is for releases that are not existing in an environment or have not version specified
