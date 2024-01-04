@@ -1,6 +1,10 @@
 package yml
 
-import "gopkg.in/yaml.v3"
+import (
+	"slices"
+
+	"gopkg.in/yaml.v3"
+)
 
 // Compare returns true if the two yaml documents are equivalent in terms of contents and comments, false otherwise,
 // disregarding differences in formatting / whitespace.
@@ -44,6 +48,11 @@ func EqualWithExclusion(a, b *yaml.Node, excludedPath ...string) bool {
 }
 
 func equalWithExclusion(a, b *yaml.Node, excludedPath, currentPath []string) bool {
+	// Check if current path is excluded
+	if len(excludedPath) > 0 && slices.Equal(currentPath, excludedPath) {
+		return true
+	}
+
 	// Special cases for nil nodes
 	if a == nil && b == nil {
 		return true
@@ -52,53 +61,31 @@ func equalWithExclusion(a, b *yaml.Node, excludedPath, currentPath []string) boo
 		return false
 	}
 
-	// Skip right into content of document nodes
-	if a.Kind == yaml.DocumentNode && b.Kind == yaml.DocumentNode {
-		if !equalWithExclusion(a.Content[0], b.Content[0], excludedPath, currentPath) {
-			return false
-		}
-		return true
-	}
-
 	// Compare kinds and content lengths
-	if a.Kind != b.Kind || a.Value != b.Value {
-		return false
-	}
-	if len(a.Content) != len(b.Content) {
+	if a.Kind != b.Kind || a.Value != b.Value || len(a.Content) != len(b.Content) {
 		return false
 	}
 
-	// Assuming each even index in Content array is a key and the following odd index is its value
-	for i := 0; i < len(a.Content) && i < len(b.Content); i += 2 {
-		// Check if the current path is excluded
-		childCurrentPath := append(currentPath, a.Content[i].Value)
-		if isPathExcluded(childCurrentPath, excludedPath) {
-			continue
+	switch a.Kind {
+	case yaml.MappingNode:
+		for i := 0; i < len(a.Content); i += 2 {
+			// Compare keys
+			if !equalWithExclusion(a.Content[i], b.Content[i], excludedPath, currentPath) {
+				return false
+			}
+
+			// Compare values
+			childPath := append(currentPath, a.Content[i].Value)
+			if !equalWithExclusion(a.Content[i+1], b.Content[i+1], excludedPath, childPath) {
+				return false
+			}
 		}
 
-		// Compare key
-		if a.Content[i].Value != b.Content[i].Value {
-			return false
-		}
-
-		// Recursively compare children
-		if !equalWithExclusion(a.Content[i+1], b.Content[i+1], excludedPath, childCurrentPath) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Utility function to check if a path is excluded
-func isPathExcluded(currentPath, excludedPath []string) bool {
-	if len(currentPath) != len(excludedPath) {
-		return false
-	}
-
-	for i := range currentPath {
-		if currentPath[i] != excludedPath[i] {
-			return false
+	default:
+		for i := 0; i < len(a.Content); i++ {
+			if !equalWithExclusion(a.Content[i], b.Content[i], excludedPath, currentPath) {
+				return false
+			}
 		}
 	}
 
