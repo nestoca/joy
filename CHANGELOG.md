@@ -1,3 +1,10 @@
+## [0.20.5](https://github.com/nestoca/joy/compare/v0.20.4...v0.20.5) (2024-01-03)
+
+
+### Bug Fixes
+
+* **PL-1906:** gha, fix handling of BREAKING ([7f21db3](https://github.com/nestoca/joy/commit/7f21db390c258380193fd7c9df6843b972b457e0))
+
 ## [0.20.4](https://github.com/nestoca/joy/compare/v0.20.3...v0.20.4) (2023-12-21)
 
 
