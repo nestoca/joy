@@ -1,3 +1,10 @@
+## [0.21.0](https://github.com/nestoca/joy/compare/v0.20.5...v0.21.0) (2024-01-04)
+
+
+### Features
+
+* **PL-2051:** improve joy release promote UX for promotable changes ([70af0dc](https://github.com/nestoca/joy/commit/70af0dcfd10e44cebf54145b7c1f248ae86c9a71))
+
 ## [0.20.5](https://github.com/nestoca/joy/compare/v0.20.4...v0.20.5) (2024-01-03)
 
 
