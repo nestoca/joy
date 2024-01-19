@@ -56,6 +56,9 @@ type Opts struct {
 	// ReleasesFiltered indicates whether releases were filtered out by the user via command line flag or interactive selection.
 	ReleasesFiltered bool
 
+	// AutoMerge indicates if PR created needs the auto-merge label
+	AutoMerge bool
+
 	// SelectedEnvironments is the list of environments selected by the user interactively via `joy env select`.
 	SelectedEnvironments []*v1alpha1.Environment
 }
@@ -115,8 +118,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	err = p.preview(list)
-	if err != nil {
+	if err := p.preview(list); err != nil {
 		return "", fmt.Errorf("previewing: %w", err)
 	}
 
@@ -129,10 +131,22 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	prURL, err := p.perform(list)
+	if opts.TargetEnv.Spec.Promotion.FromPullRequests && !opts.AutoMerge {
+		autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
+		if err != nil {
+			return "", fmt.Errorf("confirming automerge: %w", err)
+		}
+		opts.AutoMerge = autoMerge
+	}
+
+	prURL, err := p.perform(PerformParams{
+		list:      list,
+		autoMerge: opts.AutoMerge,
+	})
 	if err != nil {
 		return "", fmt.Errorf("applying: %w", err)
 	}
+
 	return prURL, nil
 }
 

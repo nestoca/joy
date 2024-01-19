@@ -157,15 +157,11 @@ func alignColumns(lines []string) []string {
 		_, _ = fmt.Fprintln(w, line)
 	}
 	_ = w.Flush()
-	formattedOutput := buf.String()
 
-	// Convert the bytes to strings
-	formattedLines := strings.Split(strings.TrimSpace(formattedOutput), "\n")
-	result := make([]string, len(formattedLines))
-	for i, line := range formattedLines {
-		result[i] = line
-	}
-	return result
+	result := buf.String()
+	result = strings.TrimSpace(result)
+
+	return strings.Split(result, "\n")
 }
 
 func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool, error) {
@@ -180,6 +176,11 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool,
 		return false, fmt.Errorf("asking user for confirmation: %w", err)
 	}
 	return selectedAction == actions[0], nil
+}
+
+func (*InteractivePromptProvider) ConfirmAutoMergePullRequest() (answer bool, err error) {
+	err = survey.AskOne(&survey.Confirm{Message: "Do you wish to auto-merge the resulting PR?"}, &answer)
+	return
 }
 
 func (i *InteractivePromptProvider) PrintNoPromotableReleasesFound(releasesFiltered bool, sourceEnv *v1alpha1.Environment, targetEnv *v1alpha1.Environment) {

@@ -62,6 +62,7 @@ func NewReleaseListCmd() *cobra.Command {
 func NewReleasePromoteCmd() *cobra.Command {
 	var releases string
 	var sourceEnv, targetEnv string
+	var autoMerge bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -111,16 +112,18 @@ func NewReleasePromoteCmd() *cobra.Command {
 				SourceEnv:            sourceEnv,
 				TargetEnv:            targetEnv,
 				ReleasesFiltered:     filter != nil,
+				AutoMerge:            autoMerge,
 				SelectedEnvironments: selectedEnvironments,
 			}
-			promotion := promote.NewDefaultPromotion(cfg.CatalogDir)
-			_, err = promotion.Promote(opts)
+
+			_, err = promote.NewDefaultPromotion(cfg.CatalogDir).Promote(opts)
 			return err
 		},
 	}
 
 	cmd.Flags().StringVarP(&sourceEnv, "source", "s", "", "Source environment (interactive if not specified)")
 	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Target environment (interactive if not specified)")
+	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Set auto-merge flag on release PR")
 	addArgumentsToUsage(cmd, "releases", "Comma-separated list of releases (interactive if not specified)")
 
 	return cmd

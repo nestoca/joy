@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/nestoca/joy/internal/git/pr"
 )
 
 type PullRequestProvider struct {
@@ -60,13 +62,24 @@ func (p *PullRequestProvider) CreateInteractively(branch string) error {
 	return nil
 }
 
-func (p *PullRequestProvider) Create(branch, title, body string) (string, error) {
-	prURL, err := executeAndGetOutput(p.dir, "pr", "create", "--head", branch, "--title", title, "--body", body)
-	if err != nil {
-		return "", fmt.Errorf("creating pull request for branch %s: %w", branch, err)
+func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
+	args := []string{
+		"pr", "create",
+		"--head", params.Branch,
+		"--title", params.Title,
+		"--body", params.Body,
 	}
-	prURL = strings.TrimSpace(prURL)
-	return prURL, err
+
+	for _, label := range params.Labels {
+		args = append(args, "--label", label)
+	}
+
+	prURL, err := executeAndGetOutput(p.dir, args...)
+	if err != nil {
+		return "", fmt.Errorf("creating pull request for branch %s: %w", params.Branch, err)
+	}
+
+	return strings.TrimSpace(prURL), err
 }
 
 func (p *PullRequestProvider) getPromotionLabels(branch string) ([]string, error) {
