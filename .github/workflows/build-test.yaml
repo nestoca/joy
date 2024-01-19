@@ -54,6 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          token: ${{ secrets.GH_JOY_CHANGE_LOG_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Go environment
