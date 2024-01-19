@@ -179,7 +179,7 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool,
 }
 
 func (*InteractivePromptProvider) ConfirmAutoMergePullRequest() (answer bool, err error) {
-	err = survey.AskOne(&survey.Confirm{Message: "Do you wish to auto-merge the resulting PR?"}, &answer)
+	err = survey.AskOne(&survey.Confirm{Message: "Do you want to auto-merge the resulting PR?"}, &answer)
 	return
 }
 
