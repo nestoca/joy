@@ -5,11 +5,11 @@ concurrency:
 
 on:
   push:
-    branches: ["master"]
+    branches: ['master']
     paths-ignore:
-      - "CHANGELOG.md"
+      - 'CHANGELOG.md'
   pull_request:
-    branches: ["master"]
+    branches: ['master']
 
 jobs:
   test-and-build:
@@ -38,7 +38,7 @@ jobs:
 
       - name: Run tests w/ Coverage
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_JOY_TEST }}
         run: make test-cov
 
       - name: Build cli binary
