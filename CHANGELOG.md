@@ -1,3 +1,19 @@
+## [0.22.0](https://github.com/nestoca/joy/compare/v0.21.0...v0.22.0) (2024-01-19)
+
+
+### Features
+
+* **PL-2250:** add --auto-merge flag for joy release promote ([79b5ccb](https://github.com/nestoca/joy/commit/79b5ccb7596faf6c21aeea340c00d1198e8802b5))
+* **PL-2250:** apply suggestions from code review ([1165060](https://github.com/nestoca/joy/commit/116506018f0e9cb64820c3d6c69d2b7edd6d9ece))
+* **PL-2250:** code review ([020e236](https://github.com/nestoca/joy/commit/020e23653ab88ade2a205aa6df0867c5f768a709))
+
+
+### Bug Fixes
+
+* **PL-2250:** use default token for publish checkout step ([2d0efb8](https://github.com/nestoca/joy/commit/2d0efb8def7e1f98ba0c0d42396f88e7fe986a2a))
+* **PL-2250:** use new token for pushing changelog ([082009a](https://github.com/nestoca/joy/commit/082009a9015a9849026d26e2b96557536bb88845))
+* **PL-2250:** use scoped fg token for tests ([60fc281](https://github.com/nestoca/joy/commit/60fc281a13b6f493011d409ee0ceec7dedd11360))
+
 ## [0.21.0](https://github.com/nestoca/joy/compare/v0.20.5...v0.21.0) (2024-01-04)
 
 
