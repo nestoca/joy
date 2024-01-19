@@ -24,6 +24,7 @@ type EnvironmentMetadata struct {
 }
 
 type Promotion struct {
+	AllowAutoMerge   bool     `yaml:"allowAutoMerge,omitempty" json:"allowAutoMerge,omitempty"`
 	FromPullRequests bool     `yaml:"fromPullRequests,omitempty" json:"fromPullRequests,omitempty"`
 	FromEnvironments []string `yaml:"fromEnvironments,omitempty" json:"fromEnvironments,omitempty"`
 }

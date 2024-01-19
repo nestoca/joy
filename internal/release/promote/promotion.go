@@ -95,6 +95,10 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		}
 	}
 
+	if !opts.TargetEnv.Spec.Promotion.AllowAutoMerge && opts.AutoMerge {
+		return "", fmt.Errorf("auto-merge is not allowed for target environment %s", opts.TargetEnv.Name)
+	}
+
 	// Validate promotability (only relevant if either or both environments were specified via command line flags)
 	if !opts.SourceEnv.IsPromotableTo(opts.TargetEnv) {
 		return "", fmt.Errorf("environment %s is not promotable to %s", opts.SourceEnv.Name, opts.TargetEnv.Name)
@@ -131,7 +135,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	if opts.TargetEnv.Spec.Promotion.FromPullRequests && !opts.AutoMerge {
+	if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
 		autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
 		if err != nil {
 			return "", fmt.Errorf("confirming automerge: %w", err)
