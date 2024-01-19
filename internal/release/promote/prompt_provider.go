@@ -21,6 +21,8 @@ type PromptProvider interface {
 	// or abort.
 	ConfirmCreatingPromotionPullRequest() (bool, error)
 
+	ConfirmAutoMergePullRequest() (bool, error)
+
 	// PrintNoPromotableReleasesFound prints message that no promotable releases were found for given
 	// source and target environments or potentially none because release filtering was applied.
 	PrintNoPromotableReleasesFound(releasesFiltered bool, sourceEnv *v1alpha1.Environment, targetEnv *v1alpha1.Environment)

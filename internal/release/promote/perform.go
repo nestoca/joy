@@ -7,23 +7,31 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/cross"
 )
 
+type PerformParams struct {
+	list      *cross.ReleaseList
+	autoMerge bool
+}
+
 // perform performs the promotion of all releases in given list and returns PR url if any
-func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
-	if len(list.Environments) != 2 {
-		return "", fmt.Errorf("expecting 2 environments, got %d", len(list.Environments))
+func (p *Promotion) perform(params PerformParams) (string, error) {
+	if len(params.list.Environments) != 2 {
+		return "", fmt.Errorf("expecting 2 environments, got %d", len(params.list.Environments))
 	}
 
-	crossReleases := list.SortedCrossReleases()
-	var promotedFiles []string
-	var messages []string
-	var promotedReleaseNames []string
-	sourceEnv := list.Environments[0]
-	targetEnv := list.Environments[1]
+	var (
+		promotedFiles        []string
+		messages             []string
+		promotedReleaseNames []string
+	)
 
-	for _, crossRelease := range crossReleases {
+	sourceEnv := params.list.Environments[0]
+	targetEnv := params.list.Environments[1]
+
+	for _, crossRelease := range params.list.SortedCrossReleases() {
 		// Skip releases already in sync
 		promotedFile := crossRelease.PromotedFile
 		if promotedFile == nil {
@@ -35,11 +43,13 @@ func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 		sourceRelease := crossRelease.Releases[0]
 		targetRelease := crossRelease.Releases[1]
 		isCreatingTargetRelease := targetRelease == nil
+
 		p.promptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
-		err := p.yamlWriter.Write(promotedFile)
-		if err != nil {
+
+		if err := p.yamlWriter.Write(promotedFile); err != nil {
 			return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 		}
+
 		promotedFiles = append(promotedFiles, promotedFile.Path)
 
 		// Determine release-specific message
@@ -55,26 +65,41 @@ func (p *Promotion) perform(list *cross.ReleaseList) (string, error) {
 	// Create new branch and commit and push changes
 	branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
 	message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
+
 	err := p.gitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, message)
 	if err != nil {
 		return "", err
 	}
+
 	p.promptProvider.PrintBranchCreated(branchName, message)
 
 	// Create pull request
+
+	var labels []string
+	if params.autoMerge {
+		labels = append(labels, "auto-merge")
+	}
+
 	prTitle, prBody := getPRTitleAndBody(message)
-	prURL, err := p.pullRequestProvider.Create(branchName, prTitle, prBody)
+
+	prURL, err := p.pullRequestProvider.Create(pr.CreateParams{
+		Branch: branchName,
+		Title:  prTitle,
+		Body:   prBody,
+		Labels: labels,
+	})
 	if err != nil {
 		return "", fmt.Errorf("creating pull request: %w", err)
 	}
+
 	p.promptProvider.PrintPullRequestCreated(prURL)
 
-	err = p.gitProvider.CheckoutMasterBranch()
-	if err != nil {
-		return "", err
+	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {
+		return "", fmt.Errorf("checking out master: %w", err)
 	}
 
 	p.promptProvider.PrintCompleted()
+
 	return prURL, nil
 }
 
