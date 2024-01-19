@@ -59,7 +59,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Trigger the prompt since we are not automerging in this test
-	targetEnv.Spec.Promotion.FromPullRequests = true
+	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
 	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
@@ -116,6 +116,8 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "prod")
 	assert.NoError(t, err)
 
+	targetEnv.Spec.Promotion.AllowAutoMerge = true
+
 	// Perform test
 	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
 
@@ -133,6 +135,45 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	require.NotEmpty(t, prURL)
 
 	require.Equal(t, []string{"auto-merge"}, getPullRequestLabels(t, dir, prURL))
+}
+
+func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
+	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
+
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		Dir:             dir,
+		LoadEnvs:        true,
+		LoadReleases:    true,
+		SortEnvsByOrder: true,
+	}
+
+	cat, err := catalog.Load(loadOpts)
+	assert.NoError(t, err)
+
+	// Resolve source and target environments
+	sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "staging")
+	assert.NoError(t, err)
+
+	targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "prod")
+	assert.NoError(t, err)
+
+	// EMPHASIS --- DRAMA
+	targetEnv.Spec.Promotion.AllowAutoMerge = false
+
+	// Perform test
+	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+
+	opts := promote.Opts{
+		Catalog:   cat,
+		SourceEnv: sourceEnv,
+		TargetEnv: targetEnv,
+		AutoMerge: true,
+	}
+
+	prURL, err := promotion.Promote(opts)
+	require.Empty(t, prURL)
+	require.EqualError(t, err, "auto-merge is not allowed for target environment prod")
 }
 
 func getPullRequestLabels(t *testing.T, dir, url string) []string {
