@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/secret"
@@ -44,6 +46,14 @@ func NewSecretSealCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "seal",
 		Short: "Encrypt secret",
+		Example: `  # Base usage with prompts
+  joy sealed-secret seal
+
+  # With pre-selected environment
+  joy sealed-secret seal -e staging
+
+  # Seal secret content piped in from stdin (requires environment to be pre-selected)
+  joy sealed-secret seal -e production < ./secret.txt`,
 		Long: `Encrypt secret using public certificate of given environment's sealed secrets controller.
 
 This command requires the sealed-secrets kubeseal cli to be installed: https://github.com/bitnami-labs/sealed-secrets
@@ -58,14 +68,27 @@ The sealed secrets public certificate must also have been imported into the envi
 				LoadEnvs:        true,
 				SortEnvsByOrder: true,
 			}
+
 			cat, err := catalog.Load(loadOpts)
 			if err != nil {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
 
-			return secret.Seal(cat, env)
+			opts := secret.SealOptions{
+				Env:         env,
+				InputIsTTY:  term.IsTerminal(int(os.Stdin.Fd())),
+				OutputIsTTY: term.IsTerminal(int(os.Stdout.Fd())),
+			}
+
+			if !opts.InputIsTTY && env == "" {
+				return fmt.Errorf("environment must be provided via '--env' flag  when not using a tty")
+			}
+
+			return secret.Seal(cat, opts)
 		},
 	}
+
 	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment to seal secret in")
+
 	return cmd
 }
