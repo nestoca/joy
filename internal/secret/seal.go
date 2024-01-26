@@ -1,7 +1,9 @@
 package secret
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,31 +16,57 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func Seal(cat *catalog.Catalog, env string) error {
-	// Select environment
-	var selectedEnv *v1alpha1.Environment
-	if env != "" {
-		selectedEnv = environment.FindByName(cat.Environments, env)
-		if selectedEnv == nil {
-			return fmt.Errorf("environment %s not found", env)
-		}
-	}
-	var err error
-	selectedEnv, err = environment.SelectSingle(
-		cat.Environments,
-		selectedEnv,
-		"Select environment to seal secret in")
+type SealOptions struct {
+	Env         string
+	InputIsTTY  bool
+	OutputIsTTY bool
+}
+
+func Seal(cat *catalog.Catalog, opts SealOptions) error {
+	environment, err := getEnvironment(cat.Environments, opts.Env)
 	if err != nil {
 		return err
 	}
 
 	// Get sealed secrets certificate
-	cert := selectedEnv.Spec.SealedSecretsCert
+	cert := environment.Spec.SealedSecretsCert
 	if cert == "" {
-		fmt.Printf("🤷 Environment %s has no sealed secrets certificate configured, please run `joy secrets import` first.\n", style.Resource(selectedEnv.Name))
+		return fmt.Errorf("🤷 Environment %s has no sealed secrets certificate configured, please run `joy secrets import` first", style.Resource(environment.Name))
+	}
+
+	// Write cert to temporary file
+	certFile, err := writeStringToTempFile(cert)
+	if err != nil {
+		return fmt.Errorf("writing certificate to temporary file: %w", err)
+	}
+	defer os.Remove(certFile)
+
+	secret, err := func() (io.Reader, error) {
+		if opts.InputIsTTY {
+			return readFromTTY()
+		}
+		return os.Stdin, nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	output, err := seal(secret, certFile)
+	if err != nil {
+		return fmt.Errorf("running kubeseal command: %w", err)
+	}
+
+	if !opts.OutputIsTTY {
+		fmt.Println(output)
 		return nil
 	}
 
+	fmt.Println("🔒 Sealed secret:")
+	fmt.Println(style.Code(output))
+	return nil
+}
+
+func readFromTTY() (io.Reader, error) {
 	// Temporarily tweak multiline question template to start editing on new line and also hide final answer
 	oldTemplate := survey.MultilineQuestionTemplate
 	survey.MultilineQuestionTemplate = `
@@ -56,41 +84,36 @@ func Seal(cat *catalog.Catalog, env string) error {
 
 	// Prompt user for multiline secret input
 	var secret string
-	err = survey.AskOne(
-		&survey.Multiline{
-			Message: "Enter secret to seal",
-		},
-		&secret,
-		survey.WithValidator(survey.Required),
+
+	if err := survey.AskOne(
+		&survey.Multiline{Message: "Enter secret to seal"},
+		&secret, survey.WithValidator(survey.Required),
 		survey.WithHideCharacter('*'),
-	)
-	if err != nil {
-		return fmt.Errorf("prompting for secret: %w", err)
+	); err != nil {
+		return nil, fmt.Errorf("prompting for secret: %w", err)
 	}
-	secret = strings.TrimSpace(secret)
 
-	// Write cert to temporary file
-	certFile, err := writeStringToTempFile(cert)
-	if err != nil {
-		return fmt.Errorf("writing certificate to temporary file: %w", err)
-	}
-	defer os.Remove(certFile)
+	return strings.NewReader(strings.TrimSpace(secret)), nil
+}
 
+// Seal secret by running `kubeseal --raw --scope cluster-wide --cert <cert>`
+func seal(r io.Reader, certFile string) (string, error) {
 	// Seal secret by running `kubeseal --raw --scope cluster-wide --cert <cert>`
 	cmd := exec.Command("kubeseal",
 		"--raw",
 		"--scope", "cluster-wide",
 		"--cert", certFile)
-	cmd.Stdin = strings.NewReader(secret)
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("running kubeseal command: %w", err)
+
+	var buffer bytes.Buffer
+
+	cmd.Stdin = r
+	cmd.Stdout = &buffer
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to run kubeseal command: %w", err)
 	}
 
-	// Print sealed secret
-	fmt.Println("🔒 Sealed secret:")
-	fmt.Println(style.Code(string(output)))
-	return nil
+	return buffer.String(), nil
 }
 
 func writeStringToTempFile(text string) (string, error) {
@@ -106,4 +129,17 @@ func writeStringToTempFile(text string) (string, error) {
 	}
 
 	return f.Name(), nil
+}
+
+func getEnvironment(environments []*v1alpha1.Environment, name string) (*v1alpha1.Environment, error) {
+	if name == "" {
+		return environment.SelectSingle(environments, nil, "Select environment to seal secret in")
+	}
+
+	selectedEnv := environment.FindByName(environments, name)
+	if selectedEnv == nil {
+		return nil, fmt.Errorf("environment %s not found", name)
+	}
+
+	return selectedEnv, nil
 }
