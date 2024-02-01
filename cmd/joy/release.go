@@ -2,18 +2,23 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
+	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -29,6 +34,7 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleasePromoteCmd())
 	cmd.AddCommand(NewReleaseSelectCmd())
 	cmd.AddCommand(NewReleasePeopleCmd())
+	cmd.AddCommand(NewReleaseRenderCmd())
 	return cmd
 }
 
@@ -179,5 +185,61 @@ This command requires the jac cli: https://github.com/nestoca/jac
 			return jac.ListReleasePeople(cfg.CatalogDir, args)
 		},
 	}
+	return cmd
+}
+
+func NewReleaseRenderCmd() *cobra.Command {
+	var (
+		env   string
+		color bool
+	)
+
+	cmd := &cobra.Command{
+		Use:   "render [release]",
+		Short: "render kubernetes manifests from joy release",
+		Args:  cobra.RangeArgs(0, 1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			// Load catalog
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				LoadReleases:    true,
+				LoadEnvs:        true,
+				SortEnvsByOrder: true,
+				ResolveRefs:     true,
+			}
+
+			cat, err := catalog.Load(loadOpts)
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			var releaseName string
+			if len(args) == 1 {
+				releaseName = args[0]
+			}
+
+			io := internal.IO{
+				Out: cmd.OutOrStdout(),
+				Err: cmd.ErrOrStderr(),
+				In:  cmd.InOrStdin(),
+			}
+
+			return render.Render(cmd.Context(), render.RenderOpts{
+				Env:          env,
+				Release:      releaseName,
+				DefaultChart: cfg.DefaultChart,
+				CacheDir:     cfg.JoyCache,
+				Catalog:      cat,
+				IO:           io,
+				Helm:         helm.CLI{IO: io},
+				Color:        color,
+			})
+		},
+	}
+
+	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
+	cmd.Flags().BoolVar(&color, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	return cmd
 }

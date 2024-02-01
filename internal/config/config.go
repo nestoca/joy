@@ -30,8 +30,13 @@ type Config struct {
 	// MinVersion is the minimum version of the joy CLI required
 	MinVersion string `yaml:"minVersion,omitempty"`
 
+	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
+	DefaultChart string `yaml:"defaultChart,omitempty"`
+
 	// FilePath is the path to the config file that was loaded, used to write back to the same file.
 	FilePath string `yaml:"-"`
+
+	JoyCache string `yaml:"-"`
 }
 
 type Environments struct {
@@ -69,6 +74,13 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
 	}
 
+	rootCache := os.Getenv("XDG_CACHE_HOME")
+	if rootCache == "" {
+		rootCache = filepath.Join(homeDir, ".cache")
+	}
+
+	cfg.JoyCache = filepath.Join(rootCache, "joy")
+
 	if catalogDir != "" {
 		cfg.CatalogDir = catalogDir
 	}
@@ -86,6 +98,10 @@ func Load(configDir, catalogDir string) (*Config, error) {
 
 	if catalogCfg.MinVersion != "" {
 		cfg.MinVersion = catalogCfg.MinVersion
+	}
+
+	if catalogCfg.DefaultChart != "" {
+		cfg.DefaultChart = catalogCfg.DefaultChart
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
