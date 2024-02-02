@@ -1,3 +1,10 @@
+## [0.23.1](https://github.com/nestoca/joy/compare/v0.23.0...v0.23.1) (2024-02-02)
+
+
+### Bug Fixes
+
+* **PL-2290:** do not emit newline at end of sealed secret in non-ttl mode ([24efcf1](https://github.com/nestoca/joy/commit/24efcf1dc8bdd1fbf21aa9d35995cd4977994ea6))
+
 ## [0.23.0](https://github.com/nestoca/joy/compare/v0.22.0...v0.23.0) (2024-01-29)
 
 
