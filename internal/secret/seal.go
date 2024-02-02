@@ -57,7 +57,7 @@ func Seal(cat *catalog.Catalog, opts SealOptions) error {
 	}
 
 	if !opts.OutputIsTTY {
-		fmt.Println(output)
+		fmt.Print(output)
 		return nil
 	}
 
