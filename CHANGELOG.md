@@ -1,3 +1,10 @@
+## [0.24.0](https://github.com/nestoca/joy/compare/v0.23.1...v0.24.0) (2024-02-05)
+
+
+### Features
+
+* **PL-2314:** add joy release render command ([eb577b0](https://github.com/nestoca/joy/commit/eb577b0c9e24823024e68f745567d1d8f3ccd33c))
+
 ## [0.23.1](https://github.com/nestoca/joy/compare/v0.23.0...v0.23.1) (2024-02-02)
 
 
