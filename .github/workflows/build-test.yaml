@@ -41,6 +41,7 @@ jobs:
 
       - name: Run tests w/ Coverage
         env:
+          HELLO: world
           GH_TOKEN: ${{ secrets.GH_JOY_TEST }}
         run: make test-cov
 
