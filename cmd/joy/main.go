@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"fmt"
 )
 
 // version represents the version of our built application.
@@ -9,7 +9,5 @@ import (
 var version string
 
 func main() {
-	if err := NewRootCmd(version).Execute(); err != nil {
-		os.Exit(1)
-	}
+	fmt.Println("ATTACK!")
 }
