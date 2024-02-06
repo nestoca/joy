@@ -1,3 +1,10 @@
+## [0.24.1](https://github.com/nestoca/joy/compare/v0.24.0...v0.24.1) (2024-02-06)
+
+
+### Bug Fixes
+
+* **PL-2353:** CODEOWNERS ([#77](https://github.com/nestoca/joy/issues/77)) ([f66bf24](https://github.com/nestoca/joy/commit/f66bf2458760641e26f562a8f98b7bef1738ea2e))
+
 ## [0.24.0](https://github.com/nestoca/joy/compare/v0.23.1...v0.24.0) (2024-02-05)
 
 
