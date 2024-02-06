@@ -15,16 +15,41 @@ on:
       - 'CHANGELOG.md'
 
 jobs:
-  attack:
+  test-and-build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    permissions:
-      contents: write
     steps:
-      - name: attack
+      - uses: actions/checkout@v3
+
+      # Copy pasted from nestoca/actions since we cannot import private repos.
+      - name: Set git identity
         shell: bash
-        run: echo attack!!!
+        run: |-
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3.3.1
+        with:
+          go-version-file: go.mod
+          # Used to specify whether caching is needed. Set to true, if you'd like to enable caching.
+          cache: true
+          # Used to specify the path to a dependency file - go.sum
+          cache-dependency-path: go.sum
+
+      - name: Setup dependencies
+        run: make setup
+
+      - name: Run tests w/ Coverage
+        env:
+          GH_TOKEN: ${{ secrets.GH_JOY_TEST }}
+        run: make test-cov
+
+      - name: Build cli binary
+        run: make build
+
   publish:
+    needs:
+      - test-and-build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     permissions:
