@@ -15,7 +15,7 @@ on:
       - 'CHANGELOG.md'
 
 jobs:
-  kosher:
+  attack:
     runs-on: ubuntu-latest
     steps:
       - name: salt that pig
