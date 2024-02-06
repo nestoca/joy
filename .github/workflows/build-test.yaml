@@ -97,7 +97,6 @@ jobs:
       - name: Tag commit
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
         run: git tag ${{ steps.changelog.outputs.tag }}
-
       - name: Push changelog
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
         run: |
