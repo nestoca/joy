@@ -15,6 +15,12 @@ on:
       - 'CHANGELOG.md'
 
 jobs:
+  kosher:
+    runs-on: ubuntu-latest
+    steps:
+      - name: salt that pig
+        shell: bash
+        run: echo oink oink
   test-and-build:
     runs-on: ubuntu-latest
     steps:
