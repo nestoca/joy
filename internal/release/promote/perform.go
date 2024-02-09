@@ -93,6 +93,9 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 		return "", fmt.Errorf("creating pull request: %w", err)
 	}
 
+	if params.draft {
+		p.promptProvider.PrintDraftPullRequestCreated(prURL)
+	}
 	p.promptProvider.PrintPullRequestCreated(prURL)
 
 	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {

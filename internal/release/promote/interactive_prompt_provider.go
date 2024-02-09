@@ -294,12 +294,12 @@ func (i *InteractivePromptProvider) PrintBranchCreated(branchName, message strin
 		style.SecondaryInfo(message))
 }
 
-func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {
-	fmt.Printf("✅ Created pull request: %s\n", style.Link(url))
-}
-
 func (i *InteractivePromptProvider) PrintDraftPullRequestCreated(url string) {
 	fmt.Printf("✅ Created draft pull request: %s\n", style.Link(url))
+}
+
+func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {
+	fmt.Printf("✅ Created pull request: %s\n", style.Link(url))
 }
 
 func (i *InteractivePromptProvider) PrintCanceled() {

@@ -47,6 +47,9 @@ type PromptProvider interface {
 	// and pushed.
 	PrintBranchCreated(branchName, message string)
 
+	// PrintDraftPullRequestCreated prints message that a new promotion draft pull request was created.
+	PrintDraftPullRequestCreated(url string)
+
 	// PrintPullRequestCreated prints message that a new promotion pull request was created.
 	PrintPullRequestCreated(url string)
 
