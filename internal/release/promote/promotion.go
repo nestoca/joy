@@ -144,7 +144,6 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("confirming automerge: %w", err)
 			}
-			opts.AutoMerge = autoMerge
 			performParams.autoMerge = autoMerge
 		}
 		break

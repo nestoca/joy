@@ -28,8 +28,8 @@ const (
 	sourceEnvIndex = 0
 	targetEnvIndex = 1
 
-	Draft  = "Create draft pull request"
 	Ready  = "Create pull request"
+	Draft  = "Create draft pull request"
 	Cancel = "Cancel"
 )
 
@@ -170,7 +170,7 @@ func alignColumns(lines []string) []string {
 
 func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (answer string, err error) {
 	var selectedAction string
-	actions := []string{Draft, Ready, Cancel}
+	actions := []string{Ready, Draft, Cancel}
 	prompt := &survey.Select{
 		Message: "Do you want to create a promotion pull request?",
 		Options: actions,

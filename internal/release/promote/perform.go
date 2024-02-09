@@ -95,9 +95,10 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 
 	if params.draft {
 		p.promptProvider.PrintDraftPullRequestCreated(prURL)
+	} else {
+		p.promptProvider.PrintPullRequestCreated(prURL)
 	}
-	p.promptProvider.PrintPullRequestCreated(prURL)
-
+	
 	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {
 		return "", fmt.Errorf("checking out master: %w", err)
 	}
