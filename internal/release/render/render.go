@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -162,6 +163,13 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment) (map[string]any, error) {
 	values := release.Spec.Values
 
+	// --- This replicates the behavior we have encoded into the application set.
+	if release.Spec.Version != "" {
+		setInMap(values, []string{"image", "tag"}, release.Spec.Version)
+	}
+	setInMap(values, []string{"common", "annotations", "nesto.ca/deployed-by"}, "joy")
+	// --- end of appset behaviour
+
 	data, err := yaml.Marshal(values)
 	if err != nil {
 		return nil, err
@@ -214,4 +222,29 @@ func (w ManifestColorWriter) Write(data []byte) (int, error) {
 
 	n, err := w.dst.Write([]byte(strings.Join(lines, "\n")))
 	return min(n, len(data)), err
+}
+
+func setInMap(mapping map[string]any, segments []string, value any) {
+	for i, key := range segments {
+		if i == len(segments)-1 {
+			if mapValue, ok := mapping[key]; !ok || reflect.ValueOf(mapValue).IsZero() {
+				mapping[key] = value
+			}
+			return
+		}
+
+		subValue, ok := mapping[key]
+		if !ok {
+			submap := map[string]any{}
+			mapping[key] = submap
+			mapping = submap
+			continue
+		}
+
+		submap, ok := subValue.(map[string]any)
+		if !ok {
+			return
+		}
+		mapping = submap
+	}
 }

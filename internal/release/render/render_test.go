@@ -219,12 +219,14 @@ func TestRender(t *testing.T) {
 							Values: map[string]any{
 								"env":     "{{ .Environment.Name `!}}",
 								"version": "{{ .Release.Spec.Version }}",
+								"image":   map[string]any{"tag": "v1.2.3"},
+								"common":  map[string]any{"annotations": map[string]any{"nesto.ca/deployed-by": "joy"}},
 							},
 						}).
 						Return(nil)
 				},
 			},
-			ExpectedOut: "error hydrating values: template: :1: unterminated raw quoted string\nfallback to raw release.spec.values\n",
+			ExpectedOut: "error hydrating values: template: :4: unterminated raw quoted string\nfallback to raw release.spec.values\n",
 		},
 		{
 			Name: "fail to render",
@@ -275,6 +277,8 @@ func TestRender(t *testing.T) {
 							Values: map[string]any{
 								"env":     "qa",
 								"version": "v1.2.3",
+								"image":   map[string]any{"tag": "v1.2.3"},
+								"common":  map[string]any{"annotations": map[string]any{"nesto.ca/deployed-by": "joy"}},
 							},
 						}).
 						Return(errors.New("bebop"))
