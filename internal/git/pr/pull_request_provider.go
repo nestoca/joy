@@ -6,6 +6,7 @@ type CreateParams struct {
 	Title  string
 	Body   string
 	Labels []string
+	Draft  bool
 }
 
 type PullRequestProvider interface {

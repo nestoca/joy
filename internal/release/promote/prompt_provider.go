@@ -17,9 +17,9 @@ type PromptProvider interface {
 	// SelectReleases prompts user to select releases to promote.
 	SelectReleases(list *cross.ReleaseList) (*cross.ReleaseList, error)
 
-	// ConfirmCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
+	// SelectCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
 	// or abort.
-	ConfirmCreatingPromotionPullRequest() (bool, error)
+	SelectCreatingPromotionPullRequest() (string, error)
 
 	ConfirmAutoMergePullRequest() (bool, error)
 

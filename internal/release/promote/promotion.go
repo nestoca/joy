@@ -126,27 +126,34 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", fmt.Errorf("previewing: %w", err)
 	}
 
-	confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest()
+	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
 	if err != nil {
-		return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
+		return "", fmt.Errorf("selecting create promotion pull request: %w", err)
 	}
-	if !confirmed {
+
+	var performParams = PerformParams{
+		list: list,
+	}
+	switch answer {
+	case Draft:
+		performParams.draft = true
+		break
+	case Ready:
+		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
+			autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
+			if err != nil {
+				return "", fmt.Errorf("confirming automerge: %w", err)
+			}
+			opts.AutoMerge = autoMerge
+			performParams.autoMerge = autoMerge
+		}
+		break
+	case Cancel:
 		p.promptProvider.PrintCanceled()
 		return "", nil
 	}
 
-	if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
-		autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
-		if err != nil {
-			return "", fmt.Errorf("confirming automerge: %w", err)
-		}
-		opts.AutoMerge = autoMerge
-	}
-
-	prURL, err := p.perform(PerformParams{
-		list:      list,
-		autoMerge: opts.AutoMerge,
-	})
+	prURL, err := p.perform(performParams)
 	if err != nil {
 		return "", fmt.Errorf("applying: %w", err)
 	}

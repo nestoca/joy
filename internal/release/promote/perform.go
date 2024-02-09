@@ -13,6 +13,7 @@ import (
 
 type PerformParams struct {
 	list      *cross.ReleaseList
+	draft     bool
 	autoMerge bool
 }
 
@@ -74,7 +75,6 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 	p.promptProvider.PrintBranchCreated(branchName, message)
 
 	// Create pull request
-
 	var labels []string
 	if params.autoMerge {
 		labels = append(labels, "auto-merge")
@@ -87,6 +87,7 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 		Title:  prTitle,
 		Body:   prBody,
 		Labels: labels,
+		Draft:  params.draft,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating pull request: %w", err)

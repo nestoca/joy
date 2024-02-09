@@ -30,7 +30,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintEndPreview()
-	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
+	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil) //Todo: fix
 	promptProvider.EXPECT().ConfirmAutoMergePullRequest().Return(false, nil)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)

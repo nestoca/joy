@@ -27,6 +27,10 @@ var Separator = strings.Repeat("—", 80)
 const (
 	sourceEnvIndex = 0
 	targetEnvIndex = 1
+
+	Draft  = "Create draft pull request"
+	Ready  = "Create pull request"
+	Cancel = "Cancel"
 )
 
 func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
@@ -164,18 +168,20 @@ func alignColumns(lines []string) []string {
 	return strings.Split(result, "\n")
 }
 
-func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool, error) {
-	actions := []string{"Create pull request", "Cancel"}
+func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (answer string, err error) {
+	var selectedAction string
+	actions := []string{Draft, Ready, Cancel}
 	prompt := &survey.Select{
 		Message: "Do you want to create a promotion pull request?",
 		Options: actions,
 	}
-	var selectedAction string
-	err := survey.AskOne(prompt, &selectedAction)
+
+	err = survey.AskOne(prompt, &selectedAction)
 	if err != nil {
-		return false, fmt.Errorf("asking user for confirmation: %w", err)
+		return "", fmt.Errorf("asking user for confirmation: %w", err)
 	}
-	return selectedAction == actions[0], nil
+
+	return selectedAction, nil
 }
 
 func (*InteractivePromptProvider) ConfirmAutoMergePullRequest() (answer bool, err error) {
@@ -290,6 +296,10 @@ func (i *InteractivePromptProvider) PrintBranchCreated(branchName, message strin
 
 func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {
 	fmt.Printf("✅ Created pull request: %s\n", style.Link(url))
+}
+
+func (i *InteractivePromptProvider) PrintDraftPullRequestCreated(url string) {
+	fmt.Printf("✅ Created draft pull request: %s\n", style.Link(url))
 }
 
 func (i *InteractivePromptProvider) PrintCanceled() {
