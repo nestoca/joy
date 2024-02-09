@@ -1,3 +1,10 @@
+## [0.24.2](https://github.com/nestoca/joy/compare/v0.24.1...v0.24.2) (2024-02-09)
+
+
+### Bug Fixes
+
+* **PL-2314:** fix release name in release rendering ([0ba4275](https://github.com/nestoca/joy/commit/0ba42755300c9df8adc17f6ae6eb103a7fa3225d))
+
 ## [0.24.1](https://github.com/nestoca/joy/compare/v0.24.0...v0.24.1) (2024-02-06)
 
 
