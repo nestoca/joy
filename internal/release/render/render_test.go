@@ -185,6 +185,7 @@ func TestRender(t *testing.T) {
 								Name: "app",
 								Releases: []*v1alpha1.Release{
 									{
+										ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "app"},
 										Spec: v1alpha1.ReleaseSpec{
 											Version: "v1.2.3",
 											Values: map[string]any{
@@ -211,9 +212,14 @@ func TestRender(t *testing.T) {
 						Return(nil)
 
 					mpr.EXPECT().
-						Render(context.Background(), &stdout, "~/.cache/joy/does_not_exist/default/chart/chart", map[string]any{
-							"env":     "{{ .Environment.Name `!}}",
-							"version": "{{ .Release.Spec.Version }}",
+						Render(context.Background(), helm.RenderOpts{
+							Dst:         &stdout,
+							ReleaseName: "app",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							Values: map[string]any{
+								"env":     "{{ .Environment.Name `!}}",
+								"version": "{{ .Release.Spec.Version }}",
+							},
 						}).
 						Return(nil)
 				},
@@ -235,6 +241,7 @@ func TestRender(t *testing.T) {
 								Name: "app",
 								Releases: []*v1alpha1.Release{
 									{
+										ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "app"},
 										Spec: v1alpha1.ReleaseSpec{
 											Version: "v1.2.3",
 											Values: map[string]any{
@@ -261,9 +268,14 @@ func TestRender(t *testing.T) {
 						Return(nil)
 
 					mpr.EXPECT().
-						Render(context.Background(), &stdout, "~/.cache/joy/does_not_exist/default/chart/chart", map[string]any{
-							"env":     "qa",
-							"version": "v1.2.3",
+						Render(context.Background(), helm.RenderOpts{
+							Dst:         &stdout,
+							ReleaseName: "app",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							Values: map[string]any{
+								"env":     "qa",
+								"version": "v1.2.3",
+							},
 						}).
 						Return(errors.New("bebop"))
 				},

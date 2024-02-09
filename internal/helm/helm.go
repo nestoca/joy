@@ -15,7 +15,7 @@ import (
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 type PullRenderer interface {
 	Pull(context.Context, PullOptions) error
-	Render(context.Context, io.Writer, string, map[string]any) error
+	Render(ctx context.Context, opts RenderOpts) error
 }
 
 type CLI struct {
@@ -55,16 +55,23 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 	return cmd.Run()
 }
 
-func (CLI) Render(ctx context.Context, w io.Writer, chartPath string, values map[string]any) error {
+type RenderOpts struct {
+	Dst         io.Writer
+	ReleaseName string
+	ChartPath   string
+	Values      map[string]any
+}
+
+func (CLI) Render(ctx context.Context, opts RenderOpts) error {
 	var input bytes.Buffer
-	if err := yaml.NewEncoder(&input).Encode(values); err != nil {
+	if err := yaml.NewEncoder(&input).Encode(opts.Values); err != nil {
 		return err
 	}
 
-	cmd := exec.CommandContext(ctx, "helm", "template", "joy-release-render", chartPath, "--values", "-")
+	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 	cmd.Stdin = &input
-	cmd.Stdout = w
-	cmd.Stderr = w
+	cmd.Stdout = opts.Dst
+	cmd.Stderr = opts.Dst
 
 	return cmd.Run()
 }
