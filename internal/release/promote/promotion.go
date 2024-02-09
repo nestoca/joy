@@ -135,9 +135,6 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		list: list,
 	}
 	switch answer {
-	case Draft:
-		performParams.draft = true
-		break
 	case Ready:
 		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
 			autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
@@ -146,6 +143,9 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 			}
 			performParams.autoMerge = autoMerge
 		}
+		break
+	case Draft:
+		performParams.draft = true
 		break
 	case Cancel:
 		p.promptProvider.PrintCanceled()
