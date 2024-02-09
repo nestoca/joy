@@ -82,7 +82,14 @@ func Render(ctx context.Context, params RenderOpts) error {
 		dst = ManifestColorWriter{dst}
 	}
 
-	if err := params.Helm.Render(ctx, dst, chartPath, values); err != nil {
+	opts := helm.RenderOpts{
+		Dst:         dst,
+		ReleaseName: release.Name,
+		ChartPath:   chartPath,
+		Values:      values,
+	}
+
+	if err := params.Helm.Render(ctx, opts); err != nil {
 		return fmt.Errorf("rendering chart: %w", err)
 	}
 
