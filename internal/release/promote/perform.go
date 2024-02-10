@@ -13,8 +13,8 @@ import (
 
 type PerformParams struct {
 	list      *cross.ReleaseList
-	draft     bool
 	autoMerge bool
+	draft     bool
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -98,7 +98,7 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 	} else {
 		p.promptProvider.PrintPullRequestCreated(prURL)
 	}
-	
+
 	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {
 		return "", fmt.Errorf("checking out master: %w", err)
 	}
