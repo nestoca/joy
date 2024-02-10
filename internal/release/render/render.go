@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -25,14 +25,15 @@ import (
 )
 
 type RenderOpts struct {
-	Env          string
-	Release      string
-	DefaultChart string
-	CacheDir     string
-	Catalog      *catalog.Catalog
-	IO           internal.IO
-	Helm         helm.PullRenderer
-	Color        bool
+	Env           string
+	Release       string
+	DefaultChart  string
+	CacheDir      string
+	ChartMappings map[string]any
+	Catalog       *catalog.Catalog
+	IO            internal.IO
+	Helm          helm.PullRenderer
+	Color         bool
 }
 
 func Render(ctx context.Context, params RenderOpts) error {
@@ -71,7 +72,7 @@ func Render(ctx context.Context, params RenderOpts) error {
 		}
 	}
 
-	values, err := hydrateValues(release, environment)
+	values, err := hydrateValues(release, environment, params.ChartMappings)
 	if err != nil {
 		fmt.Fprintln(params.IO.Out, "error hydrating values:", err)
 		fmt.Fprintln(params.IO.Out, "fallback to raw release.spec.values")
@@ -160,27 +161,7 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment) (map[string]any, error) {
-	values := release.Spec.Values
-
-	// --- This replicates the behavior we have encoded into the application set.
-	if release.Spec.Version != "" {
-		setInMap(values, []string{"image", "tag"}, release.Spec.Version)
-	}
-	setInMap(values, []string{"common", "annotations", "nesto.ca/deployed-by"}, "joy")
-	// --- end of appset behaviour
-
-	data, err := yaml.Marshal(values)
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl, err := template.New("").Parse(string(data))
-	if err != nil {
-		return nil, err
-	}
-
-	var builder bytes.Buffer
+func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings map[string]any) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
@@ -189,16 +170,18 @@ func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment)
 		environment,
 	}
 
-	if err := tmpl.Execute(&builder, params); err != nil {
-		return nil, err
+	mappings, err := applyAsTemplate(mappings, params)
+	if err != nil {
+		return nil, fmt.Errorf("applying chartmapping template: %w", err)
 	}
 
-	var result map[string]any
-	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
-		return nil, err
+	values := maps.Clone(release.Spec.Values)
+
+	for mapping, value := range mappings {
+		setInMap(values, splitIntoPathSegments(mapping), value)
 	}
 
-	return result, nil
+	return applyAsTemplate(values, params)
 }
 
 // ManifestColorWriter colorizes helm manifest by searching for document breaks
@@ -227,7 +210,7 @@ func (w ManifestColorWriter) Write(data []byte) (int, error) {
 func setInMap(mapping map[string]any, segments []string, value any) {
 	for i, key := range segments {
 		if i == len(segments)-1 {
-			if mapValue, ok := mapping[key]; !ok || reflect.ValueOf(mapValue).IsZero() {
+			if _, ok := mapping[key]; !ok {
 				mapping[key] = value
 			}
 			return
@@ -247,4 +230,62 @@ func setInMap(mapping map[string]any, segments []string, value any) {
 		}
 		mapping = submap
 	}
+}
+
+func splitIntoPathSegments(input string) (result []string) {
+	var (
+		start   int
+		escaped bool
+	)
+
+	for i, c := range input {
+		switch c {
+		case '\\':
+			escaped = !escaped
+		case '.':
+			if escaped {
+				continue
+			}
+			result = append(result, strings.ReplaceAll(input[start:i], "\\.", "."))
+			escaped = false
+			start = i + 1
+		default:
+			escaped = false
+		}
+	}
+
+	if start < len(input) {
+		result = append(result, strings.ReplaceAll(input[start:], "\\.", "."))
+	}
+
+	return
+}
+
+func applyAsTemplate(values map[string]any, params any) (map[string]any, error) {
+	if values == nil {
+		return nil, nil
+	}
+
+	data, err := yaml.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := template.New("").Parse(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	var builder bytes.Buffer
+
+	if err := tmpl.Execute(&builder, params); err != nil {
+		return nil, err
+	}
+
+	var result map[string]any
+	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
