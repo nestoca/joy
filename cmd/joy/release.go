@@ -137,7 +137,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&sourceEnv, "source", "s", "", "Source environment (interactive if not specified)")
 	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Target environment (interactive if not specified)")
 	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Add auto-merge label to release PR")
-	cmd.Flags().BoolVar(&draft, "draft", false, "Open draft PR")
+	cmd.Flags().BoolVar(&draft, "draft", false, "Create draft release PR")
 	addArgumentsToUsage(cmd, "releases", "Comma-separated list of releases (interactive if not specified)")
 
 	return cmd
