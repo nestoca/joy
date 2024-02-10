@@ -209,3 +209,79 @@ func closePR(t *testing.T, dir, prURL string) {
 		t.Fatalf("error closing PR %s: %s", prURL, output)
 	}
 }
+
+func TestDraftPromoteFromStagingToProd(t *testing.T) {
+	// Create mocks
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	promptProvider := promote.NewMockPromptProvider(ctrl)
+
+	// Set expectations
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().PrintStartPreview()
+	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+	promptProvider.EXPECT().PrintEndPreview()
+	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
+	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
+	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
+	promptProvider.EXPECT().PrintDraftPullRequestCreated(gomock.Any())
+	promptProvider.EXPECT().PrintCompleted()
+
+	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
+
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		Dir:             dir,
+		LoadEnvs:        true,
+		LoadReleases:    true,
+		SortEnvsByOrder: true,
+	}
+
+	cat, err := catalog.Load(loadOpts)
+	assert.NoError(t, err)
+
+	// Resolve source and target environments
+	sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "staging")
+	assert.NoError(t, err)
+
+	targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "prod")
+	assert.NoError(t, err)
+
+	targetEnv.Spec.Promotion.AllowAutoMerge = true
+
+	// Perform test
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+
+	opts := promote.Opts{
+		Catalog:   cat,
+		SourceEnv: sourceEnv,
+		TargetEnv: targetEnv,
+		AutoMerge: false,
+		Draft:     true,
+	}
+
+	prURL, err := promotion.Promote(opts)
+	defer closePR(t, dir, prURL)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, prURL)
+
+	require.Equal(t, true, isPullRequestDraft(t, dir, prURL))
+}
+
+func isPullRequestDraft(t *testing.T, dir, url string) bool {
+	cmd := exec.Command("gh", "pr", "view", "--json", "isDraft", url)
+	cmd.Dir = dir
+
+	output, err := cmd.CombinedOutput()
+	require.NoError(t, err, "failed to get PR draft state: %q", output)
+
+	var result struct {
+		IsDraft bool `json:"isDraft"`
+	}
+	require.NoError(t, json.Unmarshal(output, &result), "failed to unmarshal input: %q", output)
+
+	return result.IsDraft
+}
