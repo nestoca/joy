@@ -227,14 +227,15 @@ func NewReleaseRenderCmd() *cobra.Command {
 			}
 
 			return render.Render(cmd.Context(), render.RenderOpts{
-				Env:          env,
-				Release:      releaseName,
-				DefaultChart: cfg.DefaultChart,
-				CacheDir:     cfg.JoyCache,
-				Catalog:      cat,
-				IO:           io,
-				Helm:         helm.CLI{IO: io},
-				Color:        color,
+				Env:           env,
+				Release:       releaseName,
+				DefaultChart:  cfg.DefaultChart,
+				CacheDir:      cfg.JoyCache,
+				ChartMappings: cfg.ChartMappings,
+				Catalog:       cat,
+				IO:            io,
+				Helm:          helm.CLI{IO: io},
+				Color:         color,
 			})
 		},
 	}
