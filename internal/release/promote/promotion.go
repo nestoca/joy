@@ -211,7 +211,6 @@ func getTargetEnvironments(environments []*v1alpha1.Environment, sourceEnvironme
 }
 
 func (p *Promotion) selectCreatingPR(opts *Opts) (bool, error) {
-
 	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
 	if err != nil {
 		return false, fmt.Errorf("selecting create promotion pull request: %w", err)
