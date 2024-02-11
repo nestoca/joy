@@ -24,6 +24,7 @@ func TestRender(t *testing.T) {
 		Catalog       *catalog.Catalog
 		IO            internal.IO
 		SetupHelmMock func(*helm.MockPullRenderer)
+		ChartMappings map[string]any
 	}
 
 	var (
@@ -219,14 +220,12 @@ func TestRender(t *testing.T) {
 							Values: map[string]any{
 								"env":     "{{ .Environment.Name `!}}",
 								"version": "{{ .Release.Spec.Version }}",
-								"image":   map[string]any{"tag": "v1.2.3"},
-								"common":  map[string]any{"annotations": map[string]any{"nesto.ca/deployed-by": "joy"}},
 							},
 						}).
 						Return(nil)
 				},
 			},
-			ExpectedOut: "error hydrating values: template: :4: unterminated raw quoted string\nfallback to raw release.spec.values\n",
+			ExpectedOut: "error hydrating values: template: :1: unterminated raw quoted string\nfallback to raw release.spec.values\n",
 		},
 		{
 			Name: "fail to render",
@@ -277,14 +276,73 @@ func TestRender(t *testing.T) {
 							Values: map[string]any{
 								"env":     "qa",
 								"version": "v1.2.3",
-								"image":   map[string]any{"tag": "v1.2.3"},
-								"common":  map[string]any{"annotations": map[string]any{"nesto.ca/deployed-by": "joy"}},
 							},
 						}).
 						Return(errors.New("bebop"))
 				},
 			},
 			ExpectedError: "rendering chart: bebop",
+		},
+		{
+			Name: "render with chart mappings",
+			Params: RenderTestParams{
+				Env:     "qa",
+				Release: "app",
+				Catalog: &catalog.Catalog{
+					Environments: []*v1alpha1.Environment{
+						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
+					},
+					Releases: &cross.ReleaseList{
+						Items: []*cross.Release{
+							{
+								Name: "app",
+								Releases: []*v1alpha1.Release{
+									{
+										ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "app"},
+										Spec: v1alpha1.ReleaseSpec{
+											Version: "v1.2.3",
+											Values: map[string]any{
+												"env":     "{{ .Environment.Name }}",
+												"version": "{{ .Release.Spec.Version }}",
+											},
+										},
+										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
+									},
+								},
+							},
+						},
+					},
+				},
+				ChartMappings: map[string]any{
+					"image.tag":             "{{ .Release.Spec.Version }}",
+					`annotations.nesto\.ca`: true,
+				},
+				DefaultChart: "default/chart",
+				CacheDir:     "~/.cache/joy/does_not_exist",
+				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
+					mpr.EXPECT().
+						Pull(context.Background(), helm.PullOptions{
+							ChartURL:  "default/chart",
+							Version:   "",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+						}).
+						Return(nil)
+
+					mpr.EXPECT().
+						Render(context.Background(), helm.RenderOpts{
+							Dst:         &stdout,
+							ReleaseName: "app",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							Values: map[string]any{
+								"env":         "qa",
+								"version":     "v1.2.3",
+								"image":       map[string]any{"tag": "v1.2.3"},
+								"annotations": map[string]any{"nesto.ca": true},
+							},
+						}).
+						Return(nil)
+				},
+			},
 		},
 	}
 
@@ -308,13 +366,15 @@ func TestRender(t *testing.T) {
 			}
 
 			err := Render(context.Background(), RenderOpts{
-				Env:          tc.Params.Env,
-				Release:      tc.Params.Release,
-				DefaultChart: tc.Params.DefaultChart,
-				CacheDir:     tc.Params.CacheDir,
-				Catalog:      tc.Params.Catalog,
-				IO:           io,
-				Helm:         helmMock,
+				Env:           tc.Params.Env,
+				Release:       tc.Params.Release,
+				DefaultChart:  tc.Params.DefaultChart,
+				CacheDir:      tc.Params.CacheDir,
+				ChartMappings: tc.Params.ChartMappings,
+				Catalog:       tc.Params.Catalog,
+				IO:            io,
+				Helm:          helmMock,
+				Color:         false,
 			})
 			if tc.ExpectedError != "" {
 				require.EqualError(t, err, tc.ExpectedError)
@@ -325,6 +385,91 @@ func TestRender(t *testing.T) {
 			if tc.ExpectedOut != "" {
 				require.Equal(t, tc.ExpectedOut, stdout.String())
 			}
+		})
+	}
+}
+
+func TestSplitIntoPathSegments(t *testing.T) {
+	cases := []struct {
+		Input    string
+		Segments []string
+	}{
+		{
+			Input:    "common",
+			Segments: []string{"common"},
+		},
+		{
+			Input:    "left.right",
+			Segments: []string{"left", "right"},
+		},
+		{
+			Input:    ".",
+			Segments: []string{"", ""},
+		},
+		{
+			Input:    `\.`,
+			Segments: []string{"."},
+		},
+		{
+			Input:    `left.mid\.dle.right`,
+			Segments: []string{"left", "mid.dle", "right"},
+		},
+		{
+			Input:    `hello\\world`,
+			Segments: []string{`hello\world`},
+		},
+		{
+			Input:    `hello\\\.world`,
+			Segments: []string{`hello\.world`},
+		},
+		{
+			Input:    `hello\\.world`,
+			Segments: []string{`hello\`, `world`},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			require.Equal(t, tc.Segments, splitIntoPathSegments(tc.Input))
+		})
+	}
+}
+
+func TestSetInMap(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Segments []string
+		Value    any
+		Input    map[string]any
+		Expected map[string]any
+	}{
+		{
+			Name:     "top level",
+			Segments: []string{"hello"},
+			Value:    "world",
+			Input:    map[string]any{},
+			Expected: map[string]any{"hello": "world"},
+		},
+		{
+			Name:     "top level value exists",
+			Segments: []string{"hello"},
+			Value:    "world",
+			Input:    map[string]any{"hello": "bob"},
+			Expected: map[string]any{"hello": "bob"},
+		},
+		{
+			Name:     "creates nested objects",
+			Segments: []string{"yes", "no"},
+			Value:    "toaster",
+			Input:    map[string]any{"hello": "world"},
+			Expected: map[string]any{"hello": "world", "yes": map[string]any{"no": "toaster"}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			setInMap(tc.Input, tc.Segments, tc.Value)
+			require.Equal(t, tc.Expected, tc.Input)
 		})
 	}
 }
