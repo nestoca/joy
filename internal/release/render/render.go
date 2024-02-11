@@ -170,18 +170,33 @@ func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment,
 		environment,
 	}
 
-	mappings, err := applyAsTemplate(mappings, params)
-	if err != nil {
-		return nil, fmt.Errorf("applying chartmapping template: %w", err)
-	}
-
 	values := maps.Clone(release.Spec.Values)
-
 	for mapping, value := range mappings {
 		setInMap(values, splitIntoPathSegments(mapping), value)
 	}
 
-	return applyAsTemplate(values, params)
+	data, err := yaml.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := template.New("").Parse(string(data))
+	if err != nil {
+		return nil, err
+	}
+
+	var builder bytes.Buffer
+
+	if err := tmpl.Execute(&builder, params); err != nil {
+		return nil, err
+	}
+
+	var result map[string]any
+	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ManifestColorWriter colorizes helm manifest by searching for document breaks
@@ -238,6 +253,12 @@ func splitIntoPathSegments(input string) (result []string) {
 		escaped bool
 	)
 
+	sanitize := func(value string) string {
+		value = strings.ReplaceAll(value, `\.`, ".")
+		value = strings.ReplaceAll(value, `\\`, `\`)
+		return value
+	}
+
 	for i, c := range input {
 		switch c {
 		case '\\':
@@ -246,7 +267,7 @@ func splitIntoPathSegments(input string) (result []string) {
 			if escaped {
 				continue
 			}
-			result = append(result, strings.ReplaceAll(input[start:i], "\\.", "."))
+			result = append(result, sanitize(input[start:i]))
 			escaped = false
 			start = i + 1
 		default:
@@ -254,38 +275,9 @@ func splitIntoPathSegments(input string) (result []string) {
 		}
 	}
 
-	if start < len(input) {
-		result = append(result, strings.ReplaceAll(input[start:], "\\.", "."))
+	if start <= len(input) {
+		result = append(result, sanitize(input[start:]))
 	}
 
 	return
-}
-
-func applyAsTemplate(values map[string]any, params any) (map[string]any, error) {
-	if values == nil {
-		return nil, nil
-	}
-
-	data, err := yaml.Marshal(values)
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl, err := template.New("").Parse(string(data))
-	if err != nil {
-		return nil, err
-	}
-
-	var builder bytes.Buffer
-
-	if err := tmpl.Execute(&builder, params); err != nil {
-		return nil, err
-	}
-
-	var result map[string]any
-	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
