@@ -17,10 +17,15 @@ type PromptProvider interface {
 	// SelectReleases prompts user to select releases to promote.
 	SelectReleases(list *cross.ReleaseList) (*cross.ReleaseList, error)
 
-	// SelectCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
+	// ConfirmCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
+	// or abort.
+	ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error)
+
+	// SelectCreatingPromotionPullRequest prompts user to select state of promotion PR
 	// or abort.
 	SelectCreatingPromotionPullRequest() (string, error)
 
+	// ConfirmAutoMergePullRequest prompts user to confirm whether to auto-merge promotion pull request or not
 	ConfirmAutoMergePullRequest() (bool, error)
 
 	// PrintNoPromotableReleasesFound prints message that no promotable releases were found for given

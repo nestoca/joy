@@ -89,7 +89,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintEndPreview()
-	promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
+	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest(true, false).Return(true, nil)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
 	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
@@ -223,6 +223,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintEndPreview()
+	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest(false, true).Return(true, nil)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
 	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
 	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
@@ -258,7 +259,6 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
 		TargetEnv: targetEnv,
-		AutoMerge: false,
 		Draft:     true,
 	}
 

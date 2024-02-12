@@ -28,8 +28,8 @@ const (
 	sourceEnvIndex = 0
 	targetEnvIndex = 1
 
-	Ready  = "Create pull request"
-	Draft  = "Create draft pull request"
+	Ready  = "Ready"
+	Draft  = "Draft"
 	Cancel = "Cancel"
 )
 
@@ -168,17 +168,36 @@ func alignColumns(lines []string) []string {
 	return strings.Split(result, "\n")
 }
 
+func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error) {
+
+	var message string
+	var ok bool
+
+	if draft {
+		message = "Creating a draft promotion pull request. Do you wish to continue?"
+	} else if autoMerge {
+		message = "Creating and auto-merging a promotion pull request. Do you wish to continue?"
+	}
+
+	err := survey.AskOne(&survey.Confirm{Message: message}, &ok)
+	if err != nil {
+		return false, fmt.Errorf("asking user for confirmation: %w", err)
+	}
+
+	return ok, nil
+}
+
 func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (answer string, err error) {
 	var selectedAction string
 	actions := []string{Ready, Draft, Cancel}
 	prompt := &survey.Select{
-		Message: "Do you want to create a promotion pull request?",
+		Message: "Select state of promotion PR?",
 		Options: actions,
 	}
 
 	err = survey.AskOne(prompt, &selectedAction)
 	if err != nil {
-		return "", fmt.Errorf("asking user for confirmation: %w", err)
+		return "", fmt.Errorf("asking user for PR state: %w", err)
 	}
 
 	return selectedAction, nil

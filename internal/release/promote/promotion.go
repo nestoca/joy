@@ -129,10 +129,24 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", fmt.Errorf("previewing: %w", err)
 	}
 
-	if opts.Draft {
+	// There's a previous check so only one option can be true at a time
+	autoMerge := opts.AutoMerge
+	draft := opts.Draft
+
+	if autoMerge || draft {
+		confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest(autoMerge, draft)
+		if err != nil {
+			return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
+		}
+		if !confirmed {
+			p.promptProvider.PrintCanceled()
+			return "", nil
+		}
+
 		return p.perform(PerformParams{
-			list:  list,
-			draft: true,
+			list:      list,
+			autoMerge: autoMerge,
+			draft:     draft,
 		})
 	}
 
@@ -144,15 +158,15 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	switch answer {
 	case Ready:
-		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
-			autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
+		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge {
+			confirmed, err := p.promptProvider.ConfirmAutoMergePullRequest()
 			if err != nil {
 				return "", fmt.Errorf("confirming automerge: %w", err)
 			}
-			opts.AutoMerge = autoMerge
+			autoMerge = confirmed
 		}
 	case Draft:
-		opts.Draft = true
+		draft = true
 	case Cancel:
 		p.promptProvider.PrintCanceled()
 		return "", nil
@@ -160,10 +174,9 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	return p.perform(PerformParams{
 		list:      list,
-		autoMerge: opts.AutoMerge,
-		draft:     opts.Draft,
+		autoMerge: autoMerge,
+		draft:     draft,
 	})
-
 }
 
 func (p *Promotion) preview(list *cross.ReleaseList) error {
