@@ -1,3 +1,17 @@
+## [0.25.0](https://github.com/nestoca/joy/compare/v0.24.2...v0.25.0) (2024-02-12)
+
+
+### Features
+
+* **PL-2314:** expose public package for getting values from releases ([7c12ea2](https://github.com/nestoca/joy/commit/7c12ea2695ec24c43fd977b72bef6c36d5f92cc8))
+
+
+### Bug Fixes
+
+* **PL-2314:** added test to release render chart mappings ([0e132c6](https://github.com/nestoca/joy/commit/0e132c6183e6954e6a2c602ac81168da7e09c3bd))
+* **PL-2314:** introduce chart mappings ([a7a9736](https://github.com/nestoca/joy/commit/a7a9736d8ec1af5eff80f5a84d5a3f7335e92e82))
+* **PL-2314:** replicate appset behaviour in rendering ([514e616](https://github.com/nestoca/joy/commit/514e61694af3d17d487e1c343fbbc0be3219753d))
+
 ## [0.24.2](https://github.com/nestoca/joy/compare/v0.24.1...v0.24.2) (2024-02-09)
 
 
