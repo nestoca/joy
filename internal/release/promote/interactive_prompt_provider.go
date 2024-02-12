@@ -187,15 +187,16 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest(autoMerg
 	return ok, nil
 }
 
-func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (answer string, err error) {
+func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (string, error) {
 	var selectedAction string
+
 	actions := []string{Ready, Draft, Cancel}
 	prompt := &survey.Select{
 		Message: "Select state of promotion PR?",
 		Options: actions,
 	}
 
-	err = survey.AskOne(prompt, &selectedAction)
+	err := survey.AskOne(prompt, &selectedAction)
 	if err != nil {
 		return "", fmt.Errorf("asking user for PR state: %w", err)
 	}

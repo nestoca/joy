@@ -25,7 +25,7 @@ type PromptProvider interface {
 	// or abort.
 	SelectCreatingPromotionPullRequest() (string, error)
 
-	// ConfirmAutoMergePullRequest prompts user to confirm whether to auto-merge promotion pull request or not
+	// ConfirmAutoMergePullRequest prompts user to confirm whether to auto-merge promotion PR or not
 	ConfirmAutoMergePullRequest() (bool, error)
 
 	// PrintNoPromotableReleasesFound prints message that no promotable releases were found for given
