@@ -25,15 +25,15 @@ import (
 )
 
 type RenderOpts struct {
-	Env           string
-	Release       string
-	DefaultChart  string
-	CacheDir      string
-	ChartMappings map[string]any
-	Catalog       *catalog.Catalog
-	IO            internal.IO
-	Helm          helm.PullRenderer
-	Color         bool
+	Env          string
+	Release      string
+	DefaultChart string
+	CacheDir     string
+	ValueMapping map[string]any
+	Catalog      *catalog.Catalog
+	IO           internal.IO
+	Helm         helm.PullRenderer
+	Color        bool
 }
 
 func Render(ctx context.Context, params RenderOpts) error {
@@ -72,7 +72,7 @@ func Render(ctx context.Context, params RenderOpts) error {
 		}
 	}
 
-	values, err := hydrateValues(release, environment, params.ChartMappings)
+	values, err := HydrateValues(release, environment, params.ValueMapping)
 	if err != nil {
 		fmt.Fprintln(params.IO.Out, "error hydrating values:", err)
 		fmt.Fprintln(params.IO.Out, "fallback to raw release.spec.values")
@@ -161,7 +161,7 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings map[string]any) (map[string]any, error) {
+func HydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings map[string]any) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
@@ -186,7 +186,6 @@ func hydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment,
 	}
 
 	var builder bytes.Buffer
-
 	if err := tmpl.Execute(&builder, params); err != nil {
 		return nil, err
 	}
@@ -222,6 +221,9 @@ func (w ManifestColorWriter) Write(data []byte) (int, error) {
 	return min(n, len(data)), err
 }
 
+// setInMap modifies the map by adding the value to the path defined by segments.
+// If the path defined by segments already exists, even if it points to a falsy value, this function does nothing.
+// It will not overwite any existing key/value pairs.
 func setInMap(mapping map[string]any, segments []string, value any) {
 	for i, key := range segments {
 		if i == len(segments)-1 {
@@ -275,9 +277,7 @@ func splitIntoPathSegments(input string) (result []string) {
 		}
 	}
 
-	if start <= len(input) {
-		result = append(result, sanitize(input[start:]))
-	}
+	result = append(result, sanitize(input[start:]))
 
 	return
 }

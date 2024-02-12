@@ -24,7 +24,7 @@ func TestRender(t *testing.T) {
 		Catalog       *catalog.Catalog
 		IO            internal.IO
 		SetupHelmMock func(*helm.MockPullRenderer)
-		ChartMappings map[string]any
+		ValueMapping  map[string]any
 	}
 
 	var (
@@ -313,7 +313,7 @@ func TestRender(t *testing.T) {
 						},
 					},
 				},
-				ChartMappings: map[string]any{
+				ValueMapping: map[string]any{
 					"image.tag":             "{{ .Release.Spec.Version }}",
 					`annotations.nesto\.ca`: true,
 				},
@@ -366,15 +366,15 @@ func TestRender(t *testing.T) {
 			}
 
 			err := Render(context.Background(), RenderOpts{
-				Env:           tc.Params.Env,
-				Release:       tc.Params.Release,
-				DefaultChart:  tc.Params.DefaultChart,
-				CacheDir:      tc.Params.CacheDir,
-				ChartMappings: tc.Params.ChartMappings,
-				Catalog:       tc.Params.Catalog,
-				IO:            io,
-				Helm:          helmMock,
-				Color:         false,
+				Env:          tc.Params.Env,
+				Release:      tc.Params.Release,
+				DefaultChart: tc.Params.DefaultChart,
+				CacheDir:     tc.Params.CacheDir,
+				ValueMapping: tc.Params.ValueMapping,
+				Catalog:      tc.Params.Catalog,
+				IO:           io,
+				Helm:         helmMock,
+				Color:        false,
 			})
 			if tc.ExpectedError != "" {
 				require.EqualError(t, err, tc.ExpectedError)
