@@ -33,7 +33,7 @@ type Config struct {
 	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
 	DefaultChart string `yaml:"defaultChart,omitempty"`
 
-	// ChartMappings are used to apply parameters to the chart values. The values of the mapping
+	// ValueMapping are used to apply parameters to the chart values. The values of the mapping
 	// can use the Release and Environment as template values. Chart mappings will not override values
 	// already present in the chart
 	// For example:
@@ -41,7 +41,7 @@ type Config struct {
 	//   image.tag: {{ .Release.Spec.Version }}
 	//   common.annotations.example\.com/custom: true
 	//
-	ChartMappings map[string]any `yaml:"chartMappings,omitempty"`
+	ValueMapping map[string]any `yaml:"valueMapping,omitempty"`
 
 	// FilePath is the path to the config file that was loaded, used to write back to the same file.
 	FilePath string `yaml:"-"`
@@ -114,8 +114,8 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		cfg.DefaultChart = catalogCfg.DefaultChart
 	}
 
-	if catalogCfg.ChartMappings != nil {
-		cfg.ChartMappings = catalogCfg.ChartMappings
+	if catalogCfg.ValueMapping != nil {
+		cfg.ValueMapping = catalogCfg.ValueMapping
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
