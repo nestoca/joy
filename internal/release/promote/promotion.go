@@ -131,9 +131,8 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	if opts.Draft {
 		return p.perform(PerformParams{
-			list:      list,
-			autoMerge: opts.AutoMerge,
-			draft:     opts.Draft,
+			list:  list,
+			draft: true,
 		})
 	}
 
