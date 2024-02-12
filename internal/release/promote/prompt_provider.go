@@ -19,8 +19,13 @@ type PromptProvider interface {
 
 	// ConfirmCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
 	// or abort.
-	ConfirmCreatingPromotionPullRequest() (bool, error)
+	ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error)
 
+	// SelectCreatingPromotionPullRequest prompts user to select state of promotion PR
+	// or abort.
+	SelectCreatingPromotionPullRequest() (string, error)
+
+	// ConfirmAutoMergePullRequest prompts user to confirm whether to auto-merge promotion PR or not
 	ConfirmAutoMergePullRequest() (bool, error)
 
 	// PrintNoPromotableReleasesFound prints message that no promotable releases were found for given
@@ -46,6 +51,9 @@ type PromptProvider interface {
 	// PrintBranchCreated prints message that a new promotion branch was created and promotion changes were committed
 	// and pushed.
 	PrintBranchCreated(branchName, message string)
+
+	// PrintDraftPullRequestCreated prints message that a new promotion draft pull request was created.
+	PrintDraftPullRequestCreated(url string)
 
 	// PrintPullRequestCreated prints message that a new promotion pull request was created.
 	PrintPullRequestCreated(url string)

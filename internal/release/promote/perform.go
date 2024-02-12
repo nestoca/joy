@@ -14,6 +14,7 @@ import (
 type PerformParams struct {
 	list      *cross.ReleaseList
 	autoMerge bool
+	draft     bool
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -74,7 +75,6 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 	p.promptProvider.PrintBranchCreated(branchName, message)
 
 	// Create pull request
-
 	var labels []string
 	if params.autoMerge {
 		labels = append(labels, "auto-merge")
@@ -87,12 +87,17 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 		Title:  prTitle,
 		Body:   prBody,
 		Labels: labels,
+		Draft:  params.draft,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating pull request: %w", err)
 	}
 
-	p.promptProvider.PrintPullRequestCreated(prURL)
+	if params.draft {
+		p.promptProvider.PrintDraftPullRequestCreated(prURL)
+	} else {
+		p.promptProvider.PrintPullRequestCreated(prURL)
+	}
 
 	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {
 		return "", fmt.Errorf("checking out master: %w", err)

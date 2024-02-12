@@ -27,6 +27,10 @@ var Separator = strings.Repeat("—", 80)
 const (
 	sourceEnvIndex = 0
 	targetEnvIndex = 1
+
+	Ready  = "Ready"
+	Draft  = "Draft"
+	Cancel = "Cancel"
 )
 
 func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
@@ -164,18 +168,40 @@ func alignColumns(lines []string) []string {
 	return strings.Split(result, "\n")
 }
 
-func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest() (bool, error) {
-	actions := []string{"Create pull request", "Cancel"}
-	prompt := &survey.Select{
-		Message: "Do you want to create a promotion pull request?",
-		Options: actions,
+func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error) {
+
+	var message string
+	var ok bool
+
+	if draft {
+		message = "Creating a draft promotion pull request. Do you wish to continue?"
+	} else if autoMerge {
+		message = "Creating and auto-merging a promotion pull request. Do you wish to continue?"
 	}
-	var selectedAction string
-	err := survey.AskOne(prompt, &selectedAction)
+
+	err := survey.AskOne(&survey.Confirm{Message: message}, &ok)
 	if err != nil {
 		return false, fmt.Errorf("asking user for confirmation: %w", err)
 	}
-	return selectedAction == actions[0], nil
+
+	return ok, nil
+}
+
+func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (string, error) {
+	var selectedAction string
+
+	actions := []string{Ready, Draft, Cancel}
+	prompt := &survey.Select{
+		Message: "Select state of promotion PR?",
+		Options: actions,
+	}
+
+	err := survey.AskOne(prompt, &selectedAction)
+	if err != nil {
+		return "", fmt.Errorf("asking user for PR state: %w", err)
+	}
+
+	return selectedAction, nil
 }
 
 func (*InteractivePromptProvider) ConfirmAutoMergePullRequest() (answer bool, err error) {
@@ -286,6 +312,10 @@ func (i *InteractivePromptProvider) PrintBranchCreated(branchName, message strin
 		"✅ Committed and pushed new branch %s with message:\n%s\n",
 		style.Resource(branchName),
 		style.SecondaryInfo(message))
+}
+
+func (i *InteractivePromptProvider) PrintDraftPullRequestCreated(url string) {
+	fmt.Printf("✅ Created draft pull request: %s\n", style.Link(url))
 }
 
 func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {

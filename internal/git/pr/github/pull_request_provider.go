@@ -70,6 +70,10 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		"--body", params.Body,
 	}
 
+	if params.Draft {
+		args = append(args, "--draft")
+	}
+
 	for _, label := range params.Labels {
 		args = append(args, "--label", label)
 	}

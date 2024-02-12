@@ -59,6 +59,9 @@ type Opts struct {
 	// AutoMerge indicates if PR created needs the auto-merge label
 	AutoMerge bool
 
+	// Draft indicates if PR created needs to be draft
+	Draft bool
+
 	// SelectedEnvironments is the list of environments selected by the user interactively via `joy env select`.
 	SelectedEnvironments []*v1alpha1.Environment
 }
@@ -126,32 +129,54 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", fmt.Errorf("previewing: %w", err)
 	}
 
-	confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest()
-	if err != nil {
-		return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
+	// There's a previous check so only one option can be true at a time
+	autoMerge := opts.AutoMerge
+	draft := opts.Draft
+
+	if autoMerge || draft {
+		confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest(autoMerge, draft)
+		if err != nil {
+			return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
+		}
+		if !confirmed {
+			p.promptProvider.PrintCanceled()
+			return "", nil
+		}
+
+		return p.perform(PerformParams{
+			list:      list,
+			autoMerge: autoMerge,
+			draft:     draft,
+		})
 	}
-	if !confirmed {
+
+	// Prompt user to select creating a pull request
+	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
+	if err != nil {
+		return "", fmt.Errorf("selecting create promotion pull request: %w", err)
+	}
+
+	switch answer {
+	case Ready:
+		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge {
+			confirmed, err := p.promptProvider.ConfirmAutoMergePullRequest()
+			if err != nil {
+				return "", fmt.Errorf("confirming automerge: %w", err)
+			}
+			autoMerge = confirmed
+		}
+	case Draft:
+		draft = true
+	case Cancel:
 		p.promptProvider.PrintCanceled()
 		return "", nil
 	}
 
-	if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
-		autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
-		if err != nil {
-			return "", fmt.Errorf("confirming automerge: %w", err)
-		}
-		opts.AutoMerge = autoMerge
-	}
-
-	prURL, err := p.perform(PerformParams{
+	return p.perform(PerformParams{
 		list:      list,
-		autoMerge: opts.AutoMerge,
+		autoMerge: autoMerge,
+		draft:     draft,
 	})
-	if err != nil {
-		return "", fmt.Errorf("applying: %w", err)
-	}
-
-	return prURL, nil
 }
 
 func (p *Promotion) preview(list *cross.ReleaseList) error {

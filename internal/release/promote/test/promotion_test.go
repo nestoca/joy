@@ -112,7 +112,7 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
-				args.promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
+				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
 				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), false)
 				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
 					expectedYaml, err := expectedPromotedFile.ToYaml()
@@ -161,7 +161,7 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
-				args.promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest().Return(true, nil)
+				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
 				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), true)
 				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
 					expectedYaml, err := expectedPromotedFile.ToYaml()
