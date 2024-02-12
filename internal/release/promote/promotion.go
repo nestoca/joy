@@ -129,24 +129,42 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", fmt.Errorf("previewing: %w", err)
 	}
 
-	if !opts.Draft {
-		// Prompt user to select creating a pull request
-		cancel, err := p.selectCreatingPR(&opts)
-		if err != nil || cancel {
-			return "", err
-		}
+	if opts.Draft {
+		return p.perform(PerformParams{
+			list:      list,
+			autoMerge: opts.AutoMerge,
+			draft:     opts.Draft,
+		})
 	}
 
-	prURL, err := p.perform(PerformParams{
+	// Prompt user to select creating a pull request
+	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
+	if err != nil {
+		return "", fmt.Errorf("selecting create promotion pull request: %w", err)
+	}
+
+	switch answer {
+	case Ready:
+		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
+			autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
+			if err != nil {
+				return "", fmt.Errorf("confirming automerge: %w", err)
+			}
+			opts.AutoMerge = autoMerge
+		}
+	case Draft:
+		opts.Draft = true
+	case Cancel:
+		p.promptProvider.PrintCanceled()
+		return "", nil
+	}
+
+	return p.perform(PerformParams{
 		list:      list,
 		autoMerge: opts.AutoMerge,
 		draft:     opts.Draft,
 	})
-	if err != nil {
-		return "", fmt.Errorf("applying: %w", err)
-	}
 
-	return prURL, nil
 }
 
 func (p *Promotion) preview(list *cross.ReleaseList) error {
@@ -208,29 +226,4 @@ func getTargetEnvironments(environments []*v1alpha1.Environment, sourceEnvironme
 		return nil, fmt.Errorf("no target environments found to promote from %s", sourceEnvironment.Name)
 	}
 	return envs, nil
-}
-
-func (p *Promotion) selectCreatingPR(opts *Opts) (bool, error) {
-	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
-	if err != nil {
-		return false, fmt.Errorf("selecting create promotion pull request: %w", err)
-	}
-
-	switch answer {
-	case Ready:
-		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge && !opts.AutoMerge {
-			autoMerge, err := p.promptProvider.ConfirmAutoMergePullRequest()
-			if err != nil {
-				return false, fmt.Errorf("confirming automerge: %w", err)
-			}
-			opts.AutoMerge = autoMerge
-		}
-	case Draft:
-		opts.Draft = true
-	case Cancel:
-		p.promptProvider.PrintCanceled()
-		return true, nil
-	}
-
-	return false, nil
 }
