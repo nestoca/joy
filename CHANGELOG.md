@@ -1,3 +1,10 @@
+## [0.26.0](https://github.com/nestoca/joy/compare/v0.25.0...v0.26.0) (2024-02-13)
+
+
+### Features
+
+* **PL-2372:** add joy.LoadCatalogConfig to joy sdk ([c4e376d](https://github.com/nestoca/joy/commit/c4e376d16c7ee63e49842762aac25091fd7959f4))
+
 ## [0.25.0](https://github.com/nestoca/joy/compare/v0.24.2...v0.25.0) (2024-02-12)
 
 
