@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	joyrcFile     = ".joyrc"
-	joyDefaultDir = ".joy"
+	JoyrcFile     = ".joyrc"
+	JoyDefaultDir = ".joy"
 )
 
 type Config struct {
@@ -77,7 +77,7 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 
 	// Load config from .joyrc in configDir
-	joyrcPath := filepath.Join(configDir, joyrcFile)
+	joyrcPath := filepath.Join(configDir, JoyrcFile)
 
 	cfg, err := LoadFile(joyrcPath)
 	if err != nil {
@@ -96,10 +96,10 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 
 	if cfg.CatalogDir == "" {
-		cfg.CatalogDir = filepath.Join(homeDir, joyDefaultDir)
+		cfg.CatalogDir = filepath.Join(homeDir, JoyDefaultDir)
 	}
 
-	catalogJoyrc := filepath.Join(cfg.CatalogDir, joyrcFile)
+	catalogJoyrc := filepath.Join(cfg.CatalogDir, JoyrcFile)
 
 	catalogCfg, err := LoadFile(catalogJoyrc)
 	if err != nil {
