@@ -1,3 +1,10 @@
+## [0.26.1](https://github.com/nestoca/joy/compare/v0.26.0...v0.26.1) (2024-02-13)
+
+
+### Bug Fixes
+
+* **PL-2239:** set skip on empty to false ([#82](https://github.com/nestoca/joy/issues/82)) ([0fbe816](https://github.com/nestoca/joy/commit/0fbe8162397949f9c93bda1f5d76ebe64ae2499a))
+
 ## [0.26.0](https://github.com/nestoca/joy/compare/v0.25.0...v0.26.0) (2024-02-13)
 
 
