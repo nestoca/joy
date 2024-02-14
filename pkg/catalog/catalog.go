@@ -17,9 +17,16 @@ import (
 	"github.com/nestoca/joy/internal/yml"
 )
 
+// Export internal catalog types so that they can worked with from code that use
+// the public joy packages.
+type (
+	ReleaseList = cross.ReleaseList
+	Release     = cross.Release
+)
+
 type Catalog struct {
 	Environments []*v1alpha1.Environment
-	Releases     *cross.ReleaseList
+	Releases     *ReleaseList
 	Projects     []*v1alpha1.Project
 	Files        []*yml.File
 }
