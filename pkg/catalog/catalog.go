@@ -102,7 +102,7 @@ func Load(opts LoadOpts) (*Catalog, error) {
 		validateTags(file.Tree)
 	}
 
-	c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
+	c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, c.Projects, opts.ReleaseFilter)
 	if err != nil {
 		return nil, fmt.Errorf("loading cross-environment releases: %w", err)
 	}
