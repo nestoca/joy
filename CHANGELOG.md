@@ -1,3 +1,10 @@
+## [0.27.0](https://github.com/nestoca/joy/compare/v0.26.2...v0.27.0) (2024-02-15)
+
+
+### Features
+
+* **PL-2385:** improve release list ux ([12ac679](https://github.com/nestoca/joy/commit/12ac679e2e56465d75d9449490fd75af99a0cda2))
+
 ## [0.26.2](https://github.com/nestoca/joy/compare/v0.26.1...v0.26.2) (2024-02-14)
 
 ## [0.26.1](https://github.com/nestoca/joy/compare/v0.26.0...v0.26.1) (2024-02-13)
