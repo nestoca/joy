@@ -52,6 +52,7 @@ func NewReleaseCmd() *cobra.Command {
 func NewReleaseListCmd() *cobra.Command {
 	var releases string
 	var envs string
+	var owners string
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -72,6 +73,9 @@ func NewReleaseListCmd() *cobra.Command {
 				}
 				return strings.Split(envs, ",")
 			}()
+			if owners != "" {
+				filter = filtering.NewOwnerFilter(owners)
+			}
 
 			return list.List(list.Opts{
 				CatalogDir:           cfg.CatalogDir,
@@ -83,6 +87,8 @@ func NewReleaseListCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&envs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
+	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
+	cmd.MarkFlagsMutuallyExclusive("releases", "owners")
 
 	return cmd
 }

@@ -28,7 +28,7 @@ func NewReleaseList(environments []*v1alpha1.Environment) *ReleaseList {
 }
 
 // LoadReleaseList loads all releases for given environments underneath the given base directory.
-func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment, releaseFilter filtering.Filter) (*ReleaseList, error) {
+func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment, projects []*v1alpha1.Project, releaseFilter filtering.Filter) (*ReleaseList, error) {
 	crossReleases := NewReleaseList(environments)
 	for _, file := range allFiles {
 		env := findEnvironmentForReleaseFile(environments, file)
@@ -39,6 +39,13 @@ func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment,
 		rel, err := v1alpha1.LoadRelease(file)
 		if err != nil {
 			return nil, fmt.Errorf("loading release %s: %w", file.Path, err)
+		}
+
+		if rel.Spec.Project != "" && projects != nil && len(projects) != 0 {
+			proj := findProjectForRelease(projects, rel)
+			if proj != nil {
+				rel.Project = proj
+			}
 		}
 
 		// Filter out releases that don't match the filter

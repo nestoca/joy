@@ -47,3 +47,27 @@ func (f *SpecificReleasesFilter) Match(rel *v1alpha1.Release) bool {
 	}
 	return false
 }
+
+type OwnerFilter struct {
+	ReleaseOwners []string
+}
+
+func NewOwnerFilter(ownerNames string) *OwnerFilter {
+	return &OwnerFilter{
+		ReleaseOwners: strings.Split(ownerNames, ","),
+	}
+}
+
+func (f *OwnerFilter) Match(rel *v1alpha1.Release) bool {
+	if rel.Project == nil {
+		return false
+	}
+	for _, name := range f.ReleaseOwners {
+		for _, releaseOwner := range rel.Project.Spec.Owners {
+			if strings.Contains(releaseOwner, name) {
+				return true
+			}
+		}
+	}
+	return false
+}
