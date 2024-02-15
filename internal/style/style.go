@@ -103,3 +103,19 @@ func DiagnosticLabel(s any) string {
 func ResourceKind(s any) string {
 	return color.InBold(s)
 }
+
+func InSyncVersion(s any) string {
+	return color.InGreen(s)
+}
+
+func BehindVersion(s any) string {
+	return color.InYellow(s)
+}
+
+func AheadVersion(s any) string {
+	return color.InPurple(s)
+}
+
+func DirtyVersion(s any) string {
+	return color.InRed(s)
+}

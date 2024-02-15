@@ -10,12 +10,13 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.4.0
 	github.com/hexops/gotextdiff v1.0.3
+	github.com/jedib0t/go-pretty/v6 v6.5.4
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/mock v0.3.0
 	golang.org/x/mod v0.14.0
-	golang.org/x/term v0.14.0
+	golang.org/x/term v0.16.0
 	gopkg.in/godo.v2 v2.0.9
 )
 
@@ -31,7 +32,7 @@ require (
 	github.com/mgutz/str v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
