@@ -40,6 +40,7 @@ func NewReleaseCmd() *cobra.Command {
 
 func NewReleaseListCmd() *cobra.Command {
 	var releases string
+	var envs string
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -54,14 +55,24 @@ func NewReleaseListCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
+			selectedEnvs := func() []string {
+				if envs == "" {
+					return cfg.Environments.Selected
+				}
+				return strings.Split(envs, ",")
+			}()
+
 			return list.List(list.Opts{
-				CatalogDir:   cfg.CatalogDir,
-				SelectedEnvs: cfg.Environments.Selected,
-				Filter:       filter,
+				CatalogDir:           cfg.CatalogDir,
+				SelectedEnvs:         selectedEnvs,
+				Filter:               filter,
+				ReferenceEnvironment: cfg.ReferenceEnvironment,
 			})
 		},
 	}
-	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to all)")
+	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to configured selection or all)")
+	cmd.Flags().StringVarP(&envs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
+
 	return cmd
 }
 

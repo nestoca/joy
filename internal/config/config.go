@@ -33,6 +33,11 @@ type Config struct {
 	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
 	DefaultChart string `yaml:"defaultChart,omitempty"`
 
+	// ReferenceEnvironment is the name of the environment which represents master in git.
+	// IE: if you deploy by default to an environment called "testing" when merging to your main remote branch
+	// then referenceEnvironment should be "testing". This setting allows release versions to be compared to main version.
+	ReferenceEnvironment string `yaml:"referenceEnvironment,omitempty"`
+
 	// ValueMapping are used to apply parameters to the chart values. The values of the mapping
 	// can use the Release and Environment as template values. Chart mappings will not override values
 	// already present in the chart
@@ -116,6 +121,10 @@ func Load(configDir, catalogDir string) (*Config, error) {
 
 	if catalogCfg.ValueMapping != nil {
 		cfg.ValueMapping = catalogCfg.ValueMapping
+	}
+
+	if catalogCfg.ReferenceEnvironment != "" {
+		cfg.ReferenceEnvironment = catalogCfg.ReferenceEnvironment
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {

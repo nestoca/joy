@@ -2,12 +2,15 @@ package list
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"golang.org/x/mod/semver"
 
-	"github.com/olekukonko/tablewriter"
+	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/filtering"
@@ -25,63 +28,121 @@ type Opts struct {
 	// Filter specifies releases to list.
 	// Optional, defaults to listing all releases.
 	Filter filtering.Filter
+
+	ReferenceEnvironment string
 }
 
 func List(opts Opts) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir)
-	if err != nil {
+	if err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir); err != nil {
 		return err
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
+	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             opts.CatalogDir,
 		LoadEnvs:        true,
 		LoadReleases:    true,
-		EnvNames:        opts.SelectedEnvs,
+		ResolveRefs:     true,
 		SortEnvsByOrder: true,
 		ReleaseFilter:   opts.Filter,
-	}
-	cat, err := catalog.Load(loadOpts)
+	})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
 
-	// Set up table writer
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetHeaderLine(false)
-	table.SetAutoWrapText(true)
-	table.SetBorder(false)
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetCenterSeparator("")
+	t := table.NewWriter()
+	t.SetStyle(table.StyleRounded)
 
-	// Add headers
-	releases := cat.Releases
-	headers := []string{"NAME"}
-	for _, env := range releases.Environments {
+	var disallowEnvIndexes []int
+	headers := table.Row{"NAME"}
+	for i, env := range cat.Releases.Environments {
+		if len(opts.SelectedEnvs) > 0 && !slices.Contains(opts.SelectedEnvs, env.Name) {
+			disallowEnvIndexes = append(disallowEnvIndexes, i)
+			continue
+		}
 		headers = append(headers, strings.ToUpper(env.Name))
 	}
-	table.SetHeader(headers)
 
-	// Add rows
-	for _, crossRelease := range releases.Items {
-		row := []string{crossRelease.Name}
-		for _, rel := range crossRelease.Releases {
-			displayVersion := GetReleaseDisplayVersion(rel)
-			row = append(row, displayVersion)
+	t.AppendHeader(headers)
+
+	var useColors bool
+	for _, env := range cat.Environments {
+		if env.Name == opts.ReferenceEnvironment {
+			useColors = true
+			break
 		}
-		table.Append(row)
 	}
 
-	table.Render()
+	if useColors {
+		legend := table.NewWriter()
+		legend.SetStyle(table.StyleRounded)
+
+		legend.AppendRow(table.Row{
+			"Legend: reference-environment: " + opts.ReferenceEnvironment,
+			style.DirtyVersion("pre-release (PR)"),
+			style.BehindVersion("behind"),
+			style.AheadVersion("ahead"),
+			style.InSyncVersion("in-sync"),
+		})
+
+		io.WriteString(os.Stdout, legend.Render()+"\n")
+	}
+
+	for _, crossRelease := range cat.Releases.Items {
+		var masterVersion string
+		row := table.Row{crossRelease.Name}
+
+		for i, rel := range crossRelease.Releases {
+			displayVersion := GetReleaseDisplayVersion(rel)
+			if rel != nil && rel.Environment.Name == opts.ReferenceEnvironment {
+				masterVersion = "v" + displayVersion
+			}
+			if slices.Contains(disallowEnvIndexes, i) {
+				continue
+			}
+			row = append(row, displayVersion)
+		}
+
+		if useColors {
+			for i, value := range row {
+				// The first index corresponds to the name which we do not want to colorize
+				if i == 0 {
+					continue
+				}
+
+				version, _ := value.(string)
+				if version == "-" {
+					continue
+				}
+				if !strings.HasPrefix(version, "v") {
+					version = "v" + version
+				}
+
+				switch semver.Compare(version, masterVersion) {
+				case -1:
+					if semver.Prerelease(version)+semver.Build(version) != "" {
+						row[i] = style.DirtyVersion(value)
+					} else {
+						row[i] = style.BehindVersion(value)
+					}
+				case 0:
+					row[i] = style.InSyncVersion(value)
+				case 1:
+					row[i] = style.AheadVersion(value)
+				}
+			}
+		}
+
+		t.AppendRow(row)
+	}
+
+	io.WriteString(os.Stdout, t.Render()+"\n")
+
 	return nil
 }
 
 func GetReleaseDisplayVersion(rel *v1alpha1.Release) string {
 	if rel == nil {
-		return style.ReleaseNotAvailable("-")
+		return "-"
 	}
 	version := rel.Spec.Version
 	if version == "" {
