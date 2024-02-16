@@ -34,13 +34,7 @@ func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
 		return nil
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		Dir:          catalogDir,
-		LoadEnvs:     true,
-		LoadReleases: true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

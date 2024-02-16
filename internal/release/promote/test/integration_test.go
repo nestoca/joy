@@ -40,15 +40,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		Dir:             dir,
-		LoadEnvs:        true,
-		LoadReleases:    true,
-		SortEnvsByOrder: true,
-	}
-
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: dir})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -98,15 +90,10 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
+	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             dir,
-		LoadEnvs:        true,
-		LoadReleases:    true,
 		SortEnvsByOrder: true,
-	}
-
-	cat, err := catalog.Load(loadOpts)
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -140,15 +127,10 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
+	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             dir,
-		LoadEnvs:        true,
-		LoadReleases:    true,
 		SortEnvsByOrder: true,
-	}
-
-	cat, err := catalog.Load(loadOpts)
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -232,15 +214,10 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
+	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             dir,
-		LoadEnvs:        true,
-		LoadReleases:    true,
 		SortEnvsByOrder: true,
-	}
-
-	cat, err := catalog.Load(loadOpts)
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments

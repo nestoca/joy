@@ -55,12 +55,7 @@ func ImportCert() error {
 		return fmt.Errorf("decoding base64 encoded certificate: %w", err)
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		LoadEnvs:        true,
-		SortEnvsByOrder: true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{SortEnvsByOrder: true})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

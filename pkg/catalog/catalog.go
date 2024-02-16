@@ -36,31 +36,15 @@ type LoadOpts struct {
 	// Dir is the directory to load catalog from.
 	Dir string
 
-	// LoadEnvs controls whether to load environments.
-	LoadEnvs bool
-
 	// EnvNames is the list of environment names to load.
 	EnvNames []string
 
 	// SortByOrder controls whether environments should be sorted by their spec.order property.
 	SortEnvsByOrder bool
 
-	// LoadReleases controls whether to load releases.
-	LoadReleases bool
-
 	// ReleaseFilter allows to specify which releases to load.
 	// Optional, defaults to loading all releases.
 	ReleaseFilter filtering.Filter
-
-	// LoadProjects controls whether to load projects.
-	LoadProjects bool
-
-	// ResolveRefs controls whether to resolve references to related resources. Requires that all referenced resources
-	// are loaded in the catalog.
-	//
-	// For example, if ResolveRefs, LoadReleases and LoadEnvs are all enabled, the release.Environment field will be resolved to the
-	// actual environment object.
-	ResolveRefs bool
 }
 
 func Load(opts LoadOpts) (*Catalog, error) {
@@ -99,45 +83,32 @@ func Load(opts LoadOpts) (*Catalog, error) {
 		}
 	}
 
-	// Load environments
-	if opts.LoadEnvs {
-		c.Environments, err = c.loadEnvironments(opts.EnvNames, opts.SortEnvsByOrder)
-		if err != nil {
-			return nil, fmt.Errorf("loading environments: %w", err)
-		}
+	c.Environments, err = c.loadEnvironments(opts.EnvNames, opts.SortEnvsByOrder)
+	if err != nil {
+		return nil, fmt.Errorf("loading environments: %w", err)
 	}
 
-	// Load projects
-	if opts.LoadProjects {
-		c.Projects, err = c.loadProjects()
-		if err != nil {
-			return nil, fmt.Errorf("loading projects: %w", err)
-		}
+	c.Projects, err = c.loadProjects()
+	if err != nil {
+		return nil, fmt.Errorf("loading projects: %w", err)
 	}
 
-	// Load cross-releases
-	if opts.LoadReleases {
-		allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
-		if err := validateTagsForFiles(allReleaseFiles); err != nil {
-			return nil, fmt.Errorf("release files with invalid tags: %w", err)
-		}
-
-		for _, file := range allReleaseFiles {
-			validateTags(file.Tree)
-		}
-
-		c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
-		if err != nil {
-			return nil, fmt.Errorf("loading cross-environment releases: %w", err)
-		}
+	allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
+	if err := validateTagsForFiles(allReleaseFiles); err != nil {
+		return nil, fmt.Errorf("release files with invalid tags: %w", err)
 	}
 
-	// Resolve references
-	if opts.ResolveRefs {
-		err = c.ResolveRefs()
-		if err != nil {
-			return nil, fmt.Errorf("resolving references: %w", err)
-		}
+	for _, file := range allReleaseFiles {
+		validateTags(file.Tree)
+	}
+
+	c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, opts.ReleaseFilter)
+	if err != nil {
+		return nil, fmt.Errorf("loading cross-environment releases: %w", err)
+	}
+
+	if err := c.ResolveRefs(); err != nil {
+		return nil, fmt.Errorf("resolving references: %w", err)
 	}
 
 	return c, nil

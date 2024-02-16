@@ -17,12 +17,7 @@ func List(catalogDir string) error {
 		return err
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		Dir:          catalogDir,
-		LoadProjects: true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

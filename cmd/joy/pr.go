@@ -33,7 +33,6 @@ func NewPRPromoteCmd() *cobra.Command {
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,
-				LoadEnvs:        true,
 				SortEnvsByOrder: true,
 			}
 			cat, err := catalog.Load(loadOpts)

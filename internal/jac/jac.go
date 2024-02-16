@@ -37,12 +37,7 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 		return err
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		Dir:          catalogDir,
-		LoadProjects: true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}
@@ -66,15 +61,7 @@ func ListReleasePeople(catalogDir string, extraArgs []string) error {
 		return err
 	}
 
-	// Load catalog
-	loadOpts := catalog.LoadOpts{
-		Dir:          catalogDir,
-		LoadEnvs:     true,
-		LoadReleases: true,
-		LoadProjects: true,
-		ResolveRefs:  true,
-	}
-	cat, err := catalog.Load(loadOpts)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
 	}

@@ -65,7 +65,6 @@ The sealed secrets public certificate must also have been imported into the envi
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,
-				LoadEnvs:        true,
 				SortEnvsByOrder: true,
 			}
 

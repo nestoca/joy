@@ -17,10 +17,8 @@ type Opts struct {
 
 func Promote(opts Opts) error {
 	loadOpts := catalog.LoadOpts{
-		Dir:          opts.CatalogDir,
-		LoadEnvs:     true,
-		LoadReleases: true,
-		EnvNames:     []string{opts.Environment},
+		Dir:      opts.CatalogDir,
+		EnvNames: []string{opts.Environment},
 	}
 	cat, err := catalog.Load(loadOpts)
 	if err != nil {

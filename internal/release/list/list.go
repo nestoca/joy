@@ -39,11 +39,8 @@ func List(opts Opts) error {
 
 	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             opts.CatalogDir,
-		LoadEnvs:        true,
-		LoadReleases:    true,
-		ResolveRefs:     true,
-		SortEnvsByOrder: true,
 		ReleaseFilter:   opts.Filter,
+		SortEnvsByOrder: true,
 	})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)

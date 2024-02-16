@@ -144,13 +144,7 @@ func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
 
 		group.AddMsg(success, "Catalog detected")
 
-		cata, err := opts.LoadCatalog(catalog.LoadOpts{
-			Dir:          catalogDir,
-			LoadEnvs:     true,
-			LoadProjects: true,
-			LoadReleases: true,
-			ResolveRefs:  false,
-		})
+		cata, err := opts.LoadCatalog(catalog.LoadOpts{Dir: catalogDir})
 		if err != nil {
 			group.AddMsg(failed, label("Failed loading catalog", err.Error()))
 			return
