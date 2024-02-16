@@ -1,12 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/TwiN/go-color"
 	"github.com/spf13/cobra"
+	"golang.org/x/mod/semver"
 	"golang.org/x/term"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -35,6 +41,9 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleaseSelectCmd())
 	cmd.AddCommand(NewReleasePeopleCmd())
 	cmd.AddCommand(NewReleaseRenderCmd())
+	cmd.AddCommand(NewGitQueryCommand("diff"))
+	cmd.AddCommand(NewGitQueryCommand("log"))
+
 	return cmd
 }
 
@@ -256,5 +265,119 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVar(&color, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
+	return cmd
+}
+
+func NewGitQueryCommand(command string) *cobra.Command {
+	var (
+		source string
+		target string
+	)
+	cmd := &cobra.Command{
+		Use:  "git-" + command,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
+			if err != nil {
+				return err
+			}
+
+			release := args[0]
+
+			var sourceRelease, targetRelease *v1alpha1.Release
+
+			for _, cross := range cat.Releases.Items {
+				if cross.Name != release {
+					continue
+				}
+				for _, rel := range cross.Releases {
+					if rel == nil {
+						continue
+					}
+					switch rel.Environment.Name {
+					case source:
+						sourceRelease = rel
+					case target:
+						targetRelease = rel
+					}
+				}
+				break
+			}
+
+			if sourceRelease == nil {
+				return fmt.Errorf("no source found")
+			}
+			if targetRelease == nil {
+				return fmt.Errorf("no target found")
+			}
+
+			repoCache := filepath.Join(cfg.JoyCache, "src")
+			if err := os.MkdirAll(repoCache, 0o755); err != nil {
+				return fmt.Errorf("failed to ensure repo cache: %w", err)
+			}
+
+			var (
+				project = sourceRelease.Project
+				repo    = sourceRelease.Project.Spec.Repository
+			)
+
+			if _, err := os.Stat(filepath.Join(repoCache, project.Name)); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					return err
+				}
+
+				clone := exec.Command("gh", "repo", "clone", repo, project.Name)
+				clone.Stdout = os.Stdout
+				clone.Stderr = os.Stderr
+				clone.Dir = repoCache
+
+				if err := clone.Run(); err != nil {
+					return fmt.Errorf("failed to clone project: %w", err)
+				}
+			}
+
+			repoDir := filepath.Join(repoCache, project.Name)
+
+			getRevision := func(version string) string {
+				version = "v" + version
+				if branch := semver.Prerelease(version); branch != "" {
+					return branch
+				}
+				return path.Join(project.Spec.RepositorySubdirectory, version)
+			}
+
+			fetch := exec.Command("git", "fetch", "--tags")
+			fetch.Dir = repoDir
+
+			if err := fetch.Run(); err != nil {
+				return fmt.Errorf("failed to pull project: %w", err)
+			}
+
+			expr := getRevision(sourceRelease.Spec.Version) + ".." + getRevision(targetRelease.Spec.Version)
+
+			gitargs := append([]string{"git", command}, args[1:]...)
+			gitargs = append(gitargs, expr)
+
+			fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
+			fmt.Println()
+
+			gitCommand := exec.Command("git", gitargs[1:]...)
+			gitCommand.Dir = repoDir
+			gitCommand.Stdout = os.Stdout
+			gitCommand.Stderr = os.Stderr
+			gitCommand.Stdin = os.Stdin
+
+			return gitCommand.Run()
+		},
+	}
+
+	cmd.Flags().StringVar(&source, "source", "", "source environment to compare release from")
+	cmd.Flags().StringVar(&target, "target", "", "target environment to compare release to")
+
+	cmd.MarkFlagRequired("source")
+	cmd.MarkFlagRequired("target")
+
 	return cmd
 }
