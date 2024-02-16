@@ -106,8 +106,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,
-				LoadEnvs:        true,
-				LoadReleases:    true,
 				SortEnvsByOrder: true,
 				ReleaseFilter:   filter,
 			}
@@ -223,10 +221,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 			// Load catalog
 			loadOpts := catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,
-				LoadReleases:    true,
-				LoadEnvs:        true,
 				SortEnvsByOrder: true,
-				ResolveRefs:     true,
 			}
 
 			cat, err := catalog.Load(loadOpts)
