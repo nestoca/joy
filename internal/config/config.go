@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	JoyrcFile     = ".joyrc"
-	JoyDefaultDir = ".joy"
+	CatalogConfigFile = "catalog.yaml"
+	JoyrcFile         = ".joyrc"
+	JoyDefaultDir     = ".joy"
 )
 
 type Config struct {
@@ -40,7 +41,7 @@ type Config struct {
 
 	// ValueMapping are used to apply parameters to the chart values. The values of the mapping
 	// can use the Release and Environment as template values. Chart mappings will not override values
-	// already present in the chart
+	// already present in the chart.
 	// For example:
 	//
 	//   image.tag: {{ .Release.Spec.Version }}
@@ -104,9 +105,17 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		cfg.CatalogDir = filepath.Join(homeDir, JoyDefaultDir)
 	}
 
-	catalogJoyrc := filepath.Join(cfg.CatalogDir, JoyrcFile)
+	catalogConfigFilepath := ""
+	// TODO: Removed once everybody is using a version of joy that supports the new catalog.yaml
+	// After: 2024-04-16
+	for _, filename := range []string{CatalogConfigFile, JoyrcFile} {
+		if _, err := os.Stat(cfg.CatalogDir); err != nil {
+			catalogConfigFilepath = filepath.Join(cfg.CatalogDir, filename)
+			break
+		}
+	}
 
-	catalogCfg, err := LoadFile(catalogJoyrc)
+	catalogCfg, err := LoadFile(catalogConfigFilepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load catalog configuration: %w", err)
 	}
