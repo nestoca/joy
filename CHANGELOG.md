@@ -1,3 +1,5 @@
+## [0.27.1](https://github.com/nestoca/joy/compare/v0.27.0...v0.27.1) (2024-02-19)
+
 ## [0.27.0](https://github.com/nestoca/joy/compare/v0.26.2...v0.27.0) (2024-02-15)
 
 
