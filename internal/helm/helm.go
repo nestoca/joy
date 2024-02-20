@@ -8,8 +8,9 @@ import (
 	"net/url"
 	"os/exec"
 
-	"github.com/nestoca/joy/internal"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal"
 )
 
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE

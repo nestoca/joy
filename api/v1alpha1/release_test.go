@@ -3,9 +3,10 @@ package v1alpha1_test
 import (
 	"testing"
 
-	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 )
 
 func TestReleaseUnmarshalling(t *testing.T) {
