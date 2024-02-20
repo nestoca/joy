@@ -371,7 +371,7 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				return fmt.Errorf("failed to pull project: %w", err)
 			}
 
-			expr := getRevision(targetRelease.Spec.Version) + ".." + getRevision(sourceRelease.Spec.Version)
+			expr := getRevision(sourceRelease.Spec.Version) + ".." + getRevision(targetRelease.Spec.Version)
 
 			gitargs := append([]string{"git", command}, args[1:]...)
 			gitargs = append(gitargs, expr)
