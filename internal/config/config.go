@@ -46,12 +46,38 @@ type Config struct {
 	//   image.tag: {{ .Release.Spec.Version }}
 	//   common.annotations.example\.com/custom: true
 	//
-	ValueMapping map[string]any `yaml:"valueMapping,omitempty"`
+	ValueMapping *ValueMapping `yaml:"valueMapping,omitempty"`
 
 	// FilePath is the path to the config file that was loaded, used to write back to the same file.
 	FilePath string `yaml:"-"`
 
 	JoyCache string `yaml:"-"`
+}
+
+type ValueMapping struct {
+	ReleaseIgnoreList []string
+	Mappings          map[string]any
+}
+
+// Provides custom unmarshalling for backwards compatibility with map[string]string valueMappings.
+// This is a stop gap so that we do not break current the current joy CLI interpretation of the catalog.
+// However this will enable us to add a releaseIgnoreList to ignore injecting default values into charts
+// that would otherwise break.
+func (mapping *ValueMapping) UnmarshalYAML(node *yaml.Node) error {
+	// Cannot decode directly to mapping otherwise we have entered the infinite recursive look up unmarshalling
+	var value struct {
+		ReleaseIgnoreList []string       `yaml:"releaseIgnoreList,omitempty"`
+		Mappings          map[string]any `yaml:"mappings,omitempty"`
+	}
+
+	if err := node.Decode(&value); err == nil && len(value.Mappings) > 0 {
+		*mapping = ValueMapping(value)
+		return nil
+	}
+
+	// for backwards compatibility with versions that declared value mappings as map[string]string
+	// we need to be able unmarshal that structure.
+	return node.Decode(&mapping.Mappings)
 }
 
 type Environments struct {
