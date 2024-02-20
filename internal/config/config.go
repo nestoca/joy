@@ -53,6 +53,8 @@ type Config struct {
 
 	JoyCache string `yaml:"-"`
 
+	RepositoriesDir string `yaml:"repositoriesDir,omitempty"`
+
 	// Default GitHub organization to infer the repository from the project name.
 	GitHubOrganization string `yaml:"githubOrganization,omitempty"`
 }

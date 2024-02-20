@@ -314,31 +314,28 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				return fmt.Errorf("no target found")
 			}
 
-			repoCache := filepath.Join(cfg.JoyCache, "src")
-			if err := os.MkdirAll(repoCache, 0o755); err != nil {
-				return fmt.Errorf("failed to ensure repo cache: %w", err)
+			repositoriesDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
+			if err := os.MkdirAll(repositoriesDir, 0o755); err != nil {
+				return fmt.Errorf("failed to ensure repoName cache: %w", err)
 			}
 
-			var (
-				project = sourceRelease.Project
-				repo    = sourceRelease.Project.Spec.Repository
-			)
+			project := sourceRelease.Project
 
-			repoDir := filepath.Join(repoCache, project.Name)
+			repoName := project.Spec.Repository
+			if repoName == "" {
+				repoName = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
+			}
+
+			repoDir := filepath.Join(repositoriesDir, strings.Split(repoName, "/")[1])
 			if _, err := os.Stat(repoDir); err != nil {
 				if !errors.Is(err, os.ErrNotExist) {
 					return err
 				}
 
-				repo = project.Spec.Repository
-				if repo == "" {
-					repo = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
-				}
-
-				clone := exec.Command("gh", "repo", "clone", repo, repoDir)
+				clone := exec.Command("gh", "repo", "clone", repoName, repoDir)
 				clone.Stdout = os.Stdout
 				clone.Stderr = os.Stderr
-				clone.Dir = repoCache
+				clone.Dir = repositoriesDir
 
 				if err := clone.Run(); err != nil {
 					return fmt.Errorf("failed to clone project: %w", err)
@@ -387,7 +384,7 @@ func NewGitQueryCommand(command string) *cobra.Command {
 			gitCommand.Stdout = os.Stdout
 			gitCommand.Stderr = os.Stderr
 			gitCommand.Stdin = os.Stdin
-			gitCommand.Env = []string{"GIT_PAGER=cat"}
+			gitCommand.Env = os.Environ()
 
 			return gitCommand.Run()
 		},
