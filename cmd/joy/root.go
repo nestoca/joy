@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -58,7 +59,7 @@ func NewRootCmd(version string) *cobra.Command {
 				if version != "" && semver.Compare(version, cfg.MinVersion) < 0 {
 					return fmt.Errorf("current version %q is less than required minimum version %q. Please update joy", version, cfg.MinVersion)
 				}
-				if !semver.IsValid(version) {
+				if !semver.IsValid(version) && os.Getenv("JOY_DEV_NO_PROMPT") != "1" {
 					var ok bool
 					prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
 					if err := survey.AskOne(prompt, &ok); err != nil {
