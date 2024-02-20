@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -345,15 +346,25 @@ func NewGitQueryCommand(command string) *cobra.Command {
 			}
 
 			getRevision := func(version string) string {
-				subDirectory := "api"
-				if project.Spec.RepositorySubdirectory != "" {
-					subDirectory = project.Spec.RepositorySubdirectory
+				if !strings.HasPrefix(version, "v") {
+					version = "v" + version
 				}
-				version = fmt.Sprintf("%s/v%s", subDirectory, version)
 				if branch := semver.Prerelease(version); branch != "" {
+					// Cannot work with nestoca -> our docker-tags are a subset of branch names and are modified
+					// TODO: implement a heuristic? Can be faulty. Or do not support PRs?
+					// For now the current implementation will try to match on the branch but will not find it.
+					// which is just another way to fail.
 					return branch
 				}
-				return path.Join(project.Spec.RepositorySubdirectory, version)
+
+				// TODO: discuss: this is a nesto sepcific assumption of the current situation. Perhaps some repositories won't
+				// need a tag prefix. Think front-end as well
+				subdirectory := cmp.Or(project.Spec.RepositorySubdirectory, "api")
+
+				// TODO: discuss: version is preserving the `v` prefix from above. If a user doesn't use v prefixes this will
+				// result in a useless git revision. Perhaps the project should provide a templated string instead:
+				// git-tag-template: api/v{{ .Release.Spec.Version }}
+				return path.Join(subdirectory, version)
 			}
 
 			fetch := exec.Command("git", "fetch", "--tags")
