@@ -323,12 +323,18 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				repo    = sourceRelease.Project.Spec.Repository
 			)
 
-			if _, err := os.Stat(filepath.Join(repoCache, project.Name)); err != nil {
+			repoDir := filepath.Join(repoCache, project.Name)
+			if _, err := os.Stat(repoDir); err != nil {
 				if !errors.Is(err, os.ErrNotExist) {
 					return err
 				}
 
-				clone := exec.Command("gh", "repo", "clone", repo, project.Name)
+				repo = project.Spec.Repository
+				if repo == "" {
+					repo = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
+				}
+
+				clone := exec.Command("gh", "repo", "clone", repo, repoDir)
 				clone.Stdout = os.Stdout
 				clone.Stderr = os.Stderr
 				clone.Dir = repoCache
@@ -338,10 +344,12 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				}
 			}
 
-			repoDir := filepath.Join(repoCache, project.Name)
-
 			getRevision := func(version string) string {
-				version = "v" + version
+				subDirectory := "api"
+				if project.Spec.RepositorySubdirectory != "" {
+					subDirectory = project.Spec.RepositorySubdirectory
+				}
+				version = fmt.Sprintf("%s/v%s", subDirectory, version)
 				if branch := semver.Prerelease(version); branch != "" {
 					return branch
 				}
@@ -355,7 +363,7 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				return fmt.Errorf("failed to pull project: %w", err)
 			}
 
-			expr := getRevision(sourceRelease.Spec.Version) + ".." + getRevision(targetRelease.Spec.Version)
+			expr := getRevision(targetRelease.Spec.Version) + ".." + getRevision(sourceRelease.Spec.Version)
 
 			gitargs := append([]string{"git", command}, args[1:]...)
 			gitargs = append(gitargs, expr)
@@ -368,6 +376,7 @@ func NewGitQueryCommand(command string) *cobra.Command {
 			gitCommand.Stdout = os.Stdout
 			gitCommand.Stderr = os.Stderr
 			gitCommand.Stdin = os.Stdin
+			gitCommand.Env = []string{"GIT_PAGER=cat"}
 
 			return gitCommand.Run()
 		},
