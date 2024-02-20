@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	CatalogConfigFile = "catalog.yaml"
+	CatalogConfigFile = "joy.yaml"
 	JoyrcFile         = ".joyrc"
 	JoyDefaultDir     = ".joy"
 )
