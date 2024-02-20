@@ -169,7 +169,6 @@ func alignColumns(lines []string) []string {
 }
 
 func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error) {
-
 	var message string
 	var ok bool
 

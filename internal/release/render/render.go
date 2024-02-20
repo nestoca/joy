@@ -16,6 +16,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
+	"gopkg.in/yaml.v3"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
@@ -23,7 +25,6 @@ import (
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/catalog"
-	"gopkg.in/yaml.v3"
 )
 
 type RenderOpts struct {
