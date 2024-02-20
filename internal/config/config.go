@@ -52,6 +52,9 @@ type Config struct {
 	FilePath string `yaml:"-"`
 
 	JoyCache string `yaml:"-"`
+
+	// Default GitHub organization to infer the repository from the project name.
+	GitHubOrganization string `yaml:"githubOrganization,omitempty"`
 }
 
 type ValueMapping struct {
@@ -151,6 +154,10 @@ func Load(configDir, catalogDir string) (*Config, error) {
 
 	if catalogCfg.ReferenceEnvironment != "" {
 		cfg.ReferenceEnvironment = catalogCfg.ReferenceEnvironment
+	}
+
+	if catalogCfg.GitHubOrganization != "" {
+		cfg.GitHubOrganization = catalogCfg.GitHubOrganization
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
