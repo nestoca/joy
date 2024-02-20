@@ -56,8 +56,11 @@ func NewRootCmd(version string) *cobra.Command {
 
 			if !skipVersionCheck {
 				if version != "" && semver.Compare(version, cfg.MinVersion) < 0 {
-					return fmt.Errorf("current version %q is less than required minimum version %q. Please update joy", version, cfg.MinVersion)
+					err := fmt.Errorf("current version %q is less than required minimum version %q", version, cfg.MinVersion)
+					fmt.Println("Please update joy! >> brew update && brew upgrade joy")
+					return err
 				}
+
 				if !semver.IsValid(version) {
 					var ok bool
 					prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
