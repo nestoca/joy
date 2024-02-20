@@ -8,6 +8,7 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -24,7 +25,7 @@ func TestRender(t *testing.T) {
 		Catalog       *catalog.Catalog
 		IO            internal.IO
 		SetupHelmMock func(*helm.MockPullRenderer)
-		ValueMapping  map[string]any
+		ValueMapping  *config.ValueMapping
 	}
 
 	var (
@@ -313,10 +314,10 @@ func TestRender(t *testing.T) {
 						},
 					},
 				},
-				ValueMapping: map[string]any{
+				ValueMapping: &config.ValueMapping{Mappings: map[string]any{
 					"image.tag":             "{{ .Release.Spec.Version }}",
 					`annotations.nesto\.ca`: true,
-				},
+				}},
 				DefaultChart: "default/chart",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
@@ -338,6 +339,68 @@ func TestRender(t *testing.T) {
 								"version":     "v1.2.3",
 								"image":       map[string]any{"tag": "v1.2.3"},
 								"annotations": map[string]any{"nesto.ca": true},
+							},
+						}).
+						Return(nil)
+				},
+			},
+		},
+		{
+			Name: "render with ignored chart mappings",
+			Params: RenderTestParams{
+				Env:     "qa",
+				Release: "app",
+				Catalog: &catalog.Catalog{
+					Environments: []*v1alpha1.Environment{
+						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
+					},
+					Releases: &cross.ReleaseList{
+						Items: []*cross.Release{
+							{
+								Name: "app",
+								Releases: []*v1alpha1.Release{
+									{
+										ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "app"},
+										Spec: v1alpha1.ReleaseSpec{
+											Version: "v1.2.3",
+											Values: map[string]any{
+												"env":     "{{ .Environment.Name }}",
+												"version": "{{ .Release.Spec.Version }}",
+											},
+										},
+										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
+									},
+								},
+							},
+						},
+					},
+				},
+				ValueMapping: &config.ValueMapping{
+					ReleaseIgnoreList: []string{"app"},
+					Mappings: map[string]any{
+						"image.tag":             "{{ .Release.Spec.Version }}",
+						`annotations.nesto\.ca`: true,
+					},
+				},
+				DefaultChart: "default/chart",
+				CacheDir:     "~/.cache/joy/does_not_exist",
+				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
+					mpr.EXPECT().
+						Pull(context.Background(), helm.PullOptions{
+							ChartURL:  "default/chart",
+							Version:   "",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+						}).
+						Return(nil)
+
+					mpr.EXPECT().
+						Render(context.Background(), helm.RenderOpts{
+							Dst:         &stdout,
+							ReleaseName: "app",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							Values: map[string]any{
+								"env":     "qa",
+								"version": "v1.2.3",
 							},
 						}).
 						Return(nil)

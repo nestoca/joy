@@ -11,12 +11,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/cross"
@@ -29,7 +31,7 @@ type RenderOpts struct {
 	Release      string
 	DefaultChart string
 	CacheDir     string
-	ValueMapping map[string]any
+	ValueMapping *config.ValueMapping
 	Catalog      *catalog.Catalog
 	IO           internal.IO
 	Helm         helm.PullRenderer
@@ -161,7 +163,7 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func HydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings map[string]any) (map[string]any, error) {
+func HydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings *config.ValueMapping) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
@@ -171,8 +173,10 @@ func HydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment,
 	}
 
 	values := maps.Clone(release.Spec.Values)
-	for mapping, value := range mappings {
-		setInMap(values, splitIntoPathSegments(mapping), value)
+	if mappings != nil && !slices.Contains(mappings.ReleaseIgnoreList, release.Name) {
+		for mapping, value := range mappings.Mappings {
+			setInMap(values, splitIntoPathSegments(mapping), value)
+		}
 	}
 
 	data, err := yaml.Marshal(values)
