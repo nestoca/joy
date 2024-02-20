@@ -55,11 +55,11 @@ func NewRootCmd(version string) *cobra.Command {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			if !skipVersionCheck {
+			if !skipVersionCheck && os.Getenv("JOY_DEV_SKIP_VERSION_CHECK") != "1" {
 				if version != "" && semver.Compare(version, cfg.MinVersion) < 0 {
 					return fmt.Errorf("current version %q is less than required minimum version %q. Please update joy", version, cfg.MinVersion)
 				}
-				if !semver.IsValid(version) && os.Getenv("JOY_DEV_NO_PROMPT") != "1" {
+				if !semver.IsValid(version) {
 					var ok bool
 					prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
 					if err := survey.AskOne(prompt, &ok); err != nil {
