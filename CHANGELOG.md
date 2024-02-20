@@ -1,3 +1,10 @@
+## [0.27.2](https://github.com/nestoca/joy/compare/v0.27.1...v0.27.2) (2024-02-20)
+
+
+### Bug Fixes
+
+* **PL-2372:** add release ignore list for value mappings ([13c61f5](https://github.com/nestoca/joy/commit/13c61f5d9936d28ccd48a53eccc6d3456da2bc97))
+
 ## [0.27.1](https://github.com/nestoca/joy/compare/v0.27.0...v0.27.1) (2024-02-19)
 
 ## [0.27.0](https://github.com/nestoca/joy/compare/v0.26.2...v0.27.0) (2024-02-15)
