@@ -69,7 +69,7 @@ func TestExecutableDiagnostics(t *testing.T) {
 						Type:  "failed",
 						Value: "Version does not meet minimum of v2.0.0 required by catalog",
 						Details: Messages{
-							{Type: "hint", Value: "Update joy using: brew upgrade joy"},
+							{Type: "hint", Value: "Update joy using: brew update && brew upgrade joy"},
 						},
 					},
 				},
