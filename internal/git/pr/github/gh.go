@@ -80,3 +80,20 @@ func EnsureInstalledAndAuthenticated() error {
 
 	return nil
 }
+
+type CloneOptions struct {
+	RepoURL string
+	OutDir  string
+}
+
+func Clone(dir string, opts CloneOptions) error {
+	args := []string{"repo", "clone", opts.RepoURL}
+	if opts.OutDir != "" {
+		args = append(args, opts.OutDir)
+	}
+	out, err := executeAndGetOutput(dir, args...)
+	if err != nil {
+		return fmt.Errorf("error: %s", out)
+	}
+	return nil
+}
