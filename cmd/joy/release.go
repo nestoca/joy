@@ -35,7 +35,7 @@ import (
 func NewReleaseCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "release",
-		Aliases: []string{"releases", "rel"},
+		Aliases: []string{"releases", "rel", "r"},
 		Short:   "Manage releases",
 		Long:    `Manage releases, such as promoting a release in a given environment.`,
 		GroupID: "core",
@@ -95,7 +95,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
-		Aliases: []string{"prom"},
+		Aliases: []string{"prom", "p"},
 		Short:   "Promote releases across environments",
 		Args:    cobra.RangeArgs(0, 1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -278,8 +278,9 @@ func NewGitCommands() *cobra.Command {
 			target string
 		)
 		cmd := &cobra.Command{
-			Use:  command + " <release>",
-			Args: cobra.MinimumNArgs(1),
+			Use:     command + " <release>",
+			Aliases: []string{command[0:1]},
+			Args:    cobra.MinimumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				cfg := config.FromContext(cmd.Context())
 
@@ -415,8 +416,9 @@ func NewGitCommands() *cobra.Command {
 	}
 
 	root := &cobra.Command{
-		Use:   "git",
-		Short: "apply git commands to releases between environments",
+		Use:     "git",
+		Aliases: []string{"g"},
+		Short:   "apply git commands to releases between environments",
 	}
 
 	root.AddCommand(buildCommand("diff"))
