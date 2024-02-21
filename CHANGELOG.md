@@ -1,3 +1,19 @@
+## [0.28.0](https://github.com/nestoca/joy/compare/v0.27.3...v0.28.0) (2024-02-21)
+
+
+### Features
+
+* **PL-2409:** add gitTagTemplate to project spec ([afe5f9c](https://github.com/nestoca/joy/commit/afe5f9c49e73f757a13980429b4c05a396c3c6fc))
+* **PL-2409:** add joy release git diff and log ([55c4338](https://github.com/nestoca/joy/commit/55c433886880d09c894572176e71e58109666fc3))
+* **PL-2409:** allow to skip the dev prompt ([be0e7df](https://github.com/nestoca/joy/commit/be0e7dfcc305e02645f97f0c719ce12d684de12e))
+* **PL-2409:** allow to use the same repositories ([37989b2](https://github.com/nestoca/joy/commit/37989b29382f8ce2176a0833fd418e2372505d8f))
+* **PL-2409:** infer the repo name ([ccfb80e](https://github.com/nestoca/joy/commit/ccfb80e7b6a0d30cfec2cd8db56198d0d2194d41))
+* **PL-2409:** match --skip-version-check flag ([07cbf81](https://github.com/nestoca/joy/commit/07cbf81ea949e49d382d74ae78263fe2c8085465))
+* **PL-2409:** reformat code ([f2eef6e](https://github.com/nestoca/joy/commit/f2eef6e922e3d8d0e9e0d4e035ec625bab99812a))
+* **PL-2409:** rename source to from and target to to for release git commands ([75d52f6](https://github.com/nestoca/joy/commit/75d52f6387bdcd9528471a5c8bebc60c44055a5a))
+* **PL-2409:** rename source to from and target to to for release git commands ([c13325c](https://github.com/nestoca/joy/commit/c13325c09921677ee64bc80ef60243a8f1e042e0))
+* **PL-2409:** revert change to diff range ([db016a8](https://github.com/nestoca/joy/commit/db016a8fa520f014f6ac3909c000ac1eb4e4df4d))
+
 ## [0.27.3](https://github.com/nestoca/joy/compare/v0.27.2...v0.27.3) (2024-02-20)
 
 ## [0.27.2](https://github.com/nestoca/joy/compare/v0.27.1...v0.27.2) (2024-02-20)
