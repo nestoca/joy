@@ -45,8 +45,7 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleaseSelectCmd())
 	cmd.AddCommand(NewReleasePeopleCmd())
 	cmd.AddCommand(NewReleaseRenderCmd())
-	cmd.AddCommand(NewGitQueryCommand("diff"))
-	cmd.AddCommand(NewGitQueryCommand("log"))
+	cmd.AddCommand(NewGitCommands())
 
 	return cmd
 }
@@ -272,144 +271,156 @@ func NewReleaseRenderCmd() *cobra.Command {
 	return cmd
 }
 
-func NewGitQueryCommand(command string) *cobra.Command {
-	var (
-		source string
-		target string
-	)
-	cmd := &cobra.Command{
-		Use:  "git-" + command,
-		Args: cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
+func NewGitCommands() *cobra.Command {
+	buildCommand := func(command string) *cobra.Command {
+		var (
+			source string
+			target string
+		)
+		cmd := &cobra.Command{
+			Use:  command + " <release>",
+			Args: cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				cfg := config.FromContext(cmd.Context())
 
-			if target == "" {
-				target = cfg.ReferenceEnvironment
-			}
-
-			if target == "" {
-				return fmt.Errorf("unable to determine target environment: specify target or set your reference environment in your config")
-			}
-
-			cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
-			if err != nil {
-				return err
-			}
-
-			release := args[0]
-
-			var sourceRelease, targetRelease *v1alpha1.Release
-
-			for _, cross := range cat.Releases.Items {
-				if cross.Name != release {
-					continue
+				if target == "" {
+					target = cfg.ReferenceEnvironment
 				}
-				for _, rel := range cross.Releases {
-					if rel == nil {
-						continue
-					}
-					switch rel.Environment.Name {
-					case source:
-						sourceRelease = rel
-					case target:
-						targetRelease = rel
-					}
+
+				if target == "" {
+					return fmt.Errorf("unable to determine target environment: specify target or set your reference environment in your config")
 				}
-				break
-			}
 
-			if sourceRelease == nil {
-				return fmt.Errorf("no source release found")
-			}
-			if targetRelease == nil {
-				return fmt.Errorf("no target release found")
-			}
-
-			sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
-			if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-				return fmt.Errorf("failed to ensure repoName cache: %w", err)
-			}
-
-			project := sourceRelease.Project
-
-			repository := project.Spec.Repository
-			if repository == "" {
-				repository = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
-			}
-
-			repoDir := filepath.Join(sourceDir, path.Base(repository))
-			if _, err := os.Stat(repoDir); err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
+				cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
+				if err != nil {
 					return err
 				}
 
-				cloneOptions := github.CloneOptions{
-					RepoURL: repository,
-					OutDir:  repoDir,
-				}
-				if err := github.Clone(sourceDir, cloneOptions); err != nil {
-					return fmt.Errorf("failed to clone project: %w", err)
-				}
-			}
+				release := args[0]
 
-			if err := git.FetchTags(repoDir); err != nil {
-				return fmt.Errorf("fetching git tags: %w", err)
-			}
+				var sourceRelease, targetRelease *v1alpha1.Release
 
-			tmpl, err := func() (*template.Template, error) {
-				templateSource := cmp.Or(project.Spec.GitTagTemplate, cfg.DefaultGitTagTemplate)
-				if templateSource == "" {
-					return nil, nil
-				}
-				return template.New("").Parse(templateSource)
-			}()
-			if err != nil {
-				return fmt.Errorf("parsing config gitTagTemplate: %w", err)
-			}
-
-			getRevision := func(release *v1alpha1.Release) (string, error) {
-				if tmpl == nil {
-					return release.Spec.Version, nil
+				for _, cross := range cat.Releases.Items {
+					if cross.Name != release {
+						continue
+					}
+					for _, rel := range cross.Releases {
+						if rel == nil {
+							continue
+						}
+						switch rel.Environment.Name {
+						case source:
+							sourceRelease = rel
+						case target:
+							targetRelease = rel
+						}
+					}
+					break
 				}
 
-				var buffer bytes.Buffer
-				if err := tmpl.Execute(&buffer, struct{ Release *v1alpha1.Release }{release}); err != nil {
-					return "", fmt.Errorf("executing template: %w", err)
+				if sourceRelease == nil {
+					return fmt.Errorf("no source release found")
+				}
+				if targetRelease == nil {
+					return fmt.Errorf("no target release found")
 				}
 
-				return buffer.String(), nil
-			}
+				sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
+				if err := os.MkdirAll(sourceDir, 0o755); err != nil {
+					return fmt.Errorf("failed to ensure repoName cache: %w", err)
+				}
 
-			sourceTag, err := getRevision(sourceRelease)
-			if err != nil {
-				return fmt.Errorf("getting source tag from release: %w", err)
-			}
+				project := sourceRelease.Project
 
-			targetTag, err := getRevision(targetRelease)
-			if err != nil {
-				return fmt.Errorf("getting target tag from release: %w", err)
-			}
+				repository := project.Spec.Repository
+				if repository == "" {
+					repository = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
+				}
 
-			gitargs := append([]string{"git", command}, args[1:]...)
-			gitargs = append(gitargs, sourceTag+".."+targetTag)
+				repoDir := filepath.Join(sourceDir, path.Base(repository))
+				if _, err := os.Stat(repoDir); err != nil {
+					if !errors.Is(err, os.ErrNotExist) {
+						return err
+					}
 
-			fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
-			fmt.Println()
+					cloneOptions := github.CloneOptions{
+						RepoURL: repository,
+						OutDir:  repoDir,
+					}
+					if err := github.Clone(sourceDir, cloneOptions); err != nil {
+						return fmt.Errorf("failed to clone project: %w", err)
+					}
+				}
 
-			gitCommand := exec.Command("git", gitargs[1:]...)
-			gitCommand.Dir = repoDir
-			gitCommand.Stdout = os.Stdout
-			gitCommand.Stderr = os.Stderr
-			gitCommand.Stdin = os.Stdin
+				if err := git.FetchTags(repoDir); err != nil {
+					return fmt.Errorf("fetching git tags: %w", err)
+				}
 
-			return gitCommand.Run()
-		},
+				tmpl, err := func() (*template.Template, error) {
+					templateSource := cmp.Or(project.Spec.GitTagTemplate, cfg.DefaultGitTagTemplate)
+					if templateSource == "" {
+						return nil, nil
+					}
+					return template.New("").Parse(templateSource)
+				}()
+				if err != nil {
+					return fmt.Errorf("parsing config gitTagTemplate: %w", err)
+				}
+
+				getRevision := func(release *v1alpha1.Release) (string, error) {
+					if tmpl == nil {
+						return release.Spec.Version, nil
+					}
+
+					var buffer bytes.Buffer
+					if err := tmpl.Execute(&buffer, struct{ Release *v1alpha1.Release }{release}); err != nil {
+						return "", fmt.Errorf("executing template: %w", err)
+					}
+
+					return buffer.String(), nil
+				}
+
+				sourceTag, err := getRevision(sourceRelease)
+				if err != nil {
+					return fmt.Errorf("getting source tag from release: %w", err)
+				}
+
+				targetTag, err := getRevision(targetRelease)
+				if err != nil {
+					return fmt.Errorf("getting target tag from release: %w", err)
+				}
+
+				gitargs := append([]string{"git", command}, args[1:]...)
+				gitargs = append(gitargs, sourceTag+".."+targetTag)
+
+				fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
+				fmt.Println()
+
+				gitCommand := exec.Command("git", gitargs[1:]...)
+				gitCommand.Dir = repoDir
+				gitCommand.Stdout = os.Stdout
+				gitCommand.Stderr = os.Stderr
+				gitCommand.Stdin = os.Stdin
+
+				return gitCommand.Run()
+			},
+		}
+
+		cmd.Flags().StringVar(&source, "source", "", "source environment to compare release from")
+		cmd.Flags().StringVar(&target, "target", "", "target environment to compare release to")
+
+		cmd.MarkFlagRequired("from")
+
+		return cmd
 	}
 
-	cmd.Flags().StringVar(&source, "from", "", "source environment to compare release from")
-	cmd.Flags().StringVar(&target, "to", "", "target environment to compare release to")
+	root := &cobra.Command{
+		Use:   "git",
+		Short: "apply git commands to releases between environments",
+	}
 
-	cmd.MarkFlagRequired("from")
+	root.AddCommand(buildCommand("diff"))
+	root.AddCommand(buildCommand("log"))
 
-	return cmd
+	return root
 }
