@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"errors"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
 	"path"
@@ -13,13 +15,11 @@ import (
 
 	"github.com/TwiN/go-color"
 	"github.com/spf13/cobra"
-	"golang.org/x/mod/semver"
 	"golang.org/x/term"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
@@ -310,10 +310,10 @@ func NewGitQueryCommand(command string) *cobra.Command {
 			}
 
 			if sourceRelease == nil {
-				return fmt.Errorf("no source found")
+				return fmt.Errorf("no source release found")
 			}
 			if targetRelease == nil {
-				return fmt.Errorf("no target found")
+				return fmt.Errorf("no target release found")
 			}
 
 			sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
@@ -343,36 +343,42 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				}
 			}
 
-			getRevision := func(version string) string {
-				if !strings.HasPrefix(version, "v") {
-					version = "v" + version
-				}
-				if branch := semver.Prerelease(version); branch != "" {
-					// Cannot work with nestoca -> our docker-tags are a subset of branch names and are modified
-					// TODO: implement a heuristic? Can be faulty. Or do not support PRs?
-					// For now the current implementation will try to match on the branch but will not find it.
-					// which is just another way to fail.
-					return branch
+			tmpl, err := func() (*template.Template, error) {
+				if project.Spec.GitTagTemplate == "" {
+					return nil, nil
 				}
 
-				// TODO: discuss: this is a nesto sepcific assumption of the current situation. Perhaps some repositories won't
-				// need a tag prefix. Think front-end as well
-				subdirectory := cmp.Or(project.Spec.RepositorySubdirectory, "api")
-
-				// TODO: discuss: version is preserving the `v` prefix from above. If a user doesn't use v prefixes this will
-				// result in a useless git revision. Perhaps the project should provide a templated string instead:
-				// git-tag-template: api/v{{ .Release.Spec.Version }}
-				return path.Join(subdirectory, version)
+				return template.New("").Parse(project.Spec.GitTagTemplate)
+			}()
+			if err != nil {
+				return fmt.Errorf("parsing config gitTagTemplate: %w", err)
 			}
 
-			if err := git.FetchTags(repoDir); err != nil {
-				return fmt.Errorf("failed to fetch project tags: %w", err)
+			getRevision := func(release *v1alpha1.Release) (string, error) {
+				if tmpl == nil {
+					return release.Spec.Version, nil
+				}
+
+				var buffer bytes.Buffer
+				if err := tmpl.Execute(&buffer, struct{ Release *v1alpha1.Release }{release}); err != nil {
+					return "", fmt.Errorf("executing template: %w", err)
+				}
+
+				return buffer.String(), nil
 			}
 
-			expr := getRevision(sourceRelease.Spec.Version) + ".." + getRevision(targetRelease.Spec.Version)
+			sourceTag, err := getRevision(sourceRelease)
+			if err != nil {
+				return fmt.Errorf("getting source tag from release: %w", err)
+			}
+
+			targetTag, err := getRevision(targetRelease)
+			if err != nil {
+				return fmt.Errorf("getting target tag from release: %w", err)
+			}
 
 			gitargs := append([]string{"git", command}, args[1:]...)
-			gitargs = append(gitargs, expr)
+			gitargs = append(gitargs, sourceTag+".."+targetTag)
 
 			fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
 			fmt.Println()
