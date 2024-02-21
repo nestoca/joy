@@ -393,8 +393,8 @@ func NewGitQueryCommand(command string) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&source, "source", "", "source environment to compare release from")
-	cmd.Flags().StringVar(&target, "target", "", "target environment to compare release to")
+	cmd.Flags().StringVar(&source, "from", "", "source environment to compare release from")
+	cmd.Flags().StringVar(&target, "to", "", "target environment to compare release to")
 
 	cmd.MarkFlagRequired("source")
 	cmd.MarkFlagRequired("target")
