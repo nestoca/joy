@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/TwiN/go-color"
@@ -89,9 +88,8 @@ func NewReleaseListCmd() *cobra.Command {
 }
 
 func NewReleasePromoteCmd() *cobra.Command {
-	var releases string
 	var sourceEnv, targetEnv string
-	var autoMerge, draft bool
+	var autoMerge, draft, noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -102,49 +100,55 @@ func NewReleasePromoteCmd() *cobra.Command {
 			if autoMerge && draft {
 				return fmt.Errorf("flags --auto-merge and --draft cannot be used together")
 			}
+			if noPrompt {
+				if len(args) == 0 {
+					return fmt.Errorf("releases are required when no-prompt is set")
+				}
+				if sourceEnv == "" {
+					return fmt.Errorf("source environment is required when no-prompt is set")
+				}
+				if targetEnv == "" {
+					return fmt.Errorf("target environment is required when no-prompt is set")
+				}
+			}
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
 
-			// Filtering
 			var filter filtering.Filter
-			if releases != "" {
-				filter = filtering.NewNamePatternFilter(releases)
-			} else if len(cfg.Releases.Selected) > 0 {
+			if len(releases) == 0 && len(cfg.Releases.Selected) > 0 {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			// Load catalog
-			loadOpts := catalog.LoadOpts{
+			cat, err := catalog.Load(catalog.LoadOpts{
 				Dir:             cfg.CatalogDir,
 				SortEnvsByOrder: true,
 				ReleaseFilter:   filter,
-			}
-			cat, err := catalog.Load(loadOpts)
+			})
 			if err != nil {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
 
-			// Resolve source and target environments
 			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
 			if err != nil {
 				return err
 			}
+
 			targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, targetEnv)
 			if err != nil {
 				return err
 			}
 
-			// Resolve environments selected by user via `joy env select`
 			selectedEnvironments := v1alpha1.GetEnvironmentsByNames(cat.Environments, cfg.Environments.Selected)
 
-			// Perform promotion
 			opts := promote.Opts{
 				Catalog:              cat,
 				SourceEnv:            sourceEnv,
 				TargetEnv:            targetEnv,
-				ReleasesFiltered:     filter != nil,
+				Releases:             releases,
+				ReleasesFiltered:     len(releases) > 0 || filter != nil,
+				NoPrompt:             noPrompt,
 				AutoMerge:            autoMerge,
 				Draft:                draft,
 				SelectedEnvironments: selectedEnvironments,
@@ -159,20 +163,9 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Target environment (interactive if not specified)")
 	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Add auto-merge label to release PR")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create draft release PR")
-	addArgumentsToUsage(cmd, "releases", "Comma-separated list of releases (interactive if not specified)")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "do not prompt")
 
 	return cmd
-}
-
-// addArgumentsToUsage adds positional arguments and their descriptions to the usage template of a command.
-func addArgumentsToUsage(cmd *cobra.Command, argumentsAndDescriptions ...string) {
-	var builder strings.Builder
-	builder.WriteString("Arguments:\n")
-	for i := 0; i < len(argumentsAndDescriptions)-1; i += 2 {
-		builder.WriteString(fmt.Sprintf("  %-21s %s\n", argumentsAndDescriptions[i], argumentsAndDescriptions[i+1]))
-	}
-	globalSectionPattern := regexp.MustCompile(`(?m)^Global Flags:`)
-	cmd.SetUsageTemplate(globalSectionPattern.ReplaceAllString(cmd.UsageTemplate(), builder.String()+"\n$0"))
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
