@@ -74,7 +74,6 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 
 	p.promptProvider.PrintBranchCreated(branchName, message)
 
-	// Create pull request
 	var labels []string
 	if params.autoMerge {
 		labels = append(labels, "auto-merge")

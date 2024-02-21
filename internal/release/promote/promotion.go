@@ -53,8 +53,14 @@ type Opts struct {
 	// TargetEnv is the target environment to promote to.
 	TargetEnv *v1alpha1.Environment
 
-	// ReleasesFiltered indicates whether releases were filtered out by the user via command line flag or interactive selection.
+	// Releases are the already selected releases.
+	// If there is more than one, no need to prompt the user to select releases.
+	Releases []string
+
 	ReleasesFiltered bool
+
+	// NoPrompt means that the Promote function should avoid interactive prompts at all costs.
+	NoPrompt bool
 
 	// AutoMerge indicates if PR created needs the auto-merge label
 	AutoMerge bool
@@ -69,8 +75,7 @@ type Opts struct {
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
 // returning its URL if any.
 func (p *Promotion) Promote(opts Opts) (string, error) {
-	err := p.gitProvider.EnsureCleanAndUpToDateWorkingCopy()
-	if err != nil {
+	if err := p.gitProvider.EnsureCleanAndUpToDateWorkingCopy(); err != nil {
 		return "", err
 	}
 
@@ -111,12 +116,18 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("getting releases for promotion: %w", err)
 	}
+
 	if !list.HasAnyPromotableReleases() {
 		p.promptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 		return "", nil
 	}
 
-	list, err = p.promptProvider.SelectReleases(list)
+	list, err = func() (*cross.ReleaseList, error) {
+		if len(opts.Releases) > 0 {
+			return list.OnlySpecificReleases(opts.Releases), nil
+		}
+		return p.promptProvider.SelectReleases(list)
+	}()
 	if err != nil {
 		return "", fmt.Errorf("selecting releases to promote: %w", err)
 	}
@@ -125,16 +136,25 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	if err := p.preview(list); err != nil {
-		return "", fmt.Errorf("previewing: %w", err)
+	if !opts.NoPrompt {
+		if err := p.preview(list); err != nil {
+			return "", fmt.Errorf("previewing: %w", err)
+		}
 	}
 
 	// There's a previous check so only one option can be true at a time
-	autoMerge := opts.AutoMerge
-	draft := opts.Draft
+	performParams := PerformParams{
+		list:      list,
+		autoMerge: opts.AutoMerge,
+		draft:     opts.Draft,
+	}
 
-	if autoMerge || draft {
-		confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest(autoMerge, draft)
+	if opts.NoPrompt {
+		return p.perform(performParams)
+	}
+
+	if opts.AutoMerge || opts.Draft {
+		confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest(opts.AutoMerge, opts.Draft)
 		if err != nil {
 			return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
 		}
@@ -143,11 +163,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 			return "", nil
 		}
 
-		return p.perform(PerformParams{
-			list:      list,
-			autoMerge: autoMerge,
-			draft:     draft,
-		})
+		return p.perform(performParams)
 	}
 
 	// Prompt user to select creating a pull request
@@ -163,20 +179,16 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("confirming automerge: %w", err)
 			}
-			autoMerge = confirmed
+			performParams.autoMerge = confirmed
 		}
 	case Draft:
-		draft = true
+		performParams.draft = true
 	case Cancel:
 		p.promptProvider.PrintCanceled()
 		return "", nil
 	}
 
-	return p.perform(PerformParams{
-		list:      list,
-		autoMerge: autoMerge,
-		draft:     draft,
-	})
+	return p.perform(performParams)
 }
 
 func (p *Promotion) preview(list *cross.ReleaseList) error {
