@@ -1,3 +1,10 @@
+## [0.29.0](https://github.com/nestoca/joy/compare/v0.28.1...v0.29.0) (2024-02-21)
+
+
+### Features
+
+* add aliases to some commands ([e06ab8d](https://github.com/nestoca/joy/commit/e06ab8d70cd304177ffd2dd84cb457f1a037f86c))
+
 ## [0.28.1](https://github.com/nestoca/joy/compare/v0.28.0...v0.28.1) (2024-02-21)
 
 ## [0.28.0](https://github.com/nestoca/joy/compare/v0.27.3...v0.28.0) (2024-02-21)
