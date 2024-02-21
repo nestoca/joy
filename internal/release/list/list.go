@@ -7,9 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"golang.org/x/mod/semver"
-
 	"github.com/nestoca/joy/api/v1alpha1"
+	"golang.org/x/mod/semver"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
