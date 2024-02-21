@@ -20,6 +20,7 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
@@ -282,6 +283,14 @@ func NewGitQueryCommand(command string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 
+			if target == "" {
+				target = cfg.ReferenceEnvironment
+			}
+
+			if target == "" {
+				return fmt.Errorf("unable to determine target environment: specify target or set your reference environment in your config")
+			}
+
 			cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
 			if err != nil {
 				return err
@@ -343,12 +352,16 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				}
 			}
 
+			if err := git.FetchTags(repoDir); err != nil {
+				return fmt.Errorf("fetching git tags: %w", err)
+			}
+
 			tmpl, err := func() (*template.Template, error) {
-				if project.Spec.GitTagTemplate == "" {
+				templateSource := cmp.Or(project.Spec.GitTagTemplate, cfg.DefaultGitTagTemplate)
+				if templateSource == "" {
 					return nil, nil
 				}
-
-				return template.New("").Parse(project.Spec.GitTagTemplate)
+				return template.New("").Parse(templateSource)
 			}()
 			if err != nil {
 				return fmt.Errorf("parsing config gitTagTemplate: %w", err)
@@ -396,8 +409,7 @@ func NewGitQueryCommand(command string) *cobra.Command {
 	cmd.Flags().StringVar(&source, "from", "", "source environment to compare release from")
 	cmd.Flags().StringVar(&target, "to", "", "target environment to compare release to")
 
-	cmd.MarkFlagRequired("source")
-	cmd.MarkFlagRequired("target")
+	cmd.MarkFlagRequired("from")
 
 	return cmd
 }

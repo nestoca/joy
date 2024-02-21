@@ -56,7 +56,11 @@ type Config struct {
 	RepositoriesDir string `yaml:"repositoriesDir,omitempty"`
 
 	// Default GitHub organization to infer the repository from the project name.
-	GitHubOrganization string `yaml:"githubOrganization,omitempty"`
+	GitHubOrganization string `yaml:"gitHubOrganization,omitempty"`
+
+	// DefaultGitTagTemplate serves as the default gitTagTemplate for projects
+	// Can be overriden in the project spec
+	DefaultGitTagTemplate string `yaml:"defaultGitTagTemplate,omitempty"`
 }
 
 type ValueMapping struct {
@@ -65,7 +69,7 @@ type ValueMapping struct {
 }
 
 // Provides custom unmarshalling for backwards compatibility with map[string]string valueMappings.
-// This is a stop gap so that we do not break current the current joy CLI interpretation of the catalog.
+// This is a stop gap so that we do not break the current joy CLI interpretation of the catalog.
 // However this will enable us to add a releaseIgnoreList to ignore injecting default values into charts
 // that would otherwise break.
 func (mapping *ValueMapping) UnmarshalYAML(node *yaml.Node) error {
@@ -160,6 +164,10 @@ func Load(configDir, catalogDir string) (*Config, error) {
 
 	if catalogCfg.GitHubOrganization != "" {
 		cfg.GitHubOrganization = catalogCfg.GitHubOrganization
+	}
+
+	if catalogCfg.DefaultGitTagTemplate != "" {
+		cfg.DefaultGitTagTemplate = catalogCfg.DefaultGitTagTemplate
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
