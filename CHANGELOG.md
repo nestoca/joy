@@ -1,3 +1,10 @@
+## [0.29.1](https://github.com/nestoca/joy/compare/v0.29.0...v0.29.1) (2024-02-21)
+
+
+### Bug Fixes
+
+* git, ignore hooks when committing ([6412d8a](https://github.com/nestoca/joy/commit/6412d8ae0b8aaec2de1d7c0997ceeb4b208ac9b0))
+
 ## [0.29.0](https://github.com/nestoca/joy/compare/v0.28.1...v0.29.0) (2024-02-21)
 
 
