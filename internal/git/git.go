@@ -133,7 +133,7 @@ func Add(dir string, files []string) error {
 }
 
 func Commit(dir, message string) error {
-	cmd := exec.Command("git", "-C", dir, "commit", "-m", message)
+	cmd := exec.Command("git", "-C", dir, "commit", "--no-verify", "-m", message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(output))
