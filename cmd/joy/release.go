@@ -19,6 +19,8 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
@@ -314,30 +316,29 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				return fmt.Errorf("no target found")
 			}
 
-			repositoriesDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
-			if err := os.MkdirAll(repositoriesDir, 0o755); err != nil {
+			sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
+			if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 				return fmt.Errorf("failed to ensure repoName cache: %w", err)
 			}
 
 			project := sourceRelease.Project
 
-			repoName := project.Spec.Repository
-			if repoName == "" {
-				repoName = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
+			repository := project.Spec.Repository
+			if repository == "" {
+				repository = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
 			}
 
-			repoDir := filepath.Join(repositoriesDir, strings.Split(repoName, "/")[1])
+			repoDir := filepath.Join(sourceDir, path.Base(repository))
 			if _, err := os.Stat(repoDir); err != nil {
 				if !errors.Is(err, os.ErrNotExist) {
 					return err
 				}
 
-				clone := exec.Command("gh", "repo", "clone", repoName, repoDir)
-				clone.Stdout = os.Stdout
-				clone.Stderr = os.Stderr
-				clone.Dir = repositoriesDir
-
-				if err := clone.Run(); err != nil {
+				cloneOptions := github.CloneOptions{
+					RepoURL: repository,
+					OutDir:  repoDir,
+				}
+				if err := github.Clone(sourceDir, cloneOptions); err != nil {
 					return fmt.Errorf("failed to clone project: %w", err)
 				}
 			}
@@ -364,11 +365,8 @@ func NewGitQueryCommand(command string) *cobra.Command {
 				return path.Join(subdirectory, version)
 			}
 
-			fetch := exec.Command("git", "fetch", "--tags")
-			fetch.Dir = repoDir
-
-			if err := fetch.Run(); err != nil {
-				return fmt.Errorf("failed to pull project: %w", err)
+			if err := git.FetchTags(repoDir); err != nil {
+				return fmt.Errorf("failed to fetch project tags: %w", err)
 			}
 
 			expr := getRevision(sourceRelease.Spec.Version) + ".." + getRevision(targetRelease.Spec.Version)
@@ -384,7 +382,6 @@ func NewGitQueryCommand(command string) *cobra.Command {
 			gitCommand.Stdout = os.Stdout
 			gitCommand.Stderr = os.Stderr
 			gitCommand.Stdin = os.Stdin
-			gitCommand.Env = os.Environ()
 
 			return gitCommand.Run()
 		},
