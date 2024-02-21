@@ -39,7 +39,7 @@ func diagnoseExecutable(cfg *config.Config, cliVersion string, opts ExecutableOp
 		group.AddMsg(
 			failed,
 			fmt.Sprintf("Version does not meet minimum of %s required by catalog", style.Code(cfg.MinVersion)),
-			msg(hint, fmt.Sprintf("Update joy using: %s", style.Code("brew upgrade joy"))),
+			msg(hint, fmt.Sprintf("Update joy using: %s", style.Code("brew update && brew upgrade joy"))),
 		)
 		return
 	}
