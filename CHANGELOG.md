@@ -1,3 +1,10 @@
+## [0.29.3](https://github.com/nestoca/joy/compare/v0.29.2...v0.29.3) (2024-02-22)
+
+
+### Bug Fixes
+
+* **PL-2416:** make rel prom scriptable ([f7e5aa2](https://github.com/nestoca/joy/commit/f7e5aa23b9e89fe10b8844900f37ff3a911a32c1))
+
 ## [0.29.2](https://github.com/nestoca/joy/compare/v0.29.1...v0.29.2) (2024-02-22)
 
 
