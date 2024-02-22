@@ -12,6 +12,8 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
+
+	"golang.org/x/mod/semver"
 )
 
 // ReleaseList describes multiple releases across multiple environments
@@ -147,6 +149,15 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		// Determine source and target releases
 		sourceRelease := item.Releases[sourceEnvIndex]
 		targetRelease := item.Releases[targetEnvIndex]
+
+		//Check for version in source Release
+		if targetEnv.Name == "qa" || targetEnv.Name == "production" {
+			version := "v" + sourceRelease.Spec.Version
+			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
+				continue
+			}
+		}
+
 		newItem := NewRelease(item.Name, []*v1alpha1.Environment{sourceEnv, targetEnv})
 		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
