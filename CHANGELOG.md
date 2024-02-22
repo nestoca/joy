@@ -1,3 +1,10 @@
+## [0.29.2](https://github.com/nestoca/joy/compare/v0.29.1...v0.29.2) (2024-02-22)
+
+
+### Bug Fixes
+
+* tell people to run `brew update` first ([0b4b2cf](https://github.com/nestoca/joy/commit/0b4b2cf00fb5ea6434264f3c7b1c5f1c86fd73f1))
+
 ## [0.29.1](https://github.com/nestoca/joy/compare/v0.29.0...v0.29.1) (2024-02-21)
 
 
