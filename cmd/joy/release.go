@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/TwiN/go-color"
@@ -384,17 +385,25 @@ func NewGitCommands() *cobra.Command {
 					return fmt.Errorf("getting target tag from release: %w", err)
 				}
 
-				gitargs := append([]string{"git", command}, args[1:]...)
-				gitargs = append(gitargs, sourceTag+".."+targetTag)
+				gitArgs := append([]string{"git", command}, args[1:]...)
+				gitArgs = append(gitArgs, sourceTag+".."+targetTag)
 
-				fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
+				if project.Spec.RepositorySubpaths != nil {
+					if !slices.Contains(gitArgs, "--") {
+						gitArgs = append(gitArgs, "--")
+					}
+					gitArgs = append(gitArgs, project.Spec.RepositorySubpaths...)
+				}
+
+				fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitArgs, " ")), color.InCyan("in"), color.InBold(repoDir))
 				fmt.Println()
 
-				gitCommand := exec.Command("git", gitargs[1:]...)
+				gitCommand := exec.Command("git", gitArgs[1:]...)
 				gitCommand.Dir = repoDir
 				gitCommand.Stdout = os.Stdout
 				gitCommand.Stderr = os.Stderr
 				gitCommand.Stdin = os.Stdin
+				gitCommand.Env = os.Environ()
 
 				return gitCommand.Run()
 			},

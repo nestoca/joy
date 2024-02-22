@@ -29,8 +29,9 @@ type ProjectSpec struct {
 	// Git repository of the project.
 	Repository string `yaml:"repository,omitempty" json:"repository,omitempty"`
 
-	// Location of the project in the repository. Should be empty if the whole repository is the project.
-	RepositorySubdirectory string `yaml:"repositorySubdirectory,omitempty" json:"repositorySubdirectory,omitempty"`
+	// Location of the project files in the repository. Should be empty if the whole repository is the project.
+	// If there is more than one location, specify the main subdirectory of the project first.
+	RepositorySubpaths []string `yaml:"repositorySubpaths,omitempty" json:"repositorySubpaths,omitempty"`
 
 	// GitTagTemplate allows you to configure what your git tag look like relative to a release via go templates
 	// example: gitTagTemplate: api/v{{ .Release.Spec.Version }}
