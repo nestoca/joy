@@ -3,9 +3,13 @@ package promote
 import (
 	"fmt"
 
+	"github.com/nestoca/joy/internal/release"
+
+	"github.com/nestoca/joy/internal/github"
+	"github.com/nestoca/joy/internal/project"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
-	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -23,23 +27,70 @@ type Promotion struct {
 
 	// YamlWriter is the writer of YAML files.
 	yamlWriter YamlWriter
+
+	commitTemplate            string
+	pullRequestTemplate       string
+	getProjectRepositoryFunc  func(proj *v1alpha1.Project) string
+	getProjectSourceDirFunc   func(proj *v1alpha1.Project) (string, error)
+	getCommitsMetadataFunc    func(projectDir, from, to string) ([]*CommitMetadata, error)
+	getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error)
+	getReleaseGitTagFunc      func(release *v1alpha1.Release) (string, error)
 }
 
-func NewPromotion(prompt PromptProvider, gitProvider GitProvider, pullRequestProvider pr.PullRequestProvider, yamlWriter YamlWriter) *Promotion {
+func NewPromotion(
+	prompt PromptProvider,
+	gitProvider GitProvider,
+	pullRequestProvider pr.PullRequestProvider,
+	yamlWriter YamlWriter,
+	commitTemplate string,
+	pullRequestTemplate string,
+	getProjectRepositoryFunc func(proj *v1alpha1.Project) string,
+	getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error),
+	getCommitsMetadataFunc func(projectDir, from, to string) ([]*CommitMetadata, error),
+	getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error),
+	getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error),
+) *Promotion {
 	return &Promotion{
-		promptProvider:      prompt,
-		gitProvider:         gitProvider,
-		pullRequestProvider: pullRequestProvider,
-		yamlWriter:          yamlWriter,
+		promptProvider:            prompt,
+		gitProvider:               gitProvider,
+		pullRequestProvider:       pullRequestProvider,
+		yamlWriter:                yamlWriter,
+		commitTemplate:            commitTemplate,
+		pullRequestTemplate:       pullRequestTemplate,
+		getProjectRepositoryFunc:  getProjectRepositoryFunc,
+		getProjectSourceDirFunc:   getProjectSourceDirFunc,
+		getCommitsMetadataFunc:    getCommitsMetadataFunc,
+		getCommitGitHubAuthorFunc: getCommitGitHubAuthorFunc,
+		getReleaseGitTagFunc:      getReleaseGitTagFunc,
 	}
 }
 
-func NewDefaultPromotion(catalogDir string) *Promotion {
+func NewDefaultPromotion(catalogDir, gitHubOrganization, commitTemplate, pullRequestTemplate, repositoriesDir, joyCache, defaultGitTagTemplate string) *Promotion {
 	return NewPromotion(
 		&InteractivePromptProvider{},
 		NewShellGitProvider(catalogDir),
 		github.NewPullRequestProvider(catalogDir),
 		&FileSystemYamlWriter{},
+		commitTemplate,
+		pullRequestTemplate,
+		func(proj *v1alpha1.Project) string {
+			if proj.Spec.Repository != "" {
+				return proj.Spec.Repository
+			}
+			return fmt.Sprintf("%s/%s", gitHubOrganization, proj.Name)
+		},
+		func(proj *v1alpha1.Project) (string, error) {
+			return project.GetCachedSourceDir(proj, gitHubOrganization, repositoriesDir, joyCache)
+		},
+		func(projectDir, from, to string) ([]*CommitMetadata, error) {
+			return GetCommitsMetadata(projectDir, from, to)
+		},
+		func(proj *v1alpha1.Project, sha string) (string, error) {
+			return github.GetCommitGitHubAuthor(proj, gitHubOrganization, sha)
+		},
+		func(rel *v1alpha1.Release) (string, error) {
+			return release.GetGitTag(rel, defaultGitTagTemplate)
+		},
 	)
 }
 
@@ -70,6 +121,12 @@ type Opts struct {
 
 	// SelectedEnvironments is the list of environments selected by the user interactively via `joy env select`.
 	SelectedEnvironments []*v1alpha1.Environment
+
+	// CommitTemplate is the template to use for pull request commits.
+	CommitTemplate string
+
+	// PullRequestTemplate is the template to use for pull requests.
+	PullRequestTemplate string
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -143,10 +200,17 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	}
 
 	// There's a previous check so only one option can be true at a time
-	performParams := PerformParams{
-		list:      list,
-		autoMerge: opts.AutoMerge,
-		draft:     opts.Draft,
+	performParams := PerformOpts{
+		list:                      list,
+		autoMerge:                 opts.AutoMerge,
+		draft:                     opts.Draft,
+		commitTemplate:            opts.CommitTemplate,
+		pullRequestTemplate:       opts.PullRequestTemplate,
+		getProjectSourceDirFunc:   p.getProjectSourceDirFunc,
+		getProjectRepositoryFunc:  p.getProjectRepositoryFunc,
+		getCommitsMetadataFunc:    p.getCommitsMetadataFunc,
+		getCommitGitHubAuthorFunc: p.getCommitGitHubAuthorFunc,
+		getReleaseGitTagFunc:      p.getReleaseGitTagFunc,
 	}
 
 	if opts.NoPrompt {

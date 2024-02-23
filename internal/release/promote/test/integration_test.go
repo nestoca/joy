@@ -5,16 +5,46 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/nestoca/joy/internal/github"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/testutils"
 	"github.com/nestoca/joy/pkg/catalog"
+)
+
+var (
+	simpleCommitTemplate        = "Commit: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
+	simplePullRequestTemplate   = "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
+	simpleProjectRepositoryFunc = func(proj *v1alpha1.Project) string {
+		return "owner/" + proj.Name
+	}
+	simpleProjectSourceDirFunc = func(proj *v1alpha1.Project) (string, error) {
+		return "/dummy/projects/" + proj.Name, nil
+	}
+	simpleCommitsMetadataFunc = func(projectDir, from, to string) ([]*promote.CommitMetadata, error) {
+		return []*promote.CommitMetadata{
+			{
+				Sha:     "sha1",
+				Message: "commit message 1",
+			},
+			{
+				Sha:     "sha2",
+				Message: "commit message 2",
+			},
+		}, nil
+	}
+	simpleCommitGitHubAuthorFunc = func(proj *v1alpha1.Project, sha string) (string, error) {
+		return "author", nil
+	}
+	simpleReleaseGitTagFunc = func(release *v1alpha1.Release) (string, error) {
+		return "v" + release.Spec.Version, nil
+	}
 )
 
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
@@ -50,11 +80,13 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, "prod")
 	assert.NoError(t, err)
 
-	// Trigger the prompt since we are not automerging in this test
+	// Trigger the prompt since we are not auto-merging in this test
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
+		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
+		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -106,7 +138,9 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
+		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
+		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -144,7 +178,9 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = false
 
 	// Perform test
-	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
+		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
+		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -230,7 +266,9 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{})
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
+		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
+		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,

@@ -1,16 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"cmp"
-	"errors"
 	"fmt"
-	"html/template"
 	"os"
 	"os/exec"
-	"path"
-	"path/filepath"
 	"strings"
+
+	"github.com/nestoca/joy/internal/project"
 
 	"github.com/TwiN/go-color"
 	"github.com/spf13/cobra"
@@ -19,8 +15,6 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
@@ -160,7 +154,15 @@ func NewReleasePromoteCmd() *cobra.Command {
 				SelectedEnvironments: selectedEnvironments,
 			}
 
-			_, err = promote.NewDefaultPromotion(cfg.CatalogDir).Promote(opts)
+			_, err = promote.NewDefaultPromotion(
+				cfg.CatalogDir,
+				cfg.GitHubOrganization,
+				cfg.PromoteCommitTemplate,
+				cfg.PromoteReleasePullRequestTemplate,
+				cfg.RepositoriesDir,
+				cfg.JoyCache,
+				cfg.DefaultGitTagTemplate,
+			).Promote(opts)
 			return err
 		},
 	}
@@ -218,8 +220,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 
 func NewReleaseRenderCmd() *cobra.Command {
 	var (
-		env   string
-		color bool
+		env          string
+		colorEnabled bool
 	)
 
 	cmd := &cobra.Command{
@@ -260,13 +262,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 				Catalog:      cat,
 				IO:           io,
 				Helm:         helm.CLI{IO: io},
-				Color:        color,
+				Color:        colorEnabled,
 			})
 		},
 	}
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
-	cmd.Flags().BoolVar(&color, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
+	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	return cmd
 }
 
@@ -296,12 +298,12 @@ func NewGitCommands() *cobra.Command {
 					return err
 				}
 
-				release := args[0]
+				releaseName := args[0]
 
 				var sourceRelease, targetRelease *v1alpha1.Release
 
 				for _, cross := range cat.Releases.Items {
-					if cross.Name != release {
+					if cross.Name != releaseName {
 						continue
 					}
 					for _, rel := range cross.Releases {
@@ -325,78 +327,28 @@ func NewGitCommands() *cobra.Command {
 					return fmt.Errorf("no target release found")
 				}
 
-				sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
-				if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-					return fmt.Errorf("failed to ensure repoName cache: %w", err)
-				}
-
-				project := sourceRelease.Project
-
-				repository := project.Spec.Repository
-				if repository == "" {
-					repository = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
-				}
-
-				repoDir := filepath.Join(sourceDir, path.Base(repository))
-				if _, err := os.Stat(repoDir); err != nil {
-					if !errors.Is(err, os.ErrNotExist) {
-						return err
-					}
-
-					cloneOptions := github.CloneOptions{
-						RepoURL: repository,
-						OutDir:  repoDir,
-					}
-					if err := github.Clone(sourceDir, cloneOptions); err != nil {
-						return fmt.Errorf("failed to clone project: %w", err)
-					}
-				}
-
-				if err := git.FetchTags(repoDir); err != nil {
-					return fmt.Errorf("fetching git tags: %w", err)
-				}
-
-				tmpl, err := func() (*template.Template, error) {
-					templateSource := cmp.Or(project.Spec.GitTagTemplate, cfg.DefaultGitTagTemplate)
-					if templateSource == "" {
-						return nil, nil
-					}
-					return template.New("").Parse(templateSource)
-				}()
+				repoDir, err := project.GetCachedSourceDir(sourceRelease.Project, cfg.GitHubOrganization, cfg.RepositoriesDir, cfg.JoyCache)
 				if err != nil {
-					return fmt.Errorf("parsing config gitTagTemplate: %w", err)
+					return fmt.Errorf("cloning repository: %w", err)
 				}
 
-				getRevision := func(release *v1alpha1.Release) (string, error) {
-					if tmpl == nil {
-						return release.Spec.Version, nil
-					}
-
-					var buffer bytes.Buffer
-					if err := tmpl.Execute(&buffer, struct{ Release *v1alpha1.Release }{release}); err != nil {
-						return "", fmt.Errorf("executing template: %w", err)
-					}
-
-					return buffer.String(), nil
-				}
-
-				sourceTag, err := getRevision(sourceRelease)
+				sourceTag, err := release.GetGitTag(sourceRelease, cfg.DefaultGitTagTemplate)
 				if err != nil {
-					return fmt.Errorf("getting source tag from release: %w", err)
+					return fmt.Errorf("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
 				}
 
-				targetTag, err := getRevision(targetRelease)
+				targetTag, err := release.GetGitTag(targetRelease, cfg.DefaultGitTagTemplate)
 				if err != nil {
-					return fmt.Errorf("getting target tag from release: %w", err)
+					return fmt.Errorf("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
 				}
 
-				gitargs := append([]string{"git", command}, args[1:]...)
-				gitargs = append(gitargs, sourceTag+".."+targetTag)
+				gitArgs := append([]string{"git", command}, args[1:]...)
+				gitArgs = append(gitArgs, sourceTag+".."+targetTag)
 
-				fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitargs, " ")))
+				fmt.Println(color.InCyan("running:"), color.InBold("git "+strings.Join(gitArgs, " ")))
 				fmt.Println()
 
-				gitCommand := exec.Command("git", gitargs[1:]...)
+				gitCommand := exec.Command("git", gitArgs[1:]...)
 				gitCommand.Dir = repoDir
 				gitCommand.Stdout = os.Stdout
 				gitCommand.Stderr = os.Stderr
@@ -409,7 +361,9 @@ func NewGitCommands() *cobra.Command {
 		cmd.Flags().StringVar(&source, "source", "", "source environment to compare release from")
 		cmd.Flags().StringVar(&target, "target", "", "target environment to compare release to")
 
-		cmd.MarkFlagRequired("from")
+		if err := cmd.MarkFlagRequired("from"); err != nil {
+			panic(err)
+		}
 
 		return cmd
 	}

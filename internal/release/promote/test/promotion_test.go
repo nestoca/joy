@@ -35,12 +35,46 @@ type setupArgs struct {
 }
 
 func TestPromotion(t *testing.T) {
+	simpleCommitTemplate := "Commit: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
+	simplePullRequestTemplate := "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
+	simpleProjectRepositoryFunc := func(proj *v1alpha1.Project) string {
+		return "owner/" + proj.Name
+	}
+	simpleProjectSourceDirFunc := func(proj *v1alpha1.Project) (string, error) {
+		return "/dummy/projects/" + proj.Name, nil
+	}
+	simpleCommitsMetadataFunc := func(projectDir, from, to string) ([]*promote.CommitMetadata, error) {
+		return []*promote.CommitMetadata{
+			{
+				Sha:     "sha1",
+				Message: "commit message 1",
+			},
+			{
+				Sha:     "sha2",
+				Message: "commit message 2",
+			},
+		}, nil
+	}
+	simpleCommitGitHubAuthorFunc := func(proj *v1alpha1.Project, sha string) (string, error) {
+		return "author", nil
+	}
+	simpleReleaseGitTagFunc := func(release *v1alpha1.Release) (string, error) {
+		return "v" + release.Spec.Version, nil
+	}
+
 	cases := []struct {
-		name                 string
-		opts                 promote.Opts
-		setup                func(args setupArgs)
-		expectedErrorMessage string
-		expectedPromoted     bool
+		name                      string
+		opts                      promote.Opts
+		setup                     func(args setupArgs)
+		commitTemplate            string
+		pullRequestTemplate       string
+		getProjectRepositoryFunc  func(proj *v1alpha1.Project) string
+		getProjectSourceDirFunc   func(proj *v1alpha1.Project) (string, error)
+		getCommitsMetadataFunc    func(projectDir, from, to string) ([]*promote.CommitMetadata, error)
+		getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error)
+		getReleaseGitTagFunc      func(release *v1alpha1.Release) (string, error)
+		expectedErrorMessage      string
+		expectedPromoted          bool
 	}{
 		{
 			name: "Environment dev is not promotable to staging",
@@ -127,7 +161,14 @@ func TestPromotion(t *testing.T) {
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 			},
-			expectedPromoted: true,
+			commitTemplate:            simpleCommitTemplate,
+			pullRequestTemplate:       simplePullRequestTemplate,
+			getProjectRepositoryFunc:  simpleProjectRepositoryFunc,
+			getProjectSourceDirFunc:   simpleProjectSourceDirFunc,
+			getCommitsMetadataFunc:    simpleCommitsMetadataFunc,
+			getCommitGitHubAuthorFunc: simpleCommitGitHubAuthorFunc,
+			getReleaseGitTagFunc:      simpleReleaseGitTagFunc,
+			expectedPromoted:          true,
 		},
 		{
 			name: "Promote release1 from staging to missing release in prod",
@@ -176,7 +217,14 @@ func TestPromotion(t *testing.T) {
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 			},
-			expectedPromoted: true,
+			commitTemplate:            simpleCommitTemplate,
+			pullRequestTemplate:       simplePullRequestTemplate,
+			getProjectRepositoryFunc:  simpleProjectRepositoryFunc,
+			getProjectSourceDirFunc:   simpleProjectSourceDirFunc,
+			getCommitsMetadataFunc:    simpleCommitsMetadataFunc,
+			getCommitGitHubAuthorFunc: simpleCommitGitHubAuthorFunc,
+			getReleaseGitTagFunc:      simpleReleaseGitTagFunc,
+			expectedPromoted:          true,
 		},
 	}
 	for _, c := range cases {
@@ -200,7 +248,9 @@ func TestPromotion(t *testing.T) {
 			})
 
 			// Perform test
-			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter)
+			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter, c.commitTemplate, c.pullRequestTemplate,
+				c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitGitHubAuthorFunc,
+				c.getReleaseGitTagFunc)
 			prURL, err := promotion.Promote(c.opts)
 
 			// Check expected results
@@ -240,12 +290,22 @@ func newEnvironments() []*v1alpha1.Environment {
 	}
 }
 
+var dummyProject = &v1alpha1.Project{
+	ProjectMetadata: v1alpha1.ProjectMetadata{
+		Name: "project1",
+	},
+	Spec: v1alpha1.ProjectSpec{
+		Repository: "owner/project1",
+	},
+}
+
 func newRelease(name, specYaml, envName string) *v1alpha1.Release {
 	return &v1alpha1.Release{
 		ReleaseMetadata: v1alpha1.ReleaseMetadata{
 			Name: name,
 		},
-		File: newYamlFile(name, specYaml, envName),
+		File:    newYamlFile(name, specYaml, envName),
+		Project: dummyProject,
 	}
 }
 
