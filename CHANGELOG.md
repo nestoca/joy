@@ -1,3 +1,10 @@
+## [0.31.0](https://github.com/nestoca/joy/compare/v0.30.0...v0.31.0) (2024-02-23)
+
+
+### Features
+
+* **PL-2419:** add support for catalog.yaml ([04f77fb](https://github.com/nestoca/joy/commit/04f77fb7308920a248b7c424c8794ba7f63bb5d8))
+
 ## [0.30.0](https://github.com/nestoca/joy/compare/v0.29.3...v0.30.0) (2024-02-23)
 
 
