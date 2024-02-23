@@ -1,3 +1,10 @@
+## [0.31.1](https://github.com/nestoca/joy/compare/v0.31.0...v0.31.1) (2024-02-23)
+
+
+### Bug Fixes
+
+* **PL-2424:** filter git diff/logs correctly in mono-repos ([2cc9fdb](https://github.com/nestoca/joy/commit/2cc9fdbdd1f3e1a95906cb633c510f3ff9d3c111))
+
 ## [0.31.0](https://github.com/nestoca/joy/compare/v0.30.0...v0.31.0) (2024-02-23)
 
 
