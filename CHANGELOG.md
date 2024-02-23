@@ -1,3 +1,10 @@
+## [0.30.0](https://github.com/nestoca/joy/compare/v0.29.3...v0.30.0) (2024-02-23)
+
+
+### Features
+
+* **release-list:** filter by project owner ([a104cdd](https://github.com/nestoca/joy/commit/a104cdd2dc13995961af063fc210a68be3cade9d))
+
 ## [0.29.3](https://github.com/nestoca/joy/compare/v0.29.2...v0.29.3) (2024-02-22)
 
 
