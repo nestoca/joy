@@ -2,11 +2,11 @@ package promote
 
 import (
 	"fmt"
-
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -122,7 +122,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	list, err = func() (*cross.ReleaseList, error) {
+	selectedList, err := func() (*cross.ReleaseList, error) {
 		if len(opts.Releases) > 0 {
 			return list.OnlySpecificReleases(opts.Releases), nil
 		}
@@ -131,20 +131,21 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("selecting releases to promote: %w", err)
 	}
-	if !list.HasAnyPromotableReleases() {
-		p.promptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
-		return "", nil
-	}
 
 	if !opts.NoPrompt {
-		if err := p.preview(list); err != nil {
+		if err := p.preview(selectedList); err != nil {
 			return "", fmt.Errorf("previewing: %w", err)
 		}
 	}
 
+	if selectedList.HasNonPromotableReleases(opts.SourceEnv, opts.TargetEnv) {
+		fmt.Printf("🚫 Target environment %s does not allow branch promotion. Please only select releases with a standard version.\n", style.Resource(opts.TargetEnv.Name))
+		return "", err
+	}
+
 	// There's a previous check so only one option can be true at a time
 	performParams := PerformParams{
-		list:      list,
+		list:      selectedList,
 		autoMerge: opts.AutoMerge,
 		draft:     opts.Draft,
 	}

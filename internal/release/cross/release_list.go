@@ -151,7 +151,7 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		targetRelease := item.Releases[targetEnvIndex]
 
 		//Check for version in source Release
-		if targetEnv.Name == "qa" || targetEnv.Name == "production" {
+		if !targetEnv.Spec.Promotion.FromPullRequests {
 			version := "v" + sourceRelease.Spec.Version
 			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
 				continue
@@ -169,6 +169,24 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		subset.Items = append(subset.Items, newItem)
 	}
 	return subset, nil
+}
+
+// HasNonPromotableReleases checks if the list contains releases that cannot be promoted based
+// on the version format allowed at the target environment.
+func (r *ReleaseList) HasNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.Environment) bool {
+	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
+
+	for _, item := range r.Items {
+		sourceRelease := item.Releases[sourceEnvIndex]
+		//Check the version format in source Release
+		if !targetEnv.Spec.Promotion.FromPullRequests {
+			version := "v" + sourceRelease.Spec.Version
+			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
