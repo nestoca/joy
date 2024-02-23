@@ -37,7 +37,7 @@ func TestPromote(t *testing.T) {
 	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
-		Version:     "1.0.0-updated",
+		Version:     "1.1.2",
 	}
 
 	testReleaseFile, err := setup(setupOpts{
@@ -58,11 +58,28 @@ func TestPromote(t *testing.T) {
 	)
 }
 
+func TestPromoteWithInvalidVersion(t *testing.T) {
+	opts := Opts{
+		Environment: "testing",
+		Project:     "promote-build",
+		Version:     "1.1.2-updated",
+	}
+
+	_, err := setup(setupOpts{
+		env:     opts.Environment,
+		project: opts.Project,
+	})
+	assert.Nil(t, err)
+
+	err = Promote(opts)
+	assert.EqualError(t, err, "cannot promote release with non-standard version to testing environment")
+}
+
 func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
-		Version:     "1.0.0-updated",
+		Version:     "1.1.2",
 	}
 
 	testReleaseFile, err := setup(setupOpts{
@@ -88,7 +105,7 @@ func TestPromoteWhenCatalogDirNotExists(t *testing.T) {
 	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
-		Version:     "1.0.0-updated",
+		Version:     "1.1.2",
 	}
 
 	err := Promote(opts)
@@ -99,7 +116,7 @@ func TestPromoteWhenReleaseYamlProjectPathDoesNotExists(t *testing.T) {
 	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
-		Version:     "1.0.0-updated",
+		Version:     "1.1.2",
 	}
 
 	fileContents := `some:
@@ -135,7 +152,7 @@ func TestPromoteWhenReleaseYamlVersionPathDoesNotExists(t *testing.T) {
 	opts := Opts{
 		Environment: "testing",
 		Project:     "promote-build",
-		Version:     "1.0.0-updated",
+		Version:     "1.1.2",
 	}
 
 	fileContents := `spec:
