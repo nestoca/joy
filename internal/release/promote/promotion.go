@@ -140,7 +140,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		}
 	}
 
-	invalidList := selectedList.GetInvalidReleaseVersions(opts.SourceEnv, opts.TargetEnv)
+	invalidList := selectedList.GetNonPromotableReleases(opts.SourceEnv, opts.TargetEnv)
 	if len(invalidList) != 0 {
 		invalid := strings.Join(invalidList, ", ")
 		fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow pre-release versions.\n", style.Resource(invalid), style.Resource(opts.TargetEnv.Name))

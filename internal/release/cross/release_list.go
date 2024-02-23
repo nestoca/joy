@@ -163,9 +163,9 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 	return subset, nil
 }
 
-// GetInvalidReleaseVersions returns a list of names of releases that cannot be promoted based
+// GetNonPromotableReleases returns a list of names of releases that cannot be promoted based
 // on the version format allowed at the target environment.
-func (r *ReleaseList) GetInvalidReleaseVersions(sourceEnv, targetEnv *v1alpha1.Environment) []string {
+func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.Environment) []string {
 	var invalidList []string
 	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
 
