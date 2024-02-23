@@ -150,14 +150,6 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		sourceRelease := item.Releases[sourceEnvIndex]
 		targetRelease := item.Releases[targetEnvIndex]
 
-		//Check for version in source Release
-		if !targetEnv.Spec.Promotion.FromPullRequests {
-			version := "v" + sourceRelease.Spec.Version
-			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
-				continue
-			}
-		}
-
 		newItem := NewRelease(item.Name, []*v1alpha1.Environment{sourceEnv, targetEnv})
 		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
