@@ -171,7 +171,7 @@ func (r *ReleaseList) GetInvalidReleaseVersions(sourceEnv, targetEnv *v1alpha1.E
 
 	for _, item := range r.Items {
 		sourceRelease := item.Releases[sourceEnvIndex]
-		//Check the version format in source Release
+		// Check the version format in source Release
 		if !targetEnv.Spec.Promotion.FromPullRequests {
 			version := "v" + sourceRelease.Spec.Version
 			if semver.Prerelease(version) != "" || semver.Build(version) != "" {

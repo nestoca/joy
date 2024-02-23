@@ -2,6 +2,8 @@ package promote
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/git/pr/github"
@@ -9,7 +11,6 @@ import (
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"strings"
 )
 
 type Promotion struct {

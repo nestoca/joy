@@ -3,10 +3,11 @@ package build
 import (
 	"fmt"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"golang.org/x/mod/semver"
 )
 
 type Opts struct {
@@ -37,7 +38,7 @@ func Promote(opts Opts) error {
 				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
 			}
 
-			//Check the version format in source Release
+			// Check the version format in source Release
 			if !release.Environment.Spec.Promotion.FromPullRequests {
 				version := "v" + opts.Version
 				if semver.Prerelease(version) != "" || semver.Build(version) != "" {
