@@ -9,6 +9,7 @@ import (
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+	"strings"
 )
 
 type Promotion struct {
@@ -138,8 +139,10 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		}
 	}
 
-	if selectedList.HasNonPromotableReleases(opts.SourceEnv, opts.TargetEnv) {
-		fmt.Printf("🚫 Target environment %s does not allow branch promotion. Please only select releases with a standard version.\n", style.Resource(opts.TargetEnv.Name))
+	invalidList := selectedList.GetInvalidReleaseVersions(opts.SourceEnv, opts.TargetEnv)
+	if len(invalidList) != 0 {
+		invalid := strings.Join(invalidList, ", ")
+		fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow pre-release versions.\n", style.Resource(invalid), style.Resource(opts.TargetEnv.Name))
 		return "", err
 	}
 

@@ -163,9 +163,10 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 	return subset, nil
 }
 
-// HasNonPromotableReleases checks if the list contains releases that cannot be promoted based
+// GetInvalidReleaseVersions returns a list of names of releases that cannot be promoted based
 // on the version format allowed at the target environment.
-func (r *ReleaseList) HasNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.Environment) bool {
+func (r *ReleaseList) GetInvalidReleaseVersions(sourceEnv, targetEnv *v1alpha1.Environment) []string {
+	var invalidList []string
 	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
 
 	for _, item := range r.Items {
@@ -174,11 +175,11 @@ func (r *ReleaseList) HasNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.En
 		if !targetEnv.Spec.Promotion.FromPullRequests {
 			version := "v" + sourceRelease.Spec.Version
 			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
-				return true
+				invalidList = append(invalidList, item.Name)
 			}
 		}
 	}
-	return false
+	return invalidList
 }
 
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {
