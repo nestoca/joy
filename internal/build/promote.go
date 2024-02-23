@@ -6,6 +6,7 @@ import (
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+	"golang.org/x/mod/semver"
 )
 
 type Opts struct {
@@ -29,10 +30,19 @@ func Promote(opts Opts) error {
 	for _, crossRelease := range cat.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release.Spec.Project == opts.Project {
+
 			// Find version node
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
 				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
+			}
+
+			//Check the version format in source Release
+			if !release.Environment.Spec.Promotion.FromPullRequests {
+				version := "v" + opts.Version
+				if semver.Prerelease(version) != "" || semver.Build(version) != "" {
+					return fmt.Errorf("cannot promote release with non-standard version to %s environment", opts.Environment)
+				}
 			}
 
 			// Update version node
