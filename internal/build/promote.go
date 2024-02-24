@@ -18,6 +18,7 @@ type Opts struct {
 }
 
 func Promote(opts Opts) error {
+	// Load Catalog with one environment
 	loadOpts := catalog.LoadOpts{
 		Dir:      opts.CatalogDir,
 		EnvNames: []string{opts.Environment},
@@ -25,6 +26,14 @@ func Promote(opts Opts) error {
 	cat, err := catalog.Load(loadOpts)
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
+	}
+
+	// Check the release version format
+	if !cat.Environments[0].Spec.Promotion.FromPullRequests {
+		version := "v" + opts.Version
+		if semver.Prerelease(version)+semver.Build(version) != "" {
+			return fmt.Errorf("cannot promote release with non-standard version to %s environment", opts.Environment)
+		}
 	}
 
 	promotionCount := 0
@@ -36,14 +45,6 @@ func Promote(opts Opts) error {
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
 				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
-			}
-
-			// Check the version format in source Release
-			if !release.Environment.Spec.Promotion.FromPullRequests {
-				version := "v" + opts.Version
-				if semver.Prerelease(version) != "" || semver.Build(version) != "" {
-					return fmt.Errorf("cannot promote release with non-standard version to %s environment", opts.Environment)
-				}
 			}
 
 			// Update version node

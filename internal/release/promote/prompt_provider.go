@@ -63,4 +63,7 @@ type PromptProvider interface {
 
 	// PrintCompleted prints message that the whole promotion operation was completed.
 	PrintCompleted()
+
+	// PrintSelectedNonPromotableReleases prints message that non-promotable releases were selected.
+	PrintSelectedNonPromotableReleases(invalidReleases, targetEnvName string)
 }

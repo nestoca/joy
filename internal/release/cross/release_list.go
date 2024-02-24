@@ -166,17 +166,20 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 // GetNonPromotableReleases returns a list of names of releases that cannot be promoted based
 // on the version format allowed at the target environment.
 func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.Environment) []string {
+
+	if targetEnv.Spec.Promotion.FromPullRequests {
+		return nil
+	}
+
 	var invalidList []string
 	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
 
 	for _, item := range r.Items {
 		sourceRelease := item.Releases[sourceEnvIndex]
 		// Check the version format in source Release
-		if !targetEnv.Spec.Promotion.FromPullRequests {
-			version := "v" + sourceRelease.Spec.Version
-			if semver.Prerelease(version) != "" || semver.Build(version) != "" {
-				invalidList = append(invalidList, item.Name)
-			}
+		version := "v" + sourceRelease.Spec.Version
+		if semver.Prerelease(version) != "" || semver.Build(version) != "" {
+			invalidList = append(invalidList, item.Name)
 		}
 	}
 	return invalidList
