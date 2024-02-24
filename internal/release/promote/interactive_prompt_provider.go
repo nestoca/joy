@@ -334,7 +334,7 @@ func (i *InteractivePromptProvider) PrintCompleted() {
 }
 
 func (i *InteractivePromptProvider) PrintSelectedNonPromotableReleases(invalidReleases, targetEnvName string) {
-	fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow non standard versions.\n",
+	fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow non-standard versions.\n",
 		style.Resource(invalidReleases),
 		style.Resource(targetEnvName))
 }

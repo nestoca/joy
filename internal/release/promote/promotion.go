@@ -136,7 +136,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	if len(invalidList) != 0 {
 		invalid := strings.Join(invalidList, ", ")
 		p.promptProvider.PrintSelectedNonPromotableReleases(invalid, opts.TargetEnv.Name)
-		return "", nil
+		return "", fmt.Errorf("cannot promote releases with non-standard version to %s environment", opts.TargetEnv.Name)
 	}
 
 	if !opts.NoPrompt {
