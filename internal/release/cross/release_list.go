@@ -12,6 +12,8 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
+
+	"golang.org/x/mod/semver"
 )
 
 // ReleaseList describes multiple releases across multiple environments
@@ -154,6 +156,7 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		// Determine source and target releases
 		sourceRelease := item.Releases[sourceEnvIndex]
 		targetRelease := item.Releases[targetEnvIndex]
+
 		newItem := NewRelease(item.Name, []*v1alpha1.Environment{sourceEnv, targetEnv})
 		newItem.Releases = []*v1alpha1.Release{sourceRelease, targetRelease}
 
@@ -165,6 +168,27 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		subset.Items = append(subset.Items, newItem)
 	}
 	return subset, nil
+}
+
+// GetNonPromotableReleases returns a list of names of releases that cannot be promoted based
+// on the version format allowed at the target environment.
+func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.Environment) []string {
+	if targetEnv.Spec.Promotion.FromPullRequests {
+		return nil
+	}
+
+	var invalidList []string
+	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
+
+	for _, item := range r.Items {
+		sourceRelease := item.Releases[sourceEnvIndex]
+		// Check the version format in source Release
+		version := "v" + sourceRelease.Spec.Version
+		if semver.Prerelease(version)+semver.Build(version) != "" {
+			invalidList = append(invalidList, item.Name)
+		}
+	}
+	return invalidList
 }
 
 func (r *ReleaseList) ResolveProjectRefs(projects []*v1alpha1.Project) error {

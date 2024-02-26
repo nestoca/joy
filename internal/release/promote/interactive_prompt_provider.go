@@ -332,3 +332,9 @@ func (i *InteractivePromptProvider) PrintSelectedReleasesAlreadyInSync() {
 func (i *InteractivePromptProvider) PrintCompleted() {
 	fmt.Println("🍺 Promotion complete!")
 }
+
+func (i *InteractivePromptProvider) PrintSelectedNonPromotableReleases(invalidReleases, targetEnvName string) {
+	fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow non-standard versions.\n",
+		style.Resource(invalidReleases),
+		style.Resource(targetEnvName))
+}
