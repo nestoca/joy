@@ -1,3 +1,10 @@
+## [0.31.2](https://github.com/nestoca/joy/compare/v0.31.1...v0.31.2) (2024-02-26)
+
+
+### Bug Fixes
+
+* **PL-2422:** don't allow branch promotion ([#99](https://github.com/nestoca/joy/issues/99)) ([58a9a80](https://github.com/nestoca/joy/commit/58a9a8040f311758cb177b5f2ebb2b6188dc462b))
+
 ## [0.31.1](https://github.com/nestoca/joy/compare/v0.31.0...v0.31.1) (2024-02-23)
 
 
