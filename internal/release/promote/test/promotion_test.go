@@ -55,26 +55,26 @@ func TestPromotion(t *testing.T) {
 			},
 		}, nil
 	}
-	simpleCommitGitHubAuthorFunc := func(proj *v1alpha1.Project, sha string) (string, error) {
-		return "author", nil
+	simpleCommitsGitHubAuthorsFunc := func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+		return nil, nil
 	}
 	simpleReleaseGitTagFunc := func(release *v1alpha1.Release) (string, error) {
 		return "v" + release.Spec.Version, nil
 	}
 
 	cases := []struct {
-		name                      string
-		opts                      promote.Opts
-		setup                     func(args setupArgs)
-		commitTemplate            string
-		pullRequestTemplate       string
-		getProjectRepositoryFunc  func(proj *v1alpha1.Project) string
-		getProjectSourceDirFunc   func(proj *v1alpha1.Project) (string, error)
-		getCommitsMetadataFunc    func(projectDir, from, to string) ([]*promote.CommitMetadata, error)
-		getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error)
-		getReleaseGitTagFunc      func(release *v1alpha1.Release) (string, error)
-		expectedErrorMessage      string
-		expectedPromoted          bool
+		name                        string
+		opts                        promote.Opts
+		setup                       func(args setupArgs)
+		commitTemplate              string
+		pullRequestTemplate         string
+		getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
+		getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
+		getCommitsMetadataFunc      func(projectDir, from, to string) ([]*promote.CommitMetadata, error)
+		getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
+		getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
+		expectedErrorMessage        string
+		expectedPromoted            bool
 	}{
 		{
 			name: "Environment dev is not promotable to staging",
@@ -161,14 +161,14 @@ func TestPromotion(t *testing.T) {
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 			},
-			commitTemplate:            simpleCommitTemplate,
-			pullRequestTemplate:       simplePullRequestTemplate,
-			getProjectRepositoryFunc:  simpleProjectRepositoryFunc,
-			getProjectSourceDirFunc:   simpleProjectSourceDirFunc,
-			getCommitsMetadataFunc:    simpleCommitsMetadataFunc,
-			getCommitGitHubAuthorFunc: simpleCommitGitHubAuthorFunc,
-			getReleaseGitTagFunc:      simpleReleaseGitTagFunc,
-			expectedPromoted:          true,
+			commitTemplate:              simpleCommitTemplate,
+			pullRequestTemplate:         simplePullRequestTemplate,
+			getProjectRepositoryFunc:    simpleProjectRepositoryFunc,
+			getProjectSourceDirFunc:     simpleProjectSourceDirFunc,
+			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
+			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
+			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
+			expectedPromoted:            true,
 		},
 		{
 			name: "Promote release1 from staging to missing release in prod",
@@ -217,14 +217,14 @@ func TestPromotion(t *testing.T) {
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 			},
-			commitTemplate:            simpleCommitTemplate,
-			pullRequestTemplate:       simplePullRequestTemplate,
-			getProjectRepositoryFunc:  simpleProjectRepositoryFunc,
-			getProjectSourceDirFunc:   simpleProjectSourceDirFunc,
-			getCommitsMetadataFunc:    simpleCommitsMetadataFunc,
-			getCommitGitHubAuthorFunc: simpleCommitGitHubAuthorFunc,
-			getReleaseGitTagFunc:      simpleReleaseGitTagFunc,
-			expectedPromoted:          true,
+			commitTemplate:              simpleCommitTemplate,
+			pullRequestTemplate:         simplePullRequestTemplate,
+			getProjectRepositoryFunc:    simpleProjectRepositoryFunc,
+			getProjectSourceDirFunc:     simpleProjectSourceDirFunc,
+			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
+			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
+			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
+			expectedPromoted:            true,
 		},
 	}
 	for _, c := range cases {
@@ -249,7 +249,7 @@ func TestPromotion(t *testing.T) {
 
 			// Perform test
 			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter, c.commitTemplate, c.pullRequestTemplate,
-				c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitGitHubAuthorFunc,
+				c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitsGitHubAuthorsFunc,
 				c.getReleaseGitTagFunc)
 			prURL, err := promotion.Promote(c.opts)
 

@@ -25,17 +25,17 @@ const (
 )
 
 type PerformOpts struct {
-	list                      *cross.ReleaseList
-	autoMerge                 bool
-	draft                     bool
-	dryRun                    bool
-	commitTemplate            string
-	pullRequestTemplate       string
-	getProjectSourceDirFunc   func(proj *v1alpha1.Project) (string, error)
-	getProjectRepositoryFunc  func(proj *v1alpha1.Project) string
-	getCommitsMetadataFunc    func(projectDir, from, to string) ([]*CommitMetadata, error)
-	getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error)
-	getReleaseGitTagFunc      func(release *v1alpha1.Release) (string, error)
+	list                        *cross.ReleaseList
+	autoMerge                   bool
+	draft                       bool
+	dryRun                      bool
+	commitTemplate              string
+	pullRequestTemplate         string
+	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
+	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
+	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
+	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
+	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
 }
 
 type ReleaseWithGitTag struct {
@@ -110,7 +110,9 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 			}
 		}
 
+		fmt.Printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
 		releaseInfo := getReleaseInfo(sourceRelease, targetRelease, opts)
+
 		info.Releases = append(info.Releases, releaseInfo)
 		info.Error = errors.Join(info.Error, releaseInfo.Error)
 	}
@@ -320,11 +322,12 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		return getAndPrintReleaseInfoWithError("getting commits metadata: %w", err)
 	}
 
+	gitHubAuthors, err := opts.getCommitsGitHubAuthorsFunc(project, olderTag, newerTag)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
+	}
+
 	for _, metadata := range commitsMetadata {
-		gitHubAuthor, err := opts.getCommitGitHubAuthorFunc(project, metadata.Sha)
-		if err != nil {
-			return getAndPrintReleaseInfoWithError("getting GitHub author for project %s commit %s: %w", project.Name, metadata.Sha, err)
-		}
 
 		shortSha := metadata.Sha
 		if len(shortSha) > 7 {
@@ -335,6 +338,8 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		if strings.Contains(shortMessage, "\n") {
 			shortMessage = strings.SplitN(shortMessage, "\n", 2)[0]
 		}
+
+		gitHubAuthor, _ := gitHubAuthors[metadata.Sha]
 
 		releaseInfo.Commits = append(releaseInfo.Commits, &CommitInfo{
 			Sha:          metadata.Sha,

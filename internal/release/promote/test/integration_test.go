@@ -39,8 +39,8 @@ var (
 			},
 		}, nil
 	}
-	simpleCommitGitHubAuthorFunc = func(proj *v1alpha1.Project, sha string) (string, error) {
-		return "nestobot", nil
+	simpleCommitsGitHubAuthorsFunc = func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+		return nil, nil
 	}
 	simpleReleaseGitTagFunc = func(release *v1alpha1.Release) (string, error) {
 		return "v" + release.Spec.Version, nil
@@ -86,7 +86,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	// Perform test
 	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
 		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
+		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -140,7 +140,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	// Perform test
 	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
 		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
+		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -180,7 +180,7 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	// Perform test
 	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
 		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
+		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -268,7 +268,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	// Perform test
 	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
 		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitGitHubAuthorFunc, simpleReleaseGitTagFunc)
+		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,

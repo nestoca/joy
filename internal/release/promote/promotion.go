@@ -29,13 +29,13 @@ type Promotion struct {
 	// YamlWriter is the writer of YAML files.
 	yamlWriter YamlWriter
 
-	commitTemplate            string
-	pullRequestTemplate       string
-	getProjectRepositoryFunc  func(proj *v1alpha1.Project) string
-	getProjectSourceDirFunc   func(proj *v1alpha1.Project) (string, error)
-	getCommitsMetadataFunc    func(projectDir, from, to string) ([]*CommitMetadata, error)
-	getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error)
-	getReleaseGitTagFunc      func(release *v1alpha1.Release) (string, error)
+	commitTemplate              string
+	pullRequestTemplate         string
+	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
+	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
+	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
+	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
+	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
 }
 
 func NewPromotion(
@@ -48,21 +48,21 @@ func NewPromotion(
 	getProjectRepositoryFunc func(proj *v1alpha1.Project) string,
 	getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error),
 	getCommitsMetadataFunc func(projectDir, from, to string) ([]*CommitMetadata, error),
-	getCommitGitHubAuthorFunc func(proj *v1alpha1.Project, sha string) (string, error),
+	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error),
 	getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error),
 ) *Promotion {
 	return &Promotion{
-		promptProvider:            prompt,
-		gitProvider:               gitProvider,
-		pullRequestProvider:       pullRequestProvider,
-		yamlWriter:                yamlWriter,
-		commitTemplate:            commitTemplate,
-		pullRequestTemplate:       pullRequestTemplate,
-		getProjectRepositoryFunc:  getProjectRepositoryFunc,
-		getProjectSourceDirFunc:   getProjectSourceDirFunc,
-		getCommitsMetadataFunc:    getCommitsMetadataFunc,
-		getCommitGitHubAuthorFunc: getCommitGitHubAuthorFunc,
-		getReleaseGitTagFunc:      getReleaseGitTagFunc,
+		promptProvider:              prompt,
+		gitProvider:                 gitProvider,
+		pullRequestProvider:         pullRequestProvider,
+		yamlWriter:                  yamlWriter,
+		commitTemplate:              commitTemplate,
+		pullRequestTemplate:         pullRequestTemplate,
+		getProjectRepositoryFunc:    getProjectRepositoryFunc,
+		getProjectSourceDirFunc:     getProjectSourceDirFunc,
+		getCommitsMetadataFunc:      getCommitsMetadataFunc,
+		getCommitsGitHubAuthorsFunc: getCommitsGitHubAuthorsFunc,
+		getReleaseGitTagFunc:        getReleaseGitTagFunc,
 	}
 }
 
@@ -83,11 +83,11 @@ func NewDefaultPromotion(catalogDir, gitHubOrganization, commitTemplate, pullReq
 		func(proj *v1alpha1.Project) (string, error) {
 			return project.GetCachedSourceDir(proj, gitHubOrganization, repositoriesDir, joyCache)
 		},
-		func(projectDir, from, to string) ([]*CommitMetadata, error) {
-			return GetCommitsMetadata(projectDir, from, to)
+		func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error) {
+			return GetCommitsMetadata(projectDir, fromTag, toTag)
 		},
-		func(proj *v1alpha1.Project, sha string) (string, error) {
-			return github.GetCommitGitHubAuthor(proj, gitHubOrganization, sha)
+		func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+			return github.GetCommitsGitHubAuthors(proj, gitHubOrganization, fromTag, toTag)
 		},
 		func(rel *v1alpha1.Release) (string, error) {
 			return release.GetGitTag(rel, defaultGitTagTemplate)
@@ -125,6 +125,10 @@ type Opts struct {
 
 	// DryRun indicates if the promotion should be performed in dry-run mode
 	DryRun bool
+
+	// SkipCatalogUpdate skips catalog update and dirty check in dry-run mode.  Very useful
+	// for troubleshooting and testing templates.
+	SkipCatalogUpdate bool
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -134,8 +138,12 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		fmt.Println("ℹ️ Dry-run mode enabled: No changes will be made.")
 	}
 
-	if err := p.gitProvider.EnsureCleanAndUpToDateWorkingCopy(); err != nil {
-		return "", err
+	if opts.SkipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := p.gitProvider.EnsureCleanAndUpToDateWorkingCopy(); err != nil {
+			return "", err
+		}
 	}
 
 	// Prompt user to select source environment
@@ -206,17 +214,17 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	// There's a previous check so only one option can be true at a time
 	performParams := PerformOpts{
-		list:                      selectedList,
-		autoMerge:                 opts.AutoMerge,
-		draft:                     opts.Draft,
-		dryRun:                    opts.DryRun,
-		commitTemplate:            p.commitTemplate,
-		pullRequestTemplate:       p.pullRequestTemplate,
-		getProjectSourceDirFunc:   p.getProjectSourceDirFunc,
-		getProjectRepositoryFunc:  p.getProjectRepositoryFunc,
-		getCommitsMetadataFunc:    p.getCommitsMetadataFunc,
-		getCommitGitHubAuthorFunc: p.getCommitGitHubAuthorFunc,
-		getReleaseGitTagFunc:      p.getReleaseGitTagFunc,
+		list:                        selectedList,
+		autoMerge:                   opts.AutoMerge,
+		draft:                       opts.Draft,
+		dryRun:                      opts.DryRun,
+		commitTemplate:              p.commitTemplate,
+		pullRequestTemplate:         p.pullRequestTemplate,
+		getProjectSourceDirFunc:     p.getProjectSourceDirFunc,
+		getProjectRepositoryFunc:    p.getProjectRepositoryFunc,
+		getCommitsMetadataFunc:      p.getCommitsMetadataFunc,
+		getCommitsGitHubAuthorsFunc: p.getCommitsGitHubAuthorsFunc,
+		getReleaseGitTagFunc:        p.getReleaseGitTagFunc,
 	}
 
 	if opts.NoPrompt {

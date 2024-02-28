@@ -90,7 +90,7 @@ func NewReleaseListCmd() *cobra.Command {
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
-	var autoMerge, draft, dryRun, noPrompt bool
+	var autoMerge, draft, dryRun, skipCatalogUpdate, noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -115,6 +115,10 @@ func NewReleasePromoteCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
+			if skipCatalogUpdate && !dryRun {
+				return fmt.Errorf("flag --skip-catalog-update requires --dry-run")
+			}
+
 			cfg := config.FromContext(cmd.Context())
 
 			var filter filtering.Filter
@@ -153,6 +157,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				AutoMerge:            autoMerge,
 				Draft:                draft,
 				DryRun:               dryRun,
+				SkipCatalogUpdate:    skipCatalogUpdate,
 				SelectedEnvironments: selectedEnvironments,
 			}
 
@@ -174,7 +179,8 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Add auto-merge label to release PR")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create draft release PR")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "do not prompt")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
+	cmd.Flags().BoolVar(&skipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check (only in dry run)")
 
 	return cmd
 }
@@ -345,7 +351,7 @@ func NewGitCommands() *cobra.Command {
 					return fmt.Errorf("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
 				}
 
-				gitArgs := append([]string{"git", command}, args[1:]...)
+				gitArgs := append([]string{command}, args[1:]...)
 				gitArgs = append(gitArgs, sourceTag+".."+targetTag)
 
 				if sourceRelease.Project.Spec.RepositorySubpaths != nil {
@@ -358,7 +364,7 @@ func NewGitCommands() *cobra.Command {
 				fmt.Println(color.InCyan("running:"), color.InBold("git "+strings.Join(gitArgs, " ")), color.InCyan("in"), color.InBold(repoDir))
 				fmt.Println()
 
-				gitCommand := exec.Command("git", gitArgs[1:]...)
+				gitCommand := exec.Command("git", gitArgs...)
 				gitCommand.Dir = repoDir
 				gitCommand.Stdout = os.Stdout
 				gitCommand.Stderr = os.Stderr

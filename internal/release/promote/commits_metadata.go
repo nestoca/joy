@@ -13,7 +13,7 @@ type CommitMetadata struct {
 }
 
 func GetCommitsMetadata(dir, from, to string) ([]*CommitMetadata, error) {
-	gitArgs := []string{"log", "--pretty=format:%H%n%an%n%s", from + ".." + to}
+	gitArgs := []string{"log", "--pretty=format:%H%n%an%n%s%n---END---%n", from + ".." + to}
 	cmd := exec.Command("git", gitArgs...)
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
