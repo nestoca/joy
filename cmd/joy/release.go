@@ -418,7 +418,9 @@ func NewGitCommands() *cobra.Command {
 		cmd.Flags().StringVar(&source, "source", "", "source environment to compare release from")
 		cmd.Flags().StringVar(&target, "target", "", "target environment to compare release to")
 
-		cmd.MarkFlagRequired("from")
+		if err := cmd.MarkFlagRequired("source"); err != nil {
+			panic(err)
+		}
 
 		return cmd
 	}
