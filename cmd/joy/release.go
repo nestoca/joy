@@ -1,17 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"cmp"
-	"errors"
 	"fmt"
-	"html/template"
 	"os"
 	"os/exec"
-	"path"
-	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/nestoca/joy/internal/project"
 
 	"github.com/TwiN/go-color"
 	"github.com/spf13/cobra"
@@ -20,8 +16,6 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/git/pr/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/release"
@@ -96,7 +90,7 @@ func NewReleaseListCmd() *cobra.Command {
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
-	var autoMerge, draft, noPrompt bool
+	var autoMerge, draft, dryRun, noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -158,10 +152,19 @@ func NewReleasePromoteCmd() *cobra.Command {
 				NoPrompt:             noPrompt,
 				AutoMerge:            autoMerge,
 				Draft:                draft,
+				DryRun:               dryRun,
 				SelectedEnvironments: selectedEnvironments,
 			}
 
-			_, err = promote.NewDefaultPromotion(cfg.CatalogDir).Promote(opts)
+			_, err = promote.NewDefaultPromotion(
+				cfg.CatalogDir,
+				cfg.GitHubOrganization,
+				cfg.PromoteReleaseCommitTemplate,
+				cfg.PromoteReleasePullRequestTemplate,
+				cfg.RepositoriesDir,
+				cfg.JoyCache,
+				cfg.DefaultGitTagTemplate,
+			).Promote(opts)
 			return err
 		},
 	}
@@ -170,6 +173,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Target environment (interactive if not specified)")
 	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Add auto-merge label to release PR")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create draft release PR")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "do not prompt")
 
 	return cmd
@@ -219,8 +223,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 
 func NewReleaseRenderCmd() *cobra.Command {
 	var (
-		env   string
-		color bool
+		env          string
+		colorEnabled bool
 	)
 
 	cmd := &cobra.Command{
@@ -261,13 +265,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 				Catalog:      cat,
 				IO:           io,
 				Helm:         helm.CLI{IO: io},
-				Color:        color,
+				Color:        colorEnabled,
 			})
 		},
 	}
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
-	cmd.Flags().BoolVar(&color, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
+	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	return cmd
 }
 
@@ -297,12 +301,12 @@ func NewGitCommands() *cobra.Command {
 					return err
 				}
 
-				release := args[0]
+				releaseName := args[0]
 
 				var sourceRelease, targetRelease *v1alpha1.Release
 
 				for _, cross := range cat.Releases.Items {
-					if cross.Name != release {
+					if cross.Name != releaseName {
 						continue
 					}
 					for _, rel := range cross.Releases {
@@ -326,82 +330,32 @@ func NewGitCommands() *cobra.Command {
 					return fmt.Errorf("no target release found")
 				}
 
-				sourceDir := cmp.Or(cfg.RepositoriesDir, filepath.Join(cfg.JoyCache, "src"))
-				if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-					return fmt.Errorf("failed to ensure repoName cache: %w", err)
-				}
-
-				project := sourceRelease.Project
-
-				repository := project.Spec.Repository
-				if repository == "" {
-					repository = fmt.Sprintf("%s/%s", cfg.GitHubOrganization, project.Name)
-				}
-
-				repoDir := filepath.Join(sourceDir, path.Base(repository))
-				if _, err := os.Stat(repoDir); err != nil {
-					if !errors.Is(err, os.ErrNotExist) {
-						return err
-					}
-
-					cloneOptions := github.CloneOptions{
-						RepoURL: repository,
-						OutDir:  repoDir,
-					}
-					if err := github.Clone(sourceDir, cloneOptions); err != nil {
-						return fmt.Errorf("failed to clone project: %w", err)
-					}
-				}
-
-				if err := git.FetchTags(repoDir); err != nil {
-					return fmt.Errorf("fetching git tags: %w", err)
-				}
-
-				tmpl, err := func() (*template.Template, error) {
-					templateSource := cmp.Or(project.Spec.GitTagTemplate, cfg.DefaultGitTagTemplate)
-					if templateSource == "" {
-						return nil, nil
-					}
-					return template.New("").Parse(templateSource)
-				}()
+				repoDir, err := project.GetCachedSourceDir(sourceRelease.Project, cfg.GitHubOrganization, cfg.RepositoriesDir, cfg.JoyCache)
 				if err != nil {
-					return fmt.Errorf("parsing config gitTagTemplate: %w", err)
+					return fmt.Errorf("cloning repository: %w", err)
 				}
 
-				getRevision := func(release *v1alpha1.Release) (string, error) {
-					if tmpl == nil {
-						return release.Spec.Version, nil
-					}
-
-					var buffer bytes.Buffer
-					if err := tmpl.Execute(&buffer, struct{ Release *v1alpha1.Release }{release}); err != nil {
-						return "", fmt.Errorf("executing template: %w", err)
-					}
-
-					return buffer.String(), nil
-				}
-
-				sourceTag, err := getRevision(sourceRelease)
+				sourceTag, err := release.GetGitTag(sourceRelease, cfg.DefaultGitTagTemplate)
 				if err != nil {
-					return fmt.Errorf("getting source tag from release: %w", err)
+					return fmt.Errorf("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
 				}
 
-				targetTag, err := getRevision(targetRelease)
+				targetTag, err := release.GetGitTag(targetRelease, cfg.DefaultGitTagTemplate)
 				if err != nil {
-					return fmt.Errorf("getting target tag from release: %w", err)
+					return fmt.Errorf("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
 				}
 
 				gitArgs := append([]string{"git", command}, args[1:]...)
 				gitArgs = append(gitArgs, sourceTag+".."+targetTag)
 
-				if project.Spec.RepositorySubpaths != nil {
+				if sourceRelease.Project.Spec.RepositorySubpaths != nil {
 					if !slices.Contains(gitArgs, "--") {
 						gitArgs = append(gitArgs, "--")
 					}
-					gitArgs = append(gitArgs, project.Spec.RepositorySubpaths...)
+					gitArgs = append(gitArgs, sourceRelease.Project.Spec.RepositorySubpaths...)
 				}
 
-				fmt.Println(color.InCyan("running:"), color.InBold(strings.Join(gitArgs, " ")), color.InCyan("in"), color.InBold(repoDir))
+				fmt.Println(color.InCyan("running:"), color.InBold("git "+strings.Join(gitArgs, " ")), color.InCyan("in"), color.InBold(repoDir))
 				fmt.Println()
 
 				gitCommand := exec.Command("git", gitArgs[1:]...)

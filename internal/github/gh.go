@@ -54,7 +54,7 @@ func executeAndGetOutput(workDir string, args ...string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("running gh command with args %q: %w: %q", strings.Join(args, " "), err, output)
 	}
-	return string(output), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 func EnsureInstalledAndAuthenticated() error {

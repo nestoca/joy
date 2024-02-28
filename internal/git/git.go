@@ -238,6 +238,21 @@ func GetCurrentCommit(dir string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+func Fetch(dir string) error {
+	var buffer bytes.Buffer
+
+	cmd := exec.Command("git", "fetch")
+	cmd.Dir = dir
+	cmd.Stderr = &buffer
+	cmd.Stdout = &buffer
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error: %s", buffer.String())
+	}
+
+	return nil
+}
+
 func FetchTags(dir string) error {
 	var buffer bytes.Buffer
 

@@ -2,11 +2,12 @@
 package pr
 
 type CreateParams struct {
-	Branch string
-	Title  string
-	Body   string
-	Labels []string
-	Draft  bool
+	Branch    string
+	Title     string
+	Body      string
+	Labels    []string
+	Reviewers []string
+	Draft     bool
 }
 
 type PullRequestProvider interface {
