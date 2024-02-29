@@ -7,15 +7,20 @@ import (
 	"io"
 	"net/url"
 	"os/exec"
+	"path"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/internal"
 )
 
+type Puller interface {
+	Pull(context.Context, PullOptions) error
+}
+
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 type PullRenderer interface {
-	Pull(context.Context, PullOptions) error
+	Puller
 	Render(ctx context.Context, opts RenderOpts) error
 }
 
@@ -35,15 +40,25 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 		return fmt.Errorf("invalid chart url: %w", err)
 	}
 
-	if chartURL.Scheme == "" {
-		chartURL.Scheme = "oci"
-	}
-
 	if opts.OutputDir == "" {
 		opts.OutputDir = "."
 	}
 
-	args := []string{"pull", chartURL.String(), "--untar", "--untardir", opts.OutputDir}
+	if chartURL.Scheme == "" {
+		chartURL.Scheme = "oci"
+	}
+
+	var args []string
+
+	switch chartURL.Scheme {
+	case "http", "https":
+		repo, chart := path.Split(chartURL.Path)
+		chartURL.Path = repo
+		args = []string{"pull", chart, "--repo", chartURL.String(), "--untar", "--untardir", opts.OutputDir}
+	default:
+		args = []string{"pull", chartURL.String(), "--untar", "--untardir", opts.OutputDir}
+	}
+
 	if opts.Version != "" {
 		args = append(args, "--version", opts.Version)
 	}
@@ -59,8 +74,8 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 type RenderOpts struct {
 	Dst         io.Writer
 	ReleaseName string
-	ChartPath   string
 	Values      map[string]any
+	ChartPath   string
 }
 
 func (CLI) Render(ctx context.Context, opts RenderOpts) error {

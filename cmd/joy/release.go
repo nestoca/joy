@@ -23,6 +23,7 @@ import (
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/release/render"
+	"github.com/nestoca/joy/internal/release/validate"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -40,6 +41,7 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleasePeopleCmd())
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewGitCommands())
+	cmd.AddCommand(NewValidateCommand())
 
 	return cmd
 }
@@ -264,22 +266,86 @@ func NewReleaseRenderCmd() *cobra.Command {
 				In:  cmd.InOrStdin(),
 			}
 
-			return render.Render(cmd.Context(), render.RenderOpts{
-				Env:          env,
-				Release:      releaseName,
-				DefaultChart: cfg.DefaultChart,
-				CacheDir:     cfg.JoyCache,
-				ValueMapping: cfg.ValueMapping,
-				Catalog:      cat,
-				IO:           io,
-				Helm:         helm.CLI{IO: io},
-				Color:        colorEnabled,
+			return render.Render(cmd.Context(), render.RenderParams{
+				Env:     env,
+				Release: releaseName,
+				Catalog: cat,
+				CommonRenderParams: render.CommonRenderParams{
+					DefaultChart: cfg.DefaultChart,
+					CacheDir:     cfg.JoyCache,
+					ValueMapping: cfg.ValueMapping,
+					IO:           io,
+					Helm:         helm.CLI{IO: io},
+					Color:        colorEnabled,
+				},
 			})
 		},
 	}
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
+	return cmd
+}
+
+func NewValidateCommand() *cobra.Command {
+	var env string
+
+	cmd := &cobra.Command{
+		Use:   "validate [releases...]",
+		Short: "validate releases",
+		Args:  cobra.RangeArgs(0, 1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			selectedEnvs := func() []string {
+				if env == "" {
+					return cfg.Environments.Selected
+				}
+				return strings.Split(env, ",")
+			}()
+
+			releaseFilter := func() filtering.Filter {
+				if len(args) == 0 {
+					return nil
+				}
+				return filtering.NewSpecificReleasesFilter(args)
+			}()
+
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				EnvNames:        selectedEnvs,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   releaseFilter,
+			}
+
+			cat, err := catalog.Load(loadOpts)
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			var releases []*v1alpha1.Release
+			for _, item := range cat.Releases.Items {
+				for _, release := range item.Releases {
+					if release == nil {
+						continue
+					}
+					releases = append(releases, release)
+				}
+			}
+
+			return validate.Validate(cmd.Context(), validate.ValidateParams{
+				Releases:     releases,
+				ValueMapping: cfg.ValueMapping,
+				DefaultChart: cfg.DefaultChart,
+				CacheRoot:    cfg.JoyCache,
+				Helm: helm.CLI{
+					IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()},
+				},
+			})
+		},
+	}
+
+	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	return cmd
 }
 

@@ -40,7 +40,6 @@ func Promote(opts Opts) error {
 	for _, crossRelease := range cat.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release.Spec.Project == opts.Project {
-
 			// Find version node
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
