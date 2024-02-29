@@ -123,14 +123,14 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "url/name",
+							ChartURL:  "oci://url/name",
 							Version:   "v1",
 							OutputDir: "~/.cache/joy/does_not_exist/url/name/v1",
 						}).
 						Return(errors.New("some informative error"))
 				},
 			},
-			ExpectedError: "pulling helm chart: some informative error",
+			ExpectedError: "getting release chart: pulling chart: some informative error",
 		},
 		{
 			Name: "pull fails with default chart",
@@ -164,14 +164,14 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "default/chart",
+							ChartURL:  "oci://default/chart",
 							Version:   "v666",
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v666",
 						}).
 						Return(errors.New("some informative error"))
 				},
 			},
-			ExpectedError: "pulling helm chart: some informative error",
+			ExpectedError: "getting release chart: pulling chart: some informative error",
 		},
 		{
 			Name: "fail to hydrate values",
@@ -208,7 +208,7 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "default/chart",
+							ChartURL:  "oci://default/chart",
 							Version:   "",
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
@@ -264,7 +264,7 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "default/chart",
+							ChartURL:  "oci://default/chart",
 							Version:   "",
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
@@ -324,7 +324,7 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "default/chart",
+							ChartURL:  "oci://default/chart",
 							Version:   "",
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
@@ -388,7 +388,7 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "default/chart",
+							ChartURL:  "oci://default/chart",
 							Version:   "",
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
@@ -429,16 +429,18 @@ func TestRender(t *testing.T) {
 				tc.Params.SetupHelmMock(helmMock)
 			}
 
-			err := Render(context.Background(), RenderOpts{
-				Env:          tc.Params.Env,
-				Release:      tc.Params.Release,
-				DefaultChart: tc.Params.DefaultChart,
-				CacheDir:     tc.Params.CacheDir,
-				ValueMapping: tc.Params.ValueMapping,
-				Catalog:      tc.Params.Catalog,
-				IO:           io,
-				Helm:         helmMock,
-				Color:        false,
+			err := Render(context.Background(), RenderParams{
+				Env:     tc.Params.Env,
+				Release: tc.Params.Release,
+				Catalog: tc.Params.Catalog,
+				CommonRenderParams: CommonRenderParams{
+					DefaultChart: tc.Params.DefaultChart,
+					CacheDir:     tc.Params.CacheDir,
+					ValueMapping: tc.Params.ValueMapping,
+					IO:           io,
+					Helm:         helmMock,
+					Color:        false,
+				},
 			})
 			if tc.ExpectedError != "" {
 				require.EqualError(t, err, tc.ExpectedError)

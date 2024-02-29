@@ -1,6 +1,8 @@
 package internal
 
-import "io"
+import (
+	"io"
+)
 
 type IO struct {
 	Out io.Writer

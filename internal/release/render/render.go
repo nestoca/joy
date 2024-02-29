@@ -3,14 +3,10 @@ package render
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"maps"
-	"net/url"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -27,19 +23,23 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-type RenderOpts struct {
-	Env          string
-	Release      string
+type RenderParams struct {
+	Env     string
+	Release string
+	Catalog *catalog.Catalog
+	CommonRenderParams
+}
+
+type CommonRenderParams struct {
 	DefaultChart string
 	CacheDir     string
 	ValueMapping *config.ValueMapping
-	Catalog      *catalog.Catalog
 	IO           internal.IO
 	Helm         helm.PullRenderer
 	Color        bool
 }
 
-func Render(ctx context.Context, params RenderOpts) error {
+func Render(ctx context.Context, params RenderParams) error {
 	environment, err := getEnvironment(params.Catalog.Environments, params.Env)
 	if err != nil {
 		return fmt.Errorf("getting environment: %w", err)
@@ -50,36 +50,36 @@ func Render(ctx context.Context, params RenderOpts) error {
 		return fmt.Errorf("getting release: %w", err)
 	}
 
-	chartURL, err := url.JoinPath(release.Spec.Chart.RepoUrl, release.Spec.Chart.Name)
+	cache := helm.ChartCache{
+		DefaultChart: params.DefaultChart,
+		Root:         params.CacheDir,
+		Puller:       params.Helm,
+	}
+
+	chart, err := cache.GetReleaseChart(ctx, release)
 	if err != nil {
-		return fmt.Errorf("building chart url: %w", err)
-	}
-	if chartURL == "" {
-		chartURL = params.DefaultChart
+		return fmt.Errorf("getting release chart: %w", err)
 	}
 
-	cachePath := filepath.Join(params.CacheDir, chartURL, release.Spec.Chart.Version)
-	chartPath := filepath.Join(cachePath, filepath.Base(chartURL))
+	return RenderRelease(ctx, RenderReleaseParams{
+		Release:            release,
+		Chart:              chart,
+		CommonRenderParams: params.CommonRenderParams,
+	})
+}
 
-	if _, err := os.Stat(chartPath); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("reading cache: %w", err)
-		}
-		opts := helm.PullOptions{
-			ChartURL:  chartURL,
-			Version:   release.Spec.Chart.Version,
-			OutputDir: cachePath,
-		}
-		if err := params.Helm.Pull(ctx, opts); err != nil {
-			return fmt.Errorf("pulling helm chart: %w", err)
-		}
-	}
+type RenderReleaseParams struct {
+	Release *v1alpha1.Release
+	Chart   *helm.Chart
+	CommonRenderParams
+}
 
-	values, err := HydrateValues(release, environment, params.ValueMapping)
+func RenderRelease(ctx context.Context, params RenderReleaseParams) error {
+	values, err := HydrateValues(params.Release, params.Release.Environment, params.ValueMapping)
 	if err != nil {
 		fmt.Fprintln(params.IO.Out, "error hydrating values:", err)
 		fmt.Fprintln(params.IO.Out, "fallback to raw release.spec.values")
-		values = release.Spec.Values
+		values = params.Release.Spec.Values
 	}
 
 	dst := params.IO.Out
@@ -89,8 +89,8 @@ func Render(ctx context.Context, params RenderOpts) error {
 
 	opts := helm.RenderOpts{
 		Dst:         dst,
-		ReleaseName: release.Name,
-		ChartPath:   chartPath,
+		ReleaseName: params.Release.Name,
+		ChartPath:   params.Chart.DirName(),
 		Values:      values,
 	}
 
