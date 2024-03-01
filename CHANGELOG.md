@@ -1,3 +1,10 @@
+## [0.31.3](https://github.com/nestoca/joy/compare/v0.31.2...v0.31.3) (2024-02-28)
+
+
+### Bug Fixes
+
+* **PL-2409:** fix bad merge of markflagrequired ([#102](https://github.com/nestoca/joy/issues/102)) ([c4c82f7](https://github.com/nestoca/joy/commit/c4c82f791404fa0ffd7538b5d7ae504c2e258e55))
+
 ## [0.31.2](https://github.com/nestoca/joy/compare/v0.31.1...v0.31.2) (2024-02-26)
 
 
