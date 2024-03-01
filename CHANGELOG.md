@@ -1,5 +1,12 @@
 ## [0.31.4](https://github.com/nestoca/joy/compare/v0.31.3...v0.31.4) (2024-03-01)
 
+
+### Bug Fixes
+
+* **PL-2247:** GoRelease github token ([#103](https://github.com/nestoca/joy/issues/103)) ([702bc13](https://github.com/nestoca/joy/commit/702bc1311e2509246b016403b90eaaba20cf8650))
+
+## [0.31.4](https://github.com/nestoca/joy/compare/v0.31.3...v0.31.4) (2024-03-01)
+
 ## [0.31.3](https://github.com/nestoca/joy/compare/v0.31.2...v0.31.3) (2024-02-28)
 
 
