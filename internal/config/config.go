@@ -60,8 +60,14 @@ type Config struct {
 	GitHubOrganization string `yaml:"gitHubOrganization,omitempty"`
 
 	// DefaultGitTagTemplate serves as the default gitTagTemplate for projects
-	// Can be overriden in the project spec
+	// Can be overridden in the project spec
 	DefaultGitTagTemplate string `yaml:"defaultGitTagTemplate,omitempty"`
+
+	// PromoteReleaseCommitTemplate is the template of pull request commit messages for release promotion
+	PromoteReleaseCommitTemplate string `yaml:"promoteReleaseCommitTemplate,omitempty"`
+
+	// PromoteReleasePullRequestTemplate is the template of pull request titles+bodies for release promotion
+	PromoteReleasePullRequestTemplate string `yaml:"promoteReleasePullRequestTemplate,omitempty"`
 }
 
 type ValueMapping struct {
@@ -69,9 +75,9 @@ type ValueMapping struct {
 	Mappings          map[string]any
 }
 
-// Provides custom unmarshalling for backwards compatibility with map[string]string valueMappings.
+// UnmarshalYAML provides custom unmarshalling for backwards compatibility with map[string]string valueMappings.
 // This is a stop gap so that we do not break the current joy CLI interpretation of the catalog.
-// However this will enable us to add a releaseIgnoreList to ignore injecting default values into charts
+// However, this will enable us to add a releaseIgnoreList to ignore injecting default values into charts
 // that would otherwise break.
 func (mapping *ValueMapping) UnmarshalYAML(node *yaml.Node) error {
 	// Cannot decode directly to mapping otherwise we have entered the infinite recursive look up unmarshalling
@@ -169,6 +175,14 @@ func Load(configDir, catalogDir string) (*Config, error) {
 
 	if catalogCfg.DefaultGitTagTemplate != "" {
 		cfg.DefaultGitTagTemplate = catalogCfg.DefaultGitTagTemplate
+	}
+
+	if catalogCfg.PromoteReleaseCommitTemplate != "" {
+		cfg.PromoteReleaseCommitTemplate = catalogCfg.PromoteReleaseCommitTemplate
+	}
+
+	if catalogCfg.PromoteReleasePullRequestTemplate != "" {
+		cfg.PromoteReleasePullRequestTemplate = catalogCfg.PromoteReleasePullRequestTemplate
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {

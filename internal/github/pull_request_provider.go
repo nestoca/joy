@@ -78,6 +78,10 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		args = append(args, "--label", label)
 	}
 
+	for _, reviewer := range params.Reviewers {
+		args = append(args, "--reviewer", reviewer)
+	}
+
 	prURL, err := executeAndGetOutput(p.dir, args...)
 	if err != nil {
 		return "", fmt.Errorf("creating pull request for branch %s: %w", params.Branch, err)

@@ -1,98 +1,185 @@
 package promote
 
 import (
+	"cmp"
+	"errors"
 	"fmt"
+	"sort"
 	"strings"
+	"text/template"
+
+	"golang.org/x/mod/semver"
+
+	"github.com/nestoca/joy/internal/style"
 
 	"github.com/google/uuid"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/cross"
 )
 
-type PerformParams struct {
-	list      *cross.ReleaseList
-	autoMerge bool
-	draft     bool
+const (
+	defaultCommitAndPRTemplate = `Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})`
+)
+
+type PerformOpts struct {
+	list                        *cross.ReleaseList
+	autoMerge                   bool
+	draft                       bool
+	dryRun                      bool
+	commitTemplate              string
+	pullRequestTemplate         string
+	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
+	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
+	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
+	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
+	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
+}
+
+type ReleaseWithGitTag struct {
+	*v1alpha1.Release
+	DisplayVersion string
+	GitTag         string
+}
+
+type ReleaseInfo struct {
+	Name         string
+	Project      *v1alpha1.Project
+	Repository   string
+	Source       ReleaseWithGitTag
+	Target       ReleaseWithGitTag
+	OlderGitTag  string
+	NewerGitTag  string
+	IsPrerelease bool
+	IsUpgrade    bool
+	Commits      []*CommitInfo
+	Error        error
+}
+
+type PromotionInfo struct {
+	SourceEnvironment *v1alpha1.Environment
+	TargetEnvironment *v1alpha1.Environment
+	Releases          []*ReleaseInfo
+	Error             error
+}
+
+type CommitInfo struct {
+	Sha          string
+	ShortSha     string
+	Author       string
+	GitHubAuthor string
+	Message      string
+	ShortMessage string
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
-func (p *Promotion) perform(params PerformParams) (string, error) {
-	if len(params.list.Environments) != 2 {
-		return "", fmt.Errorf("expecting 2 environments, got %d", len(params.list.Environments))
+func (p *Promotion) perform(opts PerformOpts) (string, error) {
+	if len(opts.list.Environments) != 2 {
+		return "", fmt.Errorf("expecting 2 environments, got %d", len(opts.list.Environments))
 	}
 
-	var (
-		promotedFiles        []string
-		messages             []string
-		promotedReleaseNames []string
-	)
+	sourceEnv := opts.list.Environments[0]
+	targetEnv := opts.list.Environments[1]
 
-	sourceEnv := params.list.Environments[0]
-	targetEnv := params.list.Environments[1]
+	info := &PromotionInfo{
+		SourceEnvironment: sourceEnv,
+		TargetEnvironment: targetEnv,
+	}
 
-	for _, crossRelease := range params.list.SortedCrossReleases() {
-		// Skip releases already in sync
+	var promotedFiles []string
+	for _, crossRelease := range opts.list.SortedCrossReleases() {
 		promotedFile := crossRelease.PromotedFile
 		if promotedFile == nil {
 			continue
 		}
-		promotedReleaseNames = append(promotedReleaseNames, crossRelease.Name)
+		promotedFiles = append(promotedFiles, promotedFile.Path)
 
-		// Update target release file
 		sourceRelease := crossRelease.Releases[0]
 		targetRelease := crossRelease.Releases[1]
 		isCreatingTargetRelease := targetRelease == nil
 
 		p.promptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
 
-		if err := p.yamlWriter.Write(promotedFile); err != nil {
-			return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
+		if opts.dryRun {
+			fmt.Printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
+		} else {
+			if err := p.yamlWriter.Write(promotedFile); err != nil {
+				return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
+			}
 		}
 
-		promotedFiles = append(promotedFiles, promotedFile.Path)
+		fmt.Printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
+		releaseInfo := getReleaseInfo(sourceRelease, targetRelease, opts)
 
-		// Determine release-specific message
-		message := getPromotionMessage(crossRelease.Name, sourceRelease, targetRelease)
-		messages = append(messages, message)
+		info.Releases = append(info.Releases, releaseInfo)
+		info.Error = errors.Join(info.Error, releaseInfo.Error)
 	}
 
-	// Nothing promoted?
 	if len(promotedFiles) == 0 {
 		return "", fmt.Errorf("no releases promoted, should not reach this point")
 	}
 
-	// Create new branch and commit and push changes
-	branchName := getBranchName(sourceEnv.Name, targetEnv.Name, promotedReleaseNames)
-	message := getCommitMessage(sourceEnv.Name, targetEnv.Name, promotedReleaseNames, messages)
-
-	err := p.gitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, message)
+	commitTemplate := cmp.Or(opts.commitTemplate, defaultCommitAndPRTemplate)
+	commitMessage, err := renderMessage(commitTemplate, info)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("rendering commit message: %w", err)
 	}
 
-	p.promptProvider.PrintBranchCreated(branchName, message)
+	branchName := getBranchName(info)
+	if opts.dryRun {
+		fmt.Printf("ℹ️ Dry-run: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
+			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
+			style.SecondaryInfo(commitMessage))
+	} else {
+		err = p.gitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, commitMessage)
+		if err != nil {
+			return "", err
+		}
+		p.promptProvider.PrintBranchCreated(branchName, commitMessage)
+	}
 
 	var labels []string
-	if params.autoMerge {
+	if opts.autoMerge {
 		labels = append(labels, "auto-merge")
 	}
 
-	prTitle, prBody := getPRTitleAndBody(message)
+	pullRequestTemplate := cmp.Or(opts.pullRequestTemplate, defaultCommitAndPRTemplate)
+	prMessage, err := renderMessage(pullRequestTemplate, info)
+	if err != nil {
+		return "", fmt.Errorf("rendering pull request message: %w", err)
+	}
+	prLines := strings.SplitN(prMessage, "\n", 2)
+	prTitle := prLines[0]
+	prBody := ""
+	if len(prLines) > 1 {
+		prBody = prLines[1]
+	}
+
+	reviewers := getReviewers(info)
+
+	if opts.dryRun {
+		fmt.Printf("ℹ️ Dry-run: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\n",
+			style.SecondaryInfo(prTitle), style.SecondaryInfo(prBody),
+			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")))
+		p.promptProvider.PrintCompleted()
+		return "", nil
+	}
 
 	prURL, err := p.pullRequestProvider.Create(pr.CreateParams{
-		Branch: branchName,
-		Title:  prTitle,
-		Body:   prBody,
-		Labels: labels,
-		Draft:  params.draft,
+		Branch:    branchName,
+		Title:     prTitle,
+		Body:      prBody,
+		Labels:    labels,
+		Draft:     opts.draft,
+		Reviewers: reviewers,
 	})
 	if err != nil {
 		return "", fmt.Errorf("creating pull request: %w", err)
 	}
 
-	if params.draft {
+	if opts.draft {
 		p.promptProvider.PrintDraftPullRequestCreated(prURL)
 	} else {
 		p.promptProvider.PrintPullRequestCreated(prURL)
@@ -107,45 +194,162 @@ func (p *Promotion) perform(params PerformParams) (string, error) {
 	return prURL, nil
 }
 
-// getPromotionMessage computes the message for a specific release promotion
-func getPromotionMessage(releaseName string, sourceRelease, targetRelease *v1alpha1.Release) string {
-	previousVersion := "(missing)"
-	if targetRelease != nil {
-		previousVersion = targetRelease.Spec.Version
+func getReviewers(info *PromotionInfo) []string {
+	uniqueAuthors := make(map[string]string)
+	for _, release := range info.Releases {
+		for _, commit := range release.Commits {
+			uniqueAuthors[commit.GitHubAuthor] = commit.GitHubAuthor
+		}
 	}
-	return fmt.Sprintf("Promote %s %s -> %s", releaseName, previousVersion, sourceRelease.Spec.Version)
+
+	var reviewers []string
+	for _, reviewer := range uniqueAuthors {
+		reviewers = append(reviewers, reviewer)
+	}
+	sort.Strings(reviewers)
+	return reviewers
 }
 
-func getBranchName(sourceEnv, targetEnv string, promotedReleaseNames []string) string {
+func getBranchName(info *PromotionInfo) string {
 	var releases string
-	if len(promotedReleaseNames) == 1 {
-		releases = promotedReleaseNames[0]
+	if len(info.Releases) == 1 {
+		releases = info.Releases[0].Name
 	} else {
-		releases = fmt.Sprintf("%d-releases", len(promotedReleaseNames))
+		releases = fmt.Sprintf("%d-releases", len(info.Releases))
 	}
 	uniqueID := uuid.New().String()
-	name := fmt.Sprintf("promote-%s-from-%s-to-%s-%s", releases, sourceEnv, targetEnv, uniqueID)
+	name := fmt.Sprintf("promote-%s-from-%s-to-%s-%s", releases, info.SourceEnvironment.Name, info.TargetEnvironment.Name, uniqueID)
 	if len(name) > 255 {
 		name = name[:255]
 	}
 	return name
 }
 
-// getCommitMessage computes the commit message for the whole promotion operation including all releases
-func getCommitMessage(sourceEnv, targetEnv string, promotedReleaseNames []string, messages []string) string {
-	if len(messages) == 1 {
-		// Put details of single promotion on first and only line
-		return fmt.Sprintf("%s (%s -> %s)", messages[0], sourceEnv, targetEnv)
+func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) {
+	getErrorMessage := func(err error) string {
+		return fmt.Sprintf("Promote %d releases (%s -> %s)\nFailed to render message: %v",
+			len(info.Releases), info.SourceEnvironment.Name,
+			info.TargetEnvironment.Name, err)
 	}
 
-	// Put details of individual promotions on subsequent lines
-	return fmt.Sprintf("Promote %d releases (%s -> %s)\n%s", len(promotedReleaseNames), sourceEnv, targetEnv, strings.Join(messages, "\n"))
+	if info.Error != nil {
+		return getErrorMessage(fmt.Errorf("collecting promotion info: %w", info.Error)), nil
+	}
+
+	tmpl, err := template.New("message").Funcs(sprig.FuncMap()).Parse(messageTemplate)
+	if err != nil {
+		return getErrorMessage(fmt.Errorf("parsing message template: %w", err)), nil
+	}
+
+	var message strings.Builder
+	if err := tmpl.Execute(&message, info); err != nil {
+		return getErrorMessage(fmt.Errorf("executing message template: %w", err)), nil
+	}
+	return message.String(), nil
 }
 
-// getPRTitleAndBody computes the title and body for the pull request based on the commit message
-func getPRTitleAndBody(commitMessage string) (string, string) {
-	lines := strings.Split(commitMessage, "\n")
-	title := lines[0]
-	body := strings.Join(lines[1:], "\n")
-	return title, body
+func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) *ReleaseInfo {
+	getAndPrintReleaseInfoWithError := func(msg string, args ...any) *ReleaseInfo {
+		err := fmt.Errorf("Failed to get info for release "+sourceRelease.Name+": "+msg, args...)
+		fmt.Printf("⚠️ %v\n", err)
+		return &ReleaseInfo{
+			Name:  sourceRelease.Name,
+			Error: err,
+		}
+	}
+
+	project := sourceRelease.Project
+	isUpgrade := true
+	if targetRelease != nil {
+		isUpgrade = semver.Compare("v"+sourceRelease.Spec.Version, "v"+targetRelease.Spec.Version) > 0
+	}
+
+	isPrerelease := false
+	if semver.Build("v"+sourceRelease.Spec.Version) != "" ||
+		semver.Prerelease("v"+sourceRelease.Spec.Version) != "" ||
+		(targetRelease != nil && (semver.Build("v"+targetRelease.Spec.Version) != "" || semver.Prerelease("v"+targetRelease.Spec.Version) != "")) {
+		isPrerelease = true
+	}
+
+	displayTargetVersion := "(undefined)"
+	if targetRelease != nil {
+		displayTargetVersion = targetRelease.Spec.Version
+	}
+
+	sourceTag, err := opts.getReleaseGitTagFunc(sourceRelease)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
+	}
+
+	targetTag := sourceTag
+	if targetRelease != nil {
+		targetTag, err = opts.getReleaseGitTagFunc(targetRelease)
+		if err != nil {
+			return getAndPrintReleaseInfoWithError("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
+		}
+	}
+
+	olderTag := targetTag
+	newerTag := sourceTag
+	if !isUpgrade {
+		olderTag = sourceTag
+		newerTag = targetTag
+	}
+
+	releaseInfo := ReleaseInfo{
+		Name:         sourceRelease.Name,
+		Project:      project,
+		Repository:   opts.getProjectRepositoryFunc(project),
+		Source:       ReleaseWithGitTag{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag},
+		Target:       ReleaseWithGitTag{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag},
+		OlderGitTag:  olderTag,
+		NewerGitTag:  newerTag,
+		IsUpgrade:    isUpgrade,
+		IsPrerelease: isPrerelease,
+	}
+
+	if isPrerelease {
+		return &releaseInfo
+	}
+
+	projectDir, err := opts.getProjectSourceDirFunc(project)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting project clone: %w", err)
+	}
+
+	commitsMetadata, err := opts.getCommitsMetadataFunc(projectDir, olderTag, newerTag)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting commits metadata: %w", err)
+	}
+
+	gitHubAuthors, err := opts.getCommitsGitHubAuthorsFunc(project, olderTag, newerTag)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
+	}
+
+	for _, metadata := range commitsMetadata {
+
+		shortSha := metadata.Sha
+		if len(shortSha) > 7 {
+			shortSha = shortSha[:7]
+		}
+
+		shortMessage := metadata.Message
+		if strings.Contains(shortMessage, "\n") {
+			shortMessage = strings.SplitN(shortMessage, "\n", 2)[0]
+		}
+
+		gitHubAuthor, _ := gitHubAuthors[metadata.Sha]
+
+		releaseInfo.Commits = append(releaseInfo.Commits, &CommitInfo{
+			Sha:          metadata.Sha,
+			ShortSha:     shortSha,
+			Author:       metadata.Author,
+			GitHubAuthor: gitHubAuthor,
+			Message:      metadata.Message,
+			ShortMessage: shortMessage,
+		})
+	}
+
+	return &releaseInfo
 }
