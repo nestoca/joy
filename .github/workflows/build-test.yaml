@@ -111,4 +111,4 @@ jobs:
           version: latest
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLISHER }}
+          GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLIC_TOKEN }}
