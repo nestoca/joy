@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Masterminds/sprig/v3"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/cross"
@@ -34,6 +35,7 @@ type PerformOpts struct {
 	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
 	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
 	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
+	getCodeOwnersFunc           func(projectDir string) ([]string, error)
 	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
 	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
 }
@@ -47,6 +49,7 @@ type ReleaseWithGitTag struct {
 type ReleaseInfo struct {
 	Name         string
 	Project      *v1alpha1.Project
+	CodeOwners   []string
 	Repository   string
 	Source       ReleaseWithGitTag
 	Target       ReleaseWithGitTag
@@ -141,6 +144,11 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	}
 
 	var labels []string
+	labels = append(labels, "environment:"+info.TargetEnvironment.Name)
+	for _, release := range info.Releases {
+		labels = append(labels, "release:"+release.Name)
+	}
+
 	if opts.autoMerge {
 		labels = append(labels, "auto-merge")
 	}
@@ -160,9 +168,10 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	reviewers := getReviewers(info)
 
 	if opts.dryRun {
-		fmt.Printf("ℹ️ Dry-run: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\n",
+		fmt.Printf("ℹ️ Dry-run: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
 			style.SecondaryInfo(prTitle), style.SecondaryInfo(prBody),
-			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")))
+			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")),
+			style.SecondaryInfo("- "+strings.Join(labels, "\n- ")))
 		p.promptProvider.PrintCompleted()
 		return "", nil
 	}
@@ -195,15 +204,21 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 }
 
 func getReviewers(info *PromotionInfo) []string {
-	uniqueAuthors := make(map[string]string)
+	uniqueAuthors := make(map[string]bool)
 	for _, release := range info.Releases {
+		for _, owner := range release.CodeOwners {
+			uniqueAuthors[owner] = true
+		}
+		for _, owner := range release.Project.Spec.CodeOwners {
+			uniqueAuthors[owner] = true
+		}
 		for _, commit := range release.Commits {
-			uniqueAuthors[commit.GitHubAuthor] = commit.GitHubAuthor
+			uniqueAuthors[commit.GitHubAuthor] = true
 		}
 	}
 
 	var reviewers []string
-	for _, reviewer := range uniqueAuthors {
+	for reviewer := range uniqueAuthors {
 		reviewers = append(reviewers, reviewer)
 	}
 	sort.Strings(reviewers)
@@ -326,6 +341,12 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 	if err != nil {
 		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
 	}
+
+	codeOwners, err := opts.getCodeOwnersFunc(projectDir)
+	if err != nil {
+		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
+	}
+	releaseInfo.CodeOwners = codeOwners
 
 	for _, metadata := range commitsMetadata {
 		shortSha := metadata.Sha

@@ -45,6 +45,9 @@ var (
 	simpleReleaseGitTagFunc = func(release *v1alpha1.Release) (string, error) {
 		return "v" + release.Spec.Version, nil
 	}
+	simpleGetCodeOwnersFunc = func(dir string) ([]string, error) {
+		return []string{"nestobot"}, nil
+	}
 )
 
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
@@ -83,9 +86,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
-		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -137,9 +138,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
-		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -154,7 +153,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, prURL)
 
-	require.Equal(t, []string{"auto-merge"}, getPullRequestLabels(t, dir, prURL))
+	require.Equal(t, []string{"auto-merge", "environment:prod", "release:bar", "release:foo"}, getPullRequestLabels(t, dir, prURL))
 }
 
 func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
@@ -177,9 +176,7 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = false
 
 	// Perform test
-	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
-		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
+	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,
@@ -265,9 +262,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir),
-		&promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc,
-		simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc)
+	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
 
 	opts := promote.Opts{
 		Catalog:   cat,

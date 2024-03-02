@@ -22,11 +22,13 @@ func NewPullRequestProvider(dir string) *PullRequestProvider {
 
 var labelRegex = regexp.MustCompile(`^promote:(.+)$`)
 
+type label struct {
+	Name string `json:"name"`
+}
+
 type pullRequest struct {
-	HeadRefName string `json:"headRefName"`
-	Labels      []struct {
-		Name string `json:"name"`
-	} `json:"labels"`
+	HeadRefName string  `json:"headRefName"`
+	Labels      []label `json:"labels"`
 }
 
 func (p *PullRequestProvider) EnsureInstalledAndAuthenticated() error {
@@ -82,6 +84,10 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		args = append(args, "--reviewer", reviewer)
 	}
 
+	err := p.createLabels(params.Labels...)
+	if err != nil {
+		return "", err
+	}
 	prURL, err := executeAndGetOutput(p.dir, args...)
 	if err != nil {
 		return "", fmt.Errorf("creating pull request for branch %s: %w", params.Branch, err)
@@ -193,21 +199,49 @@ func (p *PullRequestProvider) removeLabel(branch string, label string) error {
 	return nil
 }
 
-func (p *PullRequestProvider) addLabel(branch string, label string) error {
-	// Ensure label exists in repo
-	cmd := exec.Command("gh", "label", "create", label)
+func (p *PullRequestProvider) createLabels(labels ...string) error {
+	if len(labels) == 0 {
+		return nil
+	}
+	cmd := exec.Command("gh", "label", "list", "--json", "name")
 	cmd.Dir = p.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		if !strings.Contains(string(output), "already exists") {
-			return fmt.Errorf("creating label %s: %s", label, output)
+		return fmt.Errorf("listing labels: %s", output)
+	}
+
+	var existingLabels []label
+	if err := json.Unmarshal(output, &existingLabels); err != nil {
+		return fmt.Errorf("unmarshaling label list: %w", err)
+	}
+	existingLabelSet := make(map[string]bool)
+	for _, existingLabel := range existingLabels {
+		existingLabelSet[existingLabel.Name] = true
+	}
+	for _, label := range labels {
+		if !existingLabelSet[label] {
+			cmd = exec.Command("gh", "label", "create", label)
+			cmd.Dir = p.dir
+			output, err = cmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("creating label %s: %s", label, output)
+			}
 		}
+	}
+	return nil
+}
+
+func (p *PullRequestProvider) addLabel(branch string, label string) error {
+	// Ensure label exists in repo
+	err := p.createLabels(label)
+	if err != nil {
+		return err
 	}
 
 	// Add label to PR
-	cmd = exec.Command("gh", "pr", "edit", branch, "--add-label", label)
+	cmd := exec.Command("gh", "pr", "edit", branch, "--add-label", label)
 	cmd.Dir = p.dir
-	output, err = cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("adding label %s to branch %s: %s", label, branch, output)
 	}

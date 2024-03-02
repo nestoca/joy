@@ -61,6 +61,9 @@ func TestPromotion(t *testing.T) {
 	simpleReleaseGitTagFunc := func(release *v1alpha1.Release) (string, error) {
 		return "v" + release.Spec.Version, nil
 	}
+	simpleGetCodeOwnersFunc := func(dir string) ([]string, error) {
+		return []string{"nestobot"}, nil
+	}
 
 	cases := []struct {
 		name                        string
@@ -73,6 +76,7 @@ func TestPromotion(t *testing.T) {
 		getCommitsMetadataFunc      func(projectDir, from, to string) ([]*promote.CommitMetadata, error)
 		getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
 		getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
+		getCodeOwnersFunc           func(dir string) ([]string, error)
 		expectedErrorMessage        string
 		expectedPromoted            bool
 	}{
@@ -168,6 +172,7 @@ func TestPromotion(t *testing.T) {
 			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
 			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
 			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
+			getCodeOwnersFunc:           simpleGetCodeOwnersFunc,
 			expectedPromoted:            true,
 		},
 		{
@@ -224,6 +229,7 @@ func TestPromotion(t *testing.T) {
 			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
 			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
 			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
+			getCodeOwnersFunc:           simpleGetCodeOwnersFunc,
 			expectedPromoted:            true,
 		},
 	}
@@ -248,9 +254,7 @@ func TestPromotion(t *testing.T) {
 			})
 
 			// Perform test
-			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter, c.commitTemplate, c.pullRequestTemplate,
-				c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitsGitHubAuthorsFunc,
-				c.getReleaseGitTagFunc)
+			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter, c.commitTemplate, c.pullRequestTemplate, c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitsGitHubAuthorsFunc, c.getReleaseGitTagFunc, c.getCodeOwnersFunc)
 			prURL, err := promotion.Promote(c.opts)
 
 			// Check expected results

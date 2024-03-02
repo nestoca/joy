@@ -35,22 +35,11 @@ type Promotion struct {
 	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
 	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
 	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
+	getCodeOwnersFunc           func(projectDir string) ([]string, error)
 	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
 }
 
-func NewPromotion(
-	prompt PromptProvider,
-	gitProvider GitProvider,
-	pullRequestProvider pr.PullRequestProvider,
-	yamlWriter YamlWriter,
-	commitTemplate string,
-	pullRequestTemplate string,
-	getProjectRepositoryFunc func(proj *v1alpha1.Project) string,
-	getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error),
-	getCommitsMetadataFunc func(projectDir, from, to string) ([]*CommitMetadata, error),
-	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error),
-	getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error),
-) *Promotion {
+func NewPromotion(prompt PromptProvider, gitProvider GitProvider, pullRequestProvider pr.PullRequestProvider, yamlWriter YamlWriter, commitTemplate string, pullRequestTemplate string, getProjectRepositoryFunc func(proj *v1alpha1.Project) string, getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error), getCommitsMetadataFunc func(projectDir string, from string, to string) ([]*CommitMetadata, error), getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error), getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error), getCodeOwnersFunc func(projectDir string) ([]string, error)) *Promotion {
 	return &Promotion{
 		promptProvider:              prompt,
 		gitProvider:                 gitProvider,
@@ -63,36 +52,27 @@ func NewPromotion(
 		getCommitsMetadataFunc:      getCommitsMetadataFunc,
 		getCommitsGitHubAuthorsFunc: getCommitsGitHubAuthorsFunc,
 		getReleaseGitTagFunc:        getReleaseGitTagFunc,
+		getCodeOwnersFunc:           getCodeOwnersFunc,
 	}
 }
 
 func NewDefaultPromotion(catalogDir, gitHubOrganization, commitTemplate, pullRequestTemplate, repositoriesDir, joyCache, defaultGitTagTemplate string) *Promotion {
-	return NewPromotion(
-		&InteractivePromptProvider{},
-		NewShellGitProvider(catalogDir),
-		github.NewPullRequestProvider(catalogDir),
-		&FileSystemYamlWriter{},
-		commitTemplate,
-		pullRequestTemplate,
-		func(proj *v1alpha1.Project) string {
-			if proj.Spec.Repository != "" {
-				return proj.Spec.Repository
-			}
-			return fmt.Sprintf("%s/%s", gitHubOrganization, proj.Name)
-		},
-		func(proj *v1alpha1.Project) (string, error) {
-			return project.GetCachedSourceDir(proj, gitHubOrganization, repositoriesDir, joyCache)
-		},
-		func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error) {
-			return GetCommitsMetadata(projectDir, fromTag, toTag)
-		},
-		func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
-			return github.GetCommitsGitHubAuthors(proj, gitHubOrganization, fromTag, toTag)
-		},
-		func(rel *v1alpha1.Release) (string, error) {
-			return release.GetGitTag(rel, defaultGitTagTemplate)
-		},
-	)
+	return NewPromotion(&InteractivePromptProvider{}, NewShellGitProvider(catalogDir), github.NewPullRequestProvider(catalogDir), &FileSystemYamlWriter{}, commitTemplate, pullRequestTemplate, func(proj *v1alpha1.Project) string {
+		if proj.Spec.Repository != "" {
+			return proj.Spec.Repository
+		}
+		return fmt.Sprintf("%s/%s", gitHubOrganization, proj.Name)
+	}, func(proj *v1alpha1.Project) (string, error) {
+		return project.GetCachedSourceDir(proj, gitHubOrganization, repositoriesDir, joyCache)
+	}, func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error) {
+		return GetCommitsMetadata(projectDir, fromTag, toTag)
+	}, func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+		return github.GetCommitsGitHubAuthors(proj, gitHubOrganization, fromTag, toTag)
+	}, func(rel *v1alpha1.Release) (string, error) {
+		return release.GetGitTag(rel, defaultGitTagTemplate)
+	}, func(projectDir string) ([]string, error) {
+		return GetCodeOwners(projectDir)
+	})
 }
 
 type Opts struct {
@@ -222,6 +202,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		pullRequestTemplate:         p.pullRequestTemplate,
 		getProjectSourceDirFunc:     p.getProjectSourceDirFunc,
 		getProjectRepositoryFunc:    p.getProjectRepositoryFunc,
+		getCodeOwnersFunc:           p.getCodeOwnersFunc,
 		getCommitsMetadataFunc:      p.getCommitsMetadataFunc,
 		getCommitsGitHubAuthorsFunc: p.getCommitsGitHubAuthorsFunc,
 		getReleaseGitTagFunc:        p.getReleaseGitTagFunc,
