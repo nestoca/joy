@@ -1,3 +1,10 @@
+## [0.31.5](https://github.com/nestoca/joy/compare/v0.31.4...v0.31.5) (2024-03-04)
+
+
+### Bug Fixes
+
+* **PL-2473:** remove auto-merge prompt from rel prom ([86b8885](https://github.com/nestoca/joy/commit/86b8885bc1df3d14b4502a246aa2b7fb0a153da1))
+
 ## [0.31.4](https://github.com/nestoca/joy/compare/v0.31.3...v0.31.4) (2024-03-01)
 
 
