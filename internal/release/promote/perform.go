@@ -328,7 +328,6 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 	}
 
 	for _, metadata := range commitsMetadata {
-
 		shortSha := metadata.Sha
 		if len(shortSha) > 7 {
 			shortSha = shortSha[:7]
@@ -339,7 +338,7 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 			shortMessage = strings.SplitN(shortMessage, "\n", 2)[0]
 		}
 
-		gitHubAuthor, _ := gitHubAuthors[metadata.Sha]
+		gitHubAuthor := gitHubAuthors[metadata.Sha]
 
 		releaseInfo.Commits = append(releaseInfo.Commits, &CommitInfo{
 			Sha:          metadata.Sha,
