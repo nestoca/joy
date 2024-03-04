@@ -251,14 +251,6 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	}
 
 	switch answer {
-	case Ready:
-		if opts.TargetEnv.Spec.Promotion.AllowAutoMerge {
-			confirmed, err := p.promptProvider.ConfirmAutoMergePullRequest()
-			if err != nil {
-				return "", fmt.Errorf("confirming automerge: %w", err)
-			}
-			performParams.autoMerge = confirmed
-		}
 	case Draft:
 		performParams.draft = true
 	case Cancel:
