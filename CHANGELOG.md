@@ -1,3 +1,10 @@
+## [0.32.0](https://github.com/nestoca/joy/compare/v0.31.5...v0.32.0) (2024-03-05)
+
+
+### Features
+
+* **PL-2247:** add labels and CODEOWNERS to PR ([3c0b547](https://github.com/nestoca/joy/commit/3c0b547c4fb6f00ffab7b5fec2667abcf4d66097))
+
 ## [0.31.5](https://github.com/nestoca/joy/compare/v0.31.4...v0.31.5) (2024-03-04)
 
 
