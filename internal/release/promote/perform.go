@@ -30,6 +30,7 @@ type PerformOpts struct {
 	autoMerge                   bool
 	draft                       bool
 	dryRun                      bool
+	localOnly                   bool
 	commitTemplate              string
 	pullRequestTemplate         string
 	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
@@ -131,9 +132,18 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		return "", fmt.Errorf("rendering commit message: %w", err)
 	}
 
-	branchName := getBranchName(info)
+	modeName := "normal"
 	if opts.dryRun {
-		fmt.Printf("ℹ️ Dry-run: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
+		modeName = "Dry-Run"
+	}
+	if opts.localOnly {
+		modeName = "Local-Only"
+	}
+
+	branchName := getBranchName(info)
+	if opts.dryRun || opts.localOnly {
+		fmt.Printf("ℹ️ %s: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
+			modeName,
 			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
 			style.SecondaryInfo(commitMessage))
 	} else {
@@ -168,8 +178,9 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	reviewers := getReviewers(info)
 
-	if opts.dryRun {
-		fmt.Printf("ℹ️ Dry-run: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
+	if opts.dryRun || opts.localOnly {
+		fmt.Printf("ℹ️ %s: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
+			modeName,
 			style.SecondaryInfo(prTitle), style.SecondaryInfo(prBody),
 			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")),
 			style.SecondaryInfo("- "+strings.Join(labels, "\n- ")))
