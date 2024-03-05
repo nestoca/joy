@@ -18,6 +18,19 @@ func EnsureCleanAndUpToDateWorkingCopy(dir string) error {
 		return fmt.Errorf("uncommitted changes detected:\n%s", style.Warning(strings.Join(changes, "\n")))
 	}
 
+	defaultBranch, err := GetDefaultBranch(dir)
+	if err != nil {
+		return fmt.Errorf("getting default branch: %w", err)
+	}
+	err = Checkout(dir, defaultBranch)
+	if err != nil {
+		return fmt.Errorf("checking out default branch: %w", err)
+	}
+	err = Pull(dir)
+	if err != nil {
+		return fmt.Errorf("pulling changes: %w", err)
+	}
+
 	buf := bytes.Buffer{}
 	cmd := exec.Command("git", "-C", dir, "pull")
 	cmd.Stdout = &buf

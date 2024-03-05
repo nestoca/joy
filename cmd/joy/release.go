@@ -117,10 +117,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
-			if skipCatalogUpdate && !(dryRun || localOnly) {
-				return fmt.Errorf("flag --skip-catalog-update requires --dry-run or --local-only")
-			}
-
 			cfg := config.FromContext(cmd.Context())
 
 			var filter filtering.Filter
@@ -184,7 +180,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
 	cmd.Flags().BoolVar(&localOnly, "local-only", false, "Similar to dry-run, but updates the release file(s) on the local filesystem only. There is no branch, commits, or PR created.")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
-	cmd.Flags().BoolVar(&skipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check (only in dry run)")
+	cmd.Flags().BoolVar(&skipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check")
 
 	return cmd
 }
