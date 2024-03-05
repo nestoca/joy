@@ -209,9 +209,15 @@ func getReviewers(info *PromotionInfo) []string {
 		for _, owner := range release.CodeOwners {
 			uniqueAuthors[owner] = true
 		}
-		for _, owner := range release.Project.Spec.CodeOwners {
-			uniqueAuthors[owner] = true
+
+		// releaseInfo.Project may be nil if an error was encountered.
+		// therefore we need to check if the project exists before dereferencing it
+		if release.Project != nil {
+			for _, owner := range release.Project.Spec.CodeOwners {
+				uniqueAuthors[owner] = true
+			}
 		}
+
 		for _, commit := range release.Commits {
 			uniqueAuthors[commit.GitHubAuthor] = true
 		}
