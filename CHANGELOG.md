@@ -1,3 +1,10 @@
+## [0.32.1](https://github.com/nestoca/joy/compare/v0.32.0...v0.32.1) (2024-03-05)
+
+
+### Bug Fixes
+
+* **PL-2477:** fix nil deref bug in joy perform ([6e90375](https://github.com/nestoca/joy/commit/6e90375a3bf5223e2d6519b2844bb1c2664fc59a))
+
 ## [0.32.0](https://github.com/nestoca/joy/compare/v0.31.5...v0.32.0) (2024-03-05)
 
 
