@@ -109,8 +109,8 @@ type Opts struct {
 	// LocalOnly indicates if the promotion should only write the promotion changes to the working tree without creating a branch, commit or pull request.
 	LocalOnly bool
 
-	// SkipCatalogUpdate skips catalog update and dirty check in dry-run mode.  Very useful
-	// for troubleshooting and testing templates.
+	// SkipCatalogUpdate skips catalog update and dirty check. Very useful for
+	// troubleshooting and testing templates.
 	SkipCatalogUpdate bool
 }
 

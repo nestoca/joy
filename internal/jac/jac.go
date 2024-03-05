@@ -27,14 +27,17 @@ func init() {
 	dependencies.Add(dependency)
 }
 
-func ListProjectPeople(catalogDir string, extraArgs []string) error {
+func ListProjectPeople(catalogDir string, extraArgs []string, skipCatalogUpdate bool) error {
 	if err := dependency.MustBeInstalled(); err != nil {
 		return err
 	}
 
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
+	if skipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir); err != nil {
+			return err
+		}
 	}
 
 	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
@@ -51,14 +54,17 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 	return listPeopleWithGroups(selectedProject.Spec.Owners, extraArgs)
 }
 
-func ListReleasePeople(catalogDir string, extraArgs []string) error {
+func ListReleasePeople(catalogDir string, extraArgs []string, skipCatalogUpdate bool) error {
 	if err := dependency.MustBeInstalled(); err != nil {
 		return err
 	}
 
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
+	if skipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir); err != nil {
+			return err
+		}
 	}
 
 	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})

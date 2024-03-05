@@ -2,19 +2,22 @@ package project
 
 import (
 	"fmt"
+	"github.com/nestoca/joy/internal/git"
 	"os"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
 
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func List(catalogDir string) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
+func List(catalogDir string, skipCatalogUpdate bool) error {
+	if skipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir); err != nil {
+			return err
+		}
 	}
 
 	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})

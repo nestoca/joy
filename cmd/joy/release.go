@@ -47,9 +47,8 @@ func NewReleaseCmd() *cobra.Command {
 }
 
 func NewReleaseListCmd() *cobra.Command {
-	var releases string
-	var envs string
-	var owners string
+	var releases, envs, owners string
+	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -75,6 +74,7 @@ func NewReleaseListCmd() *cobra.Command {
 			}
 
 			return list.List(list.Opts{
+				SkipCatalogUpdate:    skipCatalogUpdate,
 				CatalogDir:           cfg.CatalogDir,
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
@@ -180,12 +180,12 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
 	cmd.Flags().BoolVar(&localOnly, "local-only", false, "Similar to dry-run, but updates the release file(s) on the local filesystem only. There is no branch, commits, or PR created.")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
-	cmd.Flags().BoolVar(&skipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check")
 
 	return cmd
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
+	var skipCatalogUpdate bool
 	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
@@ -193,7 +193,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Short:   "Select releases to include in listings and promotions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
+			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, skipCatalogUpdate)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
@@ -201,6 +201,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 }
 
 func NewReleasePeopleCmd() *cobra.Command {
+	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:   "owners",
 		Short: "List people owning a release's project via jac cli",
@@ -221,7 +222,7 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return jac.ListReleasePeople(cfg.CatalogDir, args)
+			return jac.ListReleasePeople(cfg.CatalogDir, args, skipCatalogUpdate)
 		},
 	}
 	return cmd

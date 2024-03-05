@@ -2,6 +2,7 @@ package list
 
 import (
 	"fmt"
+	"github.com/nestoca/joy/internal/git"
 	"io"
 	"os"
 	"slices"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -31,11 +31,19 @@ type Opts struct {
 	Filter filtering.Filter
 
 	ReferenceEnvironment string
+
+	// SkipCatalogUpdate skips catalog update and dirty check. Very useful for
+	// troubleshooting and testing templates.
+	SkipCatalogUpdate bool
 }
 
 func List(opts Opts) error {
-	if err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir); err != nil {
-		return err
+	if opts.SkipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir); err != nil {
+			return err
+		}
 	}
 
 	cat, err := catalog.Load(catalog.LoadOpts{
