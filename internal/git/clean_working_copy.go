@@ -1,9 +1,7 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/nestoca/joy/internal/style"
@@ -31,13 +29,5 @@ func EnsureCleanAndUpToDateWorkingCopy(dir string) error {
 		return fmt.Errorf("pulling changes: %w", err)
 	}
 
-	buf := bytes.Buffer{}
-	cmd := exec.Command("git", "-C", dir, "pull")
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("pulling changes:\n%s", buf.String())
-	}
 	return nil
 }
