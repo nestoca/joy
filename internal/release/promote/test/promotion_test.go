@@ -71,6 +71,7 @@ func TestPromotion(t *testing.T) {
 		setup                       func(args setupArgs)
 		commitTemplate              string
 		pullRequestTemplate         string
+		pullRequestLinkTemplate     string
 		getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
 		getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
 		getCommitsMetadataFunc      func(projectDir, from, to string) ([]*promote.CommitMetadata, error)

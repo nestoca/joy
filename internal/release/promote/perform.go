@@ -121,7 +121,8 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	}
 
 	if len(promotedFiles) == 0 {
-		return "", fmt.Errorf("no releases promoted, should not reach this point")
+		fmt.Println("🤷 Nothing to promote!")
+		return "", nil
 	}
 
 	commitTemplate := cmp.Or(opts.commitTemplate, defaultCommitAndPRTemplate)
@@ -317,10 +318,11 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		newerTag = targetTag
 	}
 
+	repository := opts.getProjectRepositoryFunc(project)
 	releaseInfo := ReleaseInfo{
 		Name:         sourceRelease.Name,
 		Project:      project,
-		Repository:   opts.getProjectRepositoryFunc(project),
+		Repository:   repository,
 		Source:       ReleaseWithGitTag{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag},
 		Target:       ReleaseWithGitTag{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag},
 		OlderGitTag:  olderTag,
@@ -358,6 +360,11 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		shortSha := metadata.Sha
 		if len(shortSha) > 7 {
 			shortSha = shortSha[:7]
+		}
+
+		metadata.Message, err = injectPullRequestLinks(repository, metadata.Message)
+		if err != nil {
+			return getAndPrintReleaseInfoWithError("injecting pull request links: %w", err)
 		}
 
 		shortMessage := metadata.Message
