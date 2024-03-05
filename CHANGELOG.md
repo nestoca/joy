@@ -1,3 +1,10 @@
+## [0.32.2](https://github.com/nestoca/joy/compare/v0.32.1...v0.32.2) (2024-03-05)
+
+
+### Bug Fixes
+
+* **PL-2247:** expand pr numbers to explicit links ([#106](https://github.com/nestoca/joy/issues/106)) ([006456c](https://github.com/nestoca/joy/commit/006456c75c74858ee4b39515e91a9182488cf7ce))
+
 ## [0.32.1](https://github.com/nestoca/joy/compare/v0.32.0...v0.32.1) (2024-03-05)
 
 
