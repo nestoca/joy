@@ -1,6 +1,7 @@
 package promote
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -148,4 +149,17 @@ func TestRenderMessage(t *testing.T) {
 	message, err := renderMessage(messageTemplate, info)
 	require.NoError(t, err)
 	require.Equal(t, expectedMessage, message)
+}
+
+func TestGetReviewers(t *testing.T) {
+	require.Equal(
+		t,
+		[]string{"john"},
+		getReviewers(&PromotionInfo{
+			Releases: []*ReleaseInfo{
+				{CodeOwners: []string{"john"}},
+				{Error: errors.New("error")},
+			},
+		}),
+	)
 }
