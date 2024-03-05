@@ -90,7 +90,7 @@ func NewReleaseListCmd() *cobra.Command {
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
-	var autoMerge, draft, dryRun, skipCatalogUpdate, noPrompt bool
+	var autoMerge, draft, dryRun, localOnly, skipCatalogUpdate, noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -115,8 +115,8 @@ func NewReleasePromoteCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
-			if skipCatalogUpdate && !dryRun {
-				return fmt.Errorf("flag --skip-catalog-update requires --dry-run")
+			if skipCatalogUpdate && !(dryRun || localOnly) {
+				return fmt.Errorf("flag --skip-catalog-update requires --dry-run or --local-only")
 			}
 
 			cfg := config.FromContext(cmd.Context())
@@ -157,6 +157,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				AutoMerge:            autoMerge,
 				Draft:                draft,
 				DryRun:               dryRun,
+				LocalOnly:            localOnly,
 				SkipCatalogUpdate:    skipCatalogUpdate,
 				SelectedEnvironments: selectedEnvironments,
 			}
@@ -179,6 +180,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&autoMerge, "auto-merge", false, "Add auto-merge label to release PR")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create draft release PR")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
+	cmd.Flags().BoolVar(&localOnly, "local-only", false, "Similar to dry-run, but updates the release file(s) on the local filesystem only. There is no branch, commits, or PR created.")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
 	cmd.Flags().BoolVar(&skipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check (only in dry run)")
 
