@@ -24,6 +24,7 @@ func EnsureCleanAndUpToDateWorkingCopy(dir string) error {
 	if err != nil {
 		return fmt.Errorf("checking out default branch: %w", err)
 	}
+	fmt.Printf("ℹ️ Catalog: checking out %s branch\n", defaultBranch)
 	err = Pull(dir)
 	if err != nil {
 		return fmt.Errorf("pulling changes: %w", err)
