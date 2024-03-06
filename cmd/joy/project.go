@@ -22,7 +22,6 @@ func NewProjectCmd() *cobra.Command {
 }
 
 func NewProjectPeopleCmd() *cobra.Command {
-	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:   "owners",
 		Short: "List people owning a project via jac cli",
@@ -43,14 +42,14 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return jac.ListProjectPeople(cfg.CatalogDir, args, skipCatalogUpdate)
+			globalFlags := config.FromFlagContext(cmd.Context())
+			return jac.ListProjectPeople(cfg.CatalogDir, args, globalFlags.SkipCatalogUpdate)
 		},
 	}
 	return cmd
 }
 
 func NewProjectListCmd() *cobra.Command {
-	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List projects and their owners",
@@ -60,7 +59,8 @@ func NewProjectListCmd() *cobra.Command {
 		Long: `List projects and their owners.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return project.List(cfg.CatalogDir, skipCatalogUpdate)
+			globalFlags := config.FromFlagContext(cmd.Context())
+			return project.List(cfg.CatalogDir, globalFlags.SkipCatalogUpdate)
 		},
 	}
 	return cmd

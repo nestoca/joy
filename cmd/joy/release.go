@@ -48,13 +48,14 @@ func NewReleaseCmd() *cobra.Command {
 
 func NewReleaseListCmd() *cobra.Command {
 	var releases, envs, owners string
-	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
+			globalFlags := config.FromFlagContext(cmd.Context())
+
 			// Filtering
 			var filter filtering.Filter
 			if releases != "" {
@@ -74,7 +75,7 @@ func NewReleaseListCmd() *cobra.Command {
 			}
 
 			return list.List(list.Opts{
-				SkipCatalogUpdate:    skipCatalogUpdate,
+				SkipCatalogUpdate:    globalFlags.SkipCatalogUpdate,
 				CatalogDir:           cfg.CatalogDir,
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
@@ -92,7 +93,7 @@ func NewReleaseListCmd() *cobra.Command {
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
-	var autoMerge, draft, dryRun, localOnly, skipCatalogUpdate, noPrompt bool
+	var autoMerge, draft, dryRun, localOnly, noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -118,6 +119,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
+			globalFlags := config.FromFlagContext(cmd.Context())
 
 			var filter filtering.Filter
 			if len(releases) == 0 && len(cfg.Releases.Selected) > 0 {
@@ -156,7 +158,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				Draft:                draft,
 				DryRun:               dryRun,
 				LocalOnly:            localOnly,
-				SkipCatalogUpdate:    skipCatalogUpdate,
+				SkipCatalogUpdate:    globalFlags.SkipCatalogUpdate,
 				SelectedEnvironments: selectedEnvironments,
 			}
 
@@ -185,7 +187,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
-	var skipCatalogUpdate bool
 	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
@@ -193,7 +194,8 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Short:   "Select releases to include in listings and promotions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, skipCatalogUpdate)
+			globalFlags := config.FromFlagContext(cmd.Context())
+			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, globalFlags.SkipCatalogUpdate)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
@@ -201,7 +203,6 @@ func NewReleaseSelectCmd() *cobra.Command {
 }
 
 func NewReleasePeopleCmd() *cobra.Command {
-	var skipCatalogUpdate bool
 	cmd := &cobra.Command{
 		Use:   "owners",
 		Short: "List people owning a release's project via jac cli",
@@ -222,7 +223,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return jac.ListReleasePeople(cfg.CatalogDir, args, skipCatalogUpdate)
+			globalFlags := config.FromFlagContext(cmd.Context())
+			return jac.ListReleasePeople(cfg.CatalogDir, args, globalFlags.SkipCatalogUpdate)
 		},
 	}
 	return cmd

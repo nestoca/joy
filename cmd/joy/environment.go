@@ -20,7 +20,6 @@ func NewEnvironmentCmd() *cobra.Command {
 }
 
 func NewEnvironmentSelectCmd() *cobra.Command {
-	var skipCatalogUpdate bool
 	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
@@ -31,7 +30,8 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 Only selected environments will be included in releases table columns.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, skipCatalogUpdate)
+			globalFlags := config.FromFlagContext(cmd.Context())
+			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, globalFlags.SkipCatalogUpdate)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")
