@@ -20,6 +20,7 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/render"
+	"golang.org/x/mod/semver"
 )
 
 type ValidateParams struct {
@@ -69,12 +70,16 @@ type ValidateReleaseParams struct {
 }
 
 func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
+	if !params.Release.Environment.Spec.Promotion.FromPullRequests {
+		version := "v" + params.Release.Spec.Version
+		if semver.Prerelease(version)+semver.Build(version) != "" {
+			return fmt.Errorf("invalid version: pre-release branches not allowed: %s", params.Release.Spec.Version)
+		}
+	}
+
 	if err := validateSchema(params.Release, params.Chart); err != nil {
 		return err
 	}
-
-	// TODO AYA
-	// Add a check that releases don't have pre-releae if the PromotionFromPullRequest is false
 
 	renderOpts := render.RenderReleaseParams{
 		Release: params.Release,
@@ -90,6 +95,7 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 			Helm: params.Helm,
 		},
 	}
+
 	if err := render.RenderRelease(ctx, renderOpts); err != nil {
 		return err
 	}
