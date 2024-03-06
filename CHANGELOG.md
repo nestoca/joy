@@ -1,3 +1,12 @@
+## [0.33.0](https://github.com/nestoca/joy/compare/v0.32.2...v0.33.0) (2024-03-06)
+
+
+### Features
+
+* **PL-2460:** add local-only mode ([9870943](https://github.com/nestoca/joy/commit/9870943ecb6351a523f85f6f5e8edce850df400d))
+* **PL-2466:** add joy release validate command ([45aafd0](https://github.com/nestoca/joy/commit/45aafd08dc6f764431153fb8693d18ca398b0d0e))
+* **PL-2466:** add version check ([0d78c74](https://github.com/nestoca/joy/commit/0d78c748b2007b946b1ba430faabc324a7b245d7))
+
 ## [0.32.2](https://github.com/nestoca/joy/compare/v0.32.1...v0.32.2) (2024-03-05)
 
 
