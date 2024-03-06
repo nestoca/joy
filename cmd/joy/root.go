@@ -76,7 +76,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 			}
 
-			cmd.SetContext(config.ToFlagContext(cmd.Context(), &flags))
+			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
 
 			if cmd == setupCmd {
 				return nil

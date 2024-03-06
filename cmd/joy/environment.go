@@ -28,10 +28,12 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 		Long: `Choose environments to work with and to promote from and to.
 
 Only selected environments will be included in releases table columns.`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
-			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, globalFlags.SkipCatalogUpdate)
+			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")

@@ -9,11 +9,11 @@ type GlobalFlags struct {
 
 type flagKey struct{}
 
-func ToFlagContext(parent context.Context, flags *GlobalFlags) context.Context {
+func ToFlagsContext(parent context.Context, flags *GlobalFlags) context.Context {
 	return context.WithValue(parent, flagKey{}, flags)
 }
 
-func FromFlagContext(ctx context.Context) *GlobalFlags {
+func FlagsFromContext(ctx context.Context) *GlobalFlags {
 	cfg, _ := ctx.Value(flagKey{}).(*GlobalFlags)
 	return cfg
 }

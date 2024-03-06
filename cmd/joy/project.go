@@ -40,10 +40,12 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
-			return jac.ListProjectPeople(cfg.CatalogDir, args, globalFlags.SkipCatalogUpdate)
+			return jac.ListProjectPeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -57,10 +59,12 @@ func NewProjectListCmd() *cobra.Command {
 			"ls",
 		},
 		Long: `List projects and their owners.`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
-			return project.List(cfg.CatalogDir, globalFlags.SkipCatalogUpdate)
+			return project.List(cfg.CatalogDir)
 		},
 	}
 	return cmd

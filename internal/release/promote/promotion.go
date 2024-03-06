@@ -108,10 +108,6 @@ type Opts struct {
 
 	// LocalOnly indicates if the promotion should only write the promotion changes to the working tree without creating a branch, commit or pull request.
 	LocalOnly bool
-
-	// SkipCatalogUpdate skips catalog update and dirty check. Very useful for
-	// troubleshooting and testing templates.
-	SkipCatalogUpdate bool
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -123,14 +119,6 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	if opts.LocalOnly {
 		fmt.Println("ℹ️ Local-only mode enabled: The local repo will be modified, but not committed. No pull request will be created.")
-	}
-
-	if opts.SkipCatalogUpdate {
-		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
-	} else {
-		if err := p.gitProvider.EnsureCleanAndUpToDateWorkingCopy(); err != nil {
-			return "", err
-		}
 	}
 
 	// Prompt user to select source environment

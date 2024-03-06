@@ -7,18 +7,10 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func ConfigureSelection(catalogDir, configFilePath string, all, skipCatalogUpdate bool) error {
-	if skipCatalogUpdate {
-		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
-	} else {
-		if err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir); err != nil {
-			return err
-		}
-	}
+func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
 
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)

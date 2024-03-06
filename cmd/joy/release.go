@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/nestoca/joy/internal/git"
 	"os"
 	"os/exec"
 	"slices"
@@ -52,9 +53,11 @@ func NewReleaseListCmd() *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
 
 			// Filtering
 			var filter filtering.Filter
@@ -75,7 +78,6 @@ func NewReleaseListCmd() *cobra.Command {
 			}
 
 			return list.List(list.Opts{
-				SkipCatalogUpdate:    globalFlags.SkipCatalogUpdate,
 				CatalogDir:           cfg.CatalogDir,
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
@@ -115,11 +117,11 @@ func NewReleasePromoteCmd() *cobra.Command {
 					return fmt.Errorf("target environment is required when no-prompt is set")
 				}
 			}
-			return nil
+
+			return checkCatalogUpdateFlag(cmd)
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
 
 			var filter filtering.Filter
 			if len(releases) == 0 && len(cfg.Releases.Selected) > 0 {
@@ -158,7 +160,6 @@ func NewReleasePromoteCmd() *cobra.Command {
 				Draft:                draft,
 				DryRun:               dryRun,
 				LocalOnly:            localOnly,
-				SkipCatalogUpdate:    globalFlags.SkipCatalogUpdate,
 				SelectedEnvironments: selectedEnvironments,
 			}
 
@@ -192,10 +193,12 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Use:     "select",
 		Aliases: []string{"sel"},
 		Short:   "Select releases to include in listings and promotions",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
-			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag, globalFlags.SkipCatalogUpdate)
+			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
@@ -221,10 +224,12 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkCatalogUpdateFlag(cmd)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			globalFlags := config.FromFlagContext(cmd.Context())
-			return jac.ListReleasePeople(cfg.CatalogDir, args, globalFlags.SkipCatalogUpdate)
+			return jac.ListReleasePeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -462,4 +467,18 @@ func NewGitCommands() *cobra.Command {
 	root.AddCommand(buildCommand("log"))
 
 	return root
+}
+
+func checkCatalogUpdateFlag(cmd *cobra.Command) error {
+	skipCatalogUpdate := config.FlagsFromContext(cmd.Context()).SkipCatalogUpdate
+	cfg := config.FromContext(cmd.Context())
+
+	if skipCatalogUpdate {
+		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+	} else {
+		if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
+			return err
+		}
+	}
+	return nil
 }

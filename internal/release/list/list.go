@@ -2,7 +2,6 @@ package list
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/git"
 	"io"
 	"os"
 	"slices"
@@ -31,21 +30,9 @@ type Opts struct {
 	Filter filtering.Filter
 
 	ReferenceEnvironment string
-
-	// SkipCatalogUpdate skips catalog update and dirty check. Very useful for
-	// troubleshooting and testing templates.
-	SkipCatalogUpdate bool
 }
 
 func List(opts Opts) error {
-	if opts.SkipCatalogUpdate {
-		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
-	} else {
-		if err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir); err != nil {
-			return err
-		}
-	}
-
 	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             opts.CatalogDir,
 		ReleaseFilter:   opts.Filter,
