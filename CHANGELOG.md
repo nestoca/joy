@@ -1,3 +1,10 @@
+## [0.33.1](https://github.com/nestoca/joy/compare/v0.33.0...v0.33.1) (2024-03-07)
+
+
+### Bug Fixes
+
+* **PL-2463:** ensure catalog is at origin head ([#107](https://github.com/nestoca/joy/issues/107)) ([03de715](https://github.com/nestoca/joy/commit/03de71551541383964e21c91b5f55f8b6554c2fb))
+
 ## [0.33.0](https://github.com/nestoca/joy/compare/v0.32.2...v0.33.0) (2024-03-06)
 
 
