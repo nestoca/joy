@@ -432,15 +432,13 @@ func TestRender(t *testing.T) {
 			err := Render(context.Background(), RenderParams{
 				Env:     tc.Params.Env,
 				Release: tc.Params.Release,
-				Catalog: tc.Params.Catalog,
-				CommonRenderParams: CommonRenderParams{
+				Cache: helm.ChartCache{
 					DefaultChart: tc.Params.DefaultChart,
-					CacheDir:     tc.Params.CacheDir,
-					ValueMapping: tc.Params.ValueMapping,
-					IO:           io,
-					Helm:         helmMock,
-					Color:        false,
+					Root:         tc.Params.CacheDir,
+					Puller:       helmMock,
 				},
+				Catalog:            tc.Params.Catalog,
+				CommonRenderParams: CommonRenderParams{ValueMapping: tc.Params.ValueMapping, IO: io, Helm: helmMock, Color: false},
 			})
 			if tc.ExpectedError != "" {
 				require.EqualError(t, err, tc.ExpectedError)
