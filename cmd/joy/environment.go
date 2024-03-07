@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/nestoca/joy/internal/git"
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
@@ -29,7 +30,7 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 
 Only selected environments will be included in releases table columns.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return checkCatalogUpdateFlag(cmd)
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())

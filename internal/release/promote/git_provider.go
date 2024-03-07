@@ -2,7 +2,6 @@
 package promote
 
 type GitProvider interface {
-	EnsureCleanAndUpToDateWorkingCopy() error
 	CreateAndPushBranchWithFiles(branchName string, files []string, message string) error
 	CheckoutMasterBranch() error
 }

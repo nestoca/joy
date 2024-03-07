@@ -54,7 +54,7 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List releases across environments",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return checkCatalogUpdateFlag(cmd)
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
@@ -118,7 +118,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				}
 			}
 
-			return checkCatalogUpdateFlag(cmd)
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
@@ -194,7 +194,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 		Aliases: []string{"sel"},
 		Short:   "Select releases to include in listings and promotions",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return checkCatalogUpdateFlag(cmd)
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
@@ -225,7 +225,7 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return checkCatalogUpdateFlag(cmd)
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
@@ -467,18 +467,4 @@ func NewGitCommands() *cobra.Command {
 	root.AddCommand(buildCommand("log"))
 
 	return root
-}
-
-func checkCatalogUpdateFlag(cmd *cobra.Command) error {
-	skipCatalogUpdate := config.FlagsFromContext(cmd.Context()).SkipCatalogUpdate
-	cfg := config.FromContext(cmd.Context())
-
-	if skipCatalogUpdate {
-		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
-	} else {
-		if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
-			return err
-		}
-	}
-	return nil
 }
