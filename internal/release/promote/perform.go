@@ -6,15 +6,10 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"text/template"
-
-	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/internal/style"
 
 	"github.com/google/uuid"
-
-	"github.com/Masterminds/sprig/v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -45,37 +40,6 @@ type ReleaseWithGitTag struct {
 	*v1alpha1.Release
 	DisplayVersion string
 	GitTag         string
-}
-
-type ReleaseInfo struct {
-	Name         string
-	Project      *v1alpha1.Project
-	CodeOwners   []string
-	Repository   string
-	Source       ReleaseWithGitTag
-	Target       ReleaseWithGitTag
-	OlderGitTag  string
-	NewerGitTag  string
-	IsPrerelease bool
-	IsUpgrade    bool
-	Commits      []*CommitInfo
-	Error        error
-}
-
-type PromotionInfo struct {
-	SourceEnvironment *v1alpha1.Environment
-	TargetEnvironment *v1alpha1.Environment
-	Releases          []*ReleaseInfo
-	Error             error
-}
-
-type CommitInfo struct {
-	Sha          string
-	ShortSha     string
-	Author       string
-	GitHubAuthor string
-	Message      string
-	ShortMessage string
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -115,7 +79,15 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		}
 
 		fmt.Printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
-		releaseInfo := getReleaseInfo(sourceRelease, targetRelease, opts)
+		releaseInfo, err := getReleaseInfo(sourceRelease, targetRelease, opts)
+		if err != nil {
+			err = fmt.Errorf("collecting release %q info: %w", sourceRelease.Name, err)
+			fmt.Printf("⚠️ %v\n", err)
+			releaseInfo = &ReleaseInfo{
+				Name:  sourceRelease.Name,
+				Error: err,
+			}
+		}
 
 		info.Releases = append(info.Releases, releaseInfo)
 		info.Error = errors.Join(info.Error, releaseInfo.Error)
@@ -256,144 +228,4 @@ func getBranchName(info *PromotionInfo) string {
 		name = name[:255]
 	}
 	return name
-}
-
-func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) {
-	getErrorMessage := func(err error) string {
-		return fmt.Sprintf("Promote %d releases (%s -> %s)\nFailed to render message: %v",
-			len(info.Releases), info.SourceEnvironment.Name,
-			info.TargetEnvironment.Name, err)
-	}
-
-	if info.Error != nil {
-		return getErrorMessage(fmt.Errorf("collecting promotion info: %w", info.Error)), nil
-	}
-
-	tmpl, err := template.New("message").Funcs(sprig.FuncMap()).Parse(messageTemplate)
-	if err != nil {
-		return getErrorMessage(fmt.Errorf("parsing message template: %w", err)), nil
-	}
-
-	var message strings.Builder
-	if err := tmpl.Execute(&message, info); err != nil {
-		return getErrorMessage(fmt.Errorf("executing message template: %w", err)), nil
-	}
-	return message.String(), nil
-}
-
-func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) *ReleaseInfo {
-	getAndPrintReleaseInfoWithError := func(msg string, args ...any) *ReleaseInfo {
-		err := fmt.Errorf("Failed to get info for release "+sourceRelease.Name+": "+msg, args...)
-		fmt.Printf("⚠️ %v\n", err)
-		return &ReleaseInfo{
-			Name:  sourceRelease.Name,
-			Error: err,
-		}
-	}
-
-	project := sourceRelease.Project
-	isUpgrade := true
-	if targetRelease != nil {
-		isUpgrade = semver.Compare("v"+sourceRelease.Spec.Version, "v"+targetRelease.Spec.Version) > 0
-	}
-
-	isPrerelease := false
-	if semver.Build("v"+sourceRelease.Spec.Version) != "" ||
-		semver.Prerelease("v"+sourceRelease.Spec.Version) != "" ||
-		(targetRelease != nil && (semver.Build("v"+targetRelease.Spec.Version) != "" || semver.Prerelease("v"+targetRelease.Spec.Version) != "")) {
-		isPrerelease = true
-	}
-
-	displayTargetVersion := "(undefined)"
-	if targetRelease != nil {
-		displayTargetVersion = targetRelease.Spec.Version
-	}
-
-	sourceTag, err := opts.getReleaseGitTagFunc(sourceRelease)
-	if err != nil {
-		return getAndPrintReleaseInfoWithError("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
-	}
-
-	targetTag := sourceTag
-	if targetRelease != nil {
-		targetTag, err = opts.getReleaseGitTagFunc(targetRelease)
-		if err != nil {
-			return getAndPrintReleaseInfoWithError("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
-		}
-	}
-
-	olderTag := targetTag
-	newerTag := sourceTag
-	if !isUpgrade {
-		olderTag = sourceTag
-		newerTag = targetTag
-	}
-
-	repository := opts.getProjectRepositoryFunc(project)
-	releaseInfo := ReleaseInfo{
-		Name:         sourceRelease.Name,
-		Project:      project,
-		Repository:   repository,
-		Source:       ReleaseWithGitTag{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag},
-		Target:       ReleaseWithGitTag{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag},
-		OlderGitTag:  olderTag,
-		NewerGitTag:  newerTag,
-		IsUpgrade:    isUpgrade,
-		IsPrerelease: isPrerelease,
-	}
-
-	if isPrerelease {
-		return &releaseInfo
-	}
-
-	projectDir, err := opts.getProjectSourceDirFunc(project)
-	if err != nil {
-		return getAndPrintReleaseInfoWithError("getting project clone: %w", err)
-	}
-
-	commitsMetadata, err := opts.getCommitsMetadataFunc(projectDir, olderTag, newerTag)
-	if err != nil {
-		return getAndPrintReleaseInfoWithError("getting commits metadata: %w", err)
-	}
-
-	gitHubAuthors, err := opts.getCommitsGitHubAuthorsFunc(project, olderTag, newerTag)
-	if err != nil {
-		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
-	}
-
-	codeOwners, err := opts.getCodeOwnersFunc(projectDir)
-	if err != nil {
-		return getAndPrintReleaseInfoWithError("getting GitHub authors: %w", err)
-	}
-	releaseInfo.CodeOwners = codeOwners
-
-	for _, metadata := range commitsMetadata {
-		shortSha := metadata.Sha
-		if len(shortSha) > 7 {
-			shortSha = shortSha[:7]
-		}
-
-		metadata.Message, err = injectPullRequestLinks(repository, metadata.Message)
-		if err != nil {
-			return getAndPrintReleaseInfoWithError("injecting pull request links: %w", err)
-		}
-
-		shortMessage := metadata.Message
-		if strings.Contains(shortMessage, "\n") {
-			shortMessage = strings.SplitN(shortMessage, "\n", 2)[0]
-		}
-
-		gitHubAuthor := gitHubAuthors[metadata.Sha]
-
-		releaseInfo.Commits = append(releaseInfo.Commits, &CommitInfo{
-			Sha:          metadata.Sha,
-			ShortSha:     shortSha,
-			Author:       metadata.Author,
-			GitHubAuthor: gitHubAuthor,
-			Message:      metadata.Message,
-			ShortMessage: shortMessage,
-		})
-	}
-
-	return &releaseInfo
 }
