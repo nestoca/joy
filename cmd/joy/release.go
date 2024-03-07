@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/nestoca/joy/internal/git"
 	"os"
 	"os/exec"
 	"slices"
 	"strings"
+
+	"github.com/nestoca/joy/internal/git"
 
 	"github.com/nestoca/joy/internal/project"
 
@@ -270,16 +271,21 @@ func NewReleaseRenderCmd() *cobra.Command {
 				In:  cmd.InOrStdin(),
 			}
 
+			helmCLI := helm.CLI{IO: io}
+
 			return render.Render(cmd.Context(), render.RenderParams{
 				Env:     env,
 				Release: releaseName,
+				Cache: helm.ChartCache{
+					DefaultChart: cfg.DefaultChart,
+					Root:         cfg.JoyCache,
+					Puller:       helmCLI,
+				},
 				Catalog: cat,
 				CommonRenderParams: render.CommonRenderParams{
-					DefaultChart: cfg.DefaultChart,
-					CacheDir:     cfg.JoyCache,
 					ValueMapping: cfg.ValueMapping,
 					IO:           io,
-					Helm:         helm.CLI{IO: io},
+					Helm:         helmCLI,
 					Color:        colorEnabled,
 				},
 			})

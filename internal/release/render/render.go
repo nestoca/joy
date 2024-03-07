@@ -26,18 +26,19 @@ import (
 type RenderParams struct {
 	Env     string
 	Release string
+	Cache   helm.ChartCache
 	Catalog *catalog.Catalog
 	CommonRenderParams
 }
 
 type CommonRenderParams struct {
-	DefaultChart string
-	CacheDir     string
 	ValueMapping *config.ValueMapping
 	IO           internal.IO
 	Helm         helm.PullRenderer
 	Color        bool
 }
+
+// func RenderAtRef(ctx context.Context, ref string, params RenderParams) error {}
 
 func Render(ctx context.Context, params RenderParams) error {
 	environment, err := getEnvironment(params.Catalog.Environments, params.Env)
@@ -50,13 +51,7 @@ func Render(ctx context.Context, params RenderParams) error {
 		return fmt.Errorf("getting release: %w", err)
 	}
 
-	cache := helm.ChartCache{
-		DefaultChart: params.DefaultChart,
-		Root:         params.CacheDir,
-		Puller:       params.Helm,
-	}
-
-	chart, err := cache.GetReleaseChart(ctx, release)
+	chart, err := params.Cache.GetReleaseChart(ctx, release)
 	if err != nil {
 		return fmt.Errorf("getting release chart: %w", err)
 	}
