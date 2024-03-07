@@ -10,7 +10,6 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -32,11 +31,6 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 		return err
 	}
 
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
-	}
-
 	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)
@@ -53,11 +47,6 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 
 func ListReleasePeople(catalogDir string, extraArgs []string) error {
 	if err := dependency.MustBeInstalled(); err != nil {
-		return err
-	}
-
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
 		return err
 	}
 

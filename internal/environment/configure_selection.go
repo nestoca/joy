@@ -6,16 +6,10 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
-	}
-
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)
 	if err != nil {

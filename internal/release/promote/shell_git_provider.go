@@ -14,10 +14,6 @@ func NewShellGitProvider(dir string) *ShellGitProvider {
 	return &ShellGitProvider{dir: dir}
 }
 
-func (g *ShellGitProvider) EnsureCleanAndUpToDateWorkingCopy() error {
-	return git.EnsureCleanAndUpToDateWorkingCopy(g.dir)
-}
-
 func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files []string, message string) error {
 	err := git.CreateBranch(g.dir, branchName)
 	if err != nil {

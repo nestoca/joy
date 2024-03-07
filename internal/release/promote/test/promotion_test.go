@@ -88,7 +88,6 @@ func TestPromotion(t *testing.T) {
 				opts := args.opts
 				opts.SourceEnv = opts.Catalog.Environments[devEnvIndex]
 				opts.TargetEnv = opts.Catalog.Environments[stagingEnvIndex]
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 			},
 			expectedErrorMessage: "environment dev is not promotable to staging",
 			expectedPromoted:     false,
@@ -98,7 +97,6 @@ func TestPromotion(t *testing.T) {
 			opts: newOpts(),
 			setup: func(args setupArgs) {
 				opts := args.opts
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 			},
 			expectedPromoted: false,
@@ -114,7 +112,6 @@ func TestPromotion(t *testing.T) {
 				opts.Catalog.Releases.Items[0].Releases[targetEnvIndex] = newRelease("release1", `spec:
   values:
     key: !lock value2`, targetEnvName)
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 			},
 			expectedPromoted: false,
@@ -146,7 +143,6 @@ func TestPromotion(t *testing.T) {
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = targetRelease
 
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
@@ -203,7 +199,6 @@ func TestPromotion(t *testing.T) {
 
 				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/testing/test.yaml", targetEnv.Dir)
 
-				args.gitProvider.EXPECT().EnsureCleanAndUpToDateWorkingCopy().Return(nil)
 				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)

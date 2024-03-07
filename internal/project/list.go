@@ -7,16 +7,10 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func List(catalogDir string) error {
-	err := git.EnsureCleanAndUpToDateWorkingCopy(catalogDir)
-	if err != nil {
-		return err
-	}
-
 	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
 	if err != nil {
 		return fmt.Errorf("loading catalog: %w", err)

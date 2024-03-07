@@ -13,7 +13,6 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -34,10 +33,6 @@ type Opts struct {
 }
 
 func List(opts Opts) error {
-	if err := git.EnsureCleanAndUpToDateWorkingCopy(opts.CatalogDir); err != nil {
-		return err
-	}
-
 	cat, err := catalog.Load(catalog.LoadOpts{
 		Dir:             opts.CatalogDir,
 		ReleaseFilter:   opts.Filter,

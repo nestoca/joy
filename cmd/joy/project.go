@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/nestoca/joy/internal/git"
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
@@ -40,6 +41,9 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 			return jac.ListProjectPeople(cfg.CatalogDir, args)
@@ -56,6 +60,9 @@ func NewProjectListCmd() *cobra.Command {
 			"ls",
 		},
 		Long: `List projects and their owners.`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 			return project.List(cfg.CatalogDir)

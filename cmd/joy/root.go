@@ -18,6 +18,7 @@ func NewRootCmd(version string) *cobra.Command {
 		configDir        string
 		catalogDir       string
 		skipVersionCheck bool
+		flags            config.GlobalFlags
 		setupCmd         = NewSetupCmd(version, &configDir, &catalogDir)
 		diagnoseCmd      = NewDiagnoseCmd(version)
 		versionCmd       = NewVersionCmd(version)
@@ -75,6 +76,8 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 			}
 
+			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
+
 			if cmd == setupCmd {
 				return nil
 			}
@@ -88,6 +91,8 @@ func NewRootCmd(version string) *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
 	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
+
+	cmd.PersistentFlags().BoolVar(&flags.SkipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check")
 
 	// Core commands
 	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})
