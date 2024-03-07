@@ -1,3 +1,10 @@
+## [0.34.0](https://github.com/nestoca/joy/compare/v0.33.1...v0.34.0) (2024-03-07)
+
+
+### Features
+
+* **PL-2433:** add git-ref to release render ([d1ebe28](https://github.com/nestoca/joy/commit/d1ebe285d044da26b2413c5821eef739a7d36dcc))
+
 ## [0.33.1](https://github.com/nestoca/joy/compare/v0.33.0...v0.33.1) (2024-03-07)
 
 
