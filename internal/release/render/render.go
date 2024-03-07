@@ -38,8 +38,6 @@ type CommonRenderParams struct {
 	Color        bool
 }
 
-// func RenderAtRef(ctx context.Context, ref string, params RenderParams) error {}
-
 func Render(ctx context.Context, params RenderParams) error {
 	environment, err := getEnvironment(params.Catalog.Environments, params.Env)
 	if err != nil {

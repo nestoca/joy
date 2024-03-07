@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/nestoca/joy/internal/git"
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/project"
 )

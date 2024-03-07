@@ -110,6 +110,14 @@ func Checkout(dir, branch string) error {
 	return nil
 }
 
+func SwitchBack(dir string) error {
+	output, err := exec.Command("git", "-C", dir, "switch", "-").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, output)
+	}
+	return nil
+}
+
 func CreateBranch(dir, name string) error {
 	// Create and checkout branch
 	cmd := exec.Command("git", "-C", dir, "checkout", "-b", name)
