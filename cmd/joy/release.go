@@ -240,22 +240,31 @@ func NewReleaseRenderCmd() *cobra.Command {
 	var (
 		env          string
 		colorEnabled bool
+		gitRef       string
 	)
 
 	cmd := &cobra.Command{
 		Use:   "render [release]",
 		Short: "render kubernetes manifests from joy release",
 		Args:  cobra.RangeArgs(0, 1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
 
-			// Load catalog
-			loadOpts := catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
+			if gitRef != "" {
+				if err := git.Checkout(cfg.CatalogDir, gitRef); err != nil {
+					return fmt.Errorf("checking out: %s: %w", gitRef, err)
+				}
+				defer func() {
+					if swichErr := git.SwitchBack(cfg.CatalogDir); err == nil && swichErr != nil {
+						err = fmt.Errorf("switching git back to previous branch: %w", err)
+					}
+				}()
 			}
 
-			cat, err := catalog.Load(loadOpts)
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+			})
 			if err != nil {
 				return fmt.Errorf("loading catalog: %w", err)
 			}
@@ -273,7 +282,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 			helmCLI := helm.CLI{IO: io}
 
-			return render.Render(cmd.Context(), render.RenderParams{
+			params := render.RenderParams{
 				Env:     env,
 				Release: releaseName,
 				Cache: helm.ChartCache{
@@ -288,10 +297,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 					Helm:         helmCLI,
 					Color:        colorEnabled,
 				},
-			})
+			}
+
+			return render.Render(cmd.Context(), params)
 		},
 	}
 
+	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git ref to checkout before render")
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	return cmd

@@ -11,7 +11,6 @@ import (
 )
 
 func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
-
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)
 	if err != nil {

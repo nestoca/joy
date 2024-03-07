@@ -3,14 +3,13 @@ package git
 import (
 	"context"
 	"fmt"
-	"github.com/nestoca/joy/internal/config"
 	"strings"
 
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/style"
 )
 
 func EnsureCleanAndUpToDateWorkingCopy(ctx context.Context) error {
-
 	if config.FlagsFromContext(ctx).SkipCatalogUpdate {
 		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
 		return nil
