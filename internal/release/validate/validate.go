@@ -85,7 +85,6 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		Release: params.Release,
 		Chart:   params.Chart,
 		CommonRenderParams: render.CommonRenderParams{
-			DefaultChart: params.DefaultChart,
 			ValueMapping: params.ValueMapping,
 			IO: internal.IO{
 				Out: io.Discard,
