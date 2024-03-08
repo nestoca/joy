@@ -6,8 +6,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/nestoca/joy/api/v1alpha1"
 	"golang.org/x/mod/semver"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 )
 
 type ChangeType string

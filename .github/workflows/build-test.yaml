@@ -36,11 +36,26 @@ jobs:
           # Used to specify the path to a dependency file - go.sum
           cache-dependency-path: go.sum
 
+      - name: Install Helm
+        shell: bash
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+
+      - name: Login to GAR
+        uses: docker/login-action@v3
+        with:
+          registry: northamerica-northeast1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.JOY_GCP_DOCKER_SA_KEY }}
+
       - name: Setup dependencies
         run: make setup
 
       - name: Run tests w/ Coverage
         env:
+          CATALOG_TEST_REPO: https://${{ secrets.GH_JOY_TEST }}@github.com/nestoca/joy-catalog-test
           GH_TOKEN: ${{ secrets.GH_JOY_TEST }}
         run: make test-cov
 

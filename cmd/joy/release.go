@@ -1,13 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"cmp"
 	"fmt"
 	"os"
 	"os/exec"
 	"slices"
 	"strings"
 
+	"github.com/davidmdm/x/xerr"
+
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/text"
 
 	"github.com/nestoca/joy/internal/project"
 
@@ -241,69 +246,145 @@ func NewReleaseRenderCmd() *cobra.Command {
 		env          string
 		colorEnabled bool
 		gitRef       string
+		diffRef      string
+		diffContext  int
 	)
 
 	cmd := &cobra.Command{
 		Use:   "render [release]",
 		Short: "render kubernetes manifests from joy release",
 		Args:  cobra.RangeArgs(0, 1),
+		PreRunE: func(_ *cobra.Command, args []string) error {
+			var errs []error
+			if diffRef != "" {
+				if env == "" {
+					errs = append(errs, fmt.Errorf("flag --env must be provided when --diff-ref is used"))
+				}
+				if len(args) == 0 {
+					errs = append(errs, fmt.Errorf("release arg must be provided when --diff-ref is used"))
+				}
+			}
+			return xerr.MultiErrFrom("validating flags and args", errs...)
+		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
-
-			if gitRef != "" {
-				if err := git.Checkout(cfg.CatalogDir, gitRef); err != nil {
-					return fmt.Errorf("checking out: %s: %w", gitRef, err)
-				}
-				defer func() {
-					if swichErr := git.SwitchBack(cfg.CatalogDir); err == nil && swichErr != nil {
-						err = fmt.Errorf("switching git back to previous branch: %w", err)
-					}
-				}()
-			}
-
-			cat, err := catalog.Load(catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-			})
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
 
 			var releaseName string
 			if len(args) == 1 {
 				releaseName = args[0]
 			}
 
-			io := internal.IO{
-				Out: cmd.OutOrStdout(),
-				Err: cmd.ErrOrStderr(),
-				In:  cmd.InOrStdin(),
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
 			}
 
-			helmCLI := helm.CLI{IO: io}
+			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
+				cat, err := catalog.Load(loadOpts)
+				if err != nil {
+					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
+				}
 
-			params := render.RenderParams{
-				Env:     env,
-				Release: releaseName,
-				Cache: helm.ChartCache{
-					DefaultChart: cfg.DefaultChart,
-					Root:         cfg.JoyCache,
-					Puller:       helmCLI,
-				},
-				Catalog: cat,
-				CommonRenderParams: render.CommonRenderParams{
-					ValueMapping: cfg.ValueMapping,
-					IO:           io,
-					Helm:         helmCLI,
-					Color:        colorEnabled,
-				},
+				return render.RenderParams{
+					Env:     env,
+					Release: releaseName,
+					Cache: helm.ChartCache{
+						DefaultChart: cfg.DefaultChart,
+						Root:         cfg.JoyCache,
+						Puller:       helm.CLI{IO: internal.IoFromCommand(cmd)},
+					},
+					Catalog: cat,
+					CommonRenderParams: render.CommonRenderParams{
+						ValueMapping: cfg.ValueMapping,
+						IO: internal.IO{
+							Out: buffer,
+							Err: cmd.ErrOrStderr(),
+							In:  cmd.InOrStdin(),
+						},
+						Helm:  helm.CLI{},
+						Color: colorEnabled,
+					},
+				}, nil
 			}
 
-			return render.Render(cmd.Context(), params)
+			renderRef := func(ref string) (result string, err error) {
+				if ref != "" {
+					dirty, err := git.IsDirty(cfg.CatalogDir)
+					if err != nil {
+						return "", fmt.Errorf("checking if catalog is in dirty state: %w", err)
+					}
+
+					if dirty {
+						if err := git.Stash(cfg.CatalogDir); err != nil {
+							return "", fmt.Errorf("stashing catalog: %w", err)
+						}
+						defer func() {
+							if applyErr := git.StashApply(cfg.CatalogDir); err == nil && applyErr != nil {
+								err = fmt.Errorf("applying stash: %w", applyErr)
+							}
+						}()
+					}
+
+					if err := git.Checkout(cfg.CatalogDir, ref); err != nil {
+						return "", fmt.Errorf("checking out: %s: %w", ref, err)
+					}
+					defer func() {
+						if swichErr := git.SwitchBack(cfg.CatalogDir); err == nil && swichErr != nil {
+							err = fmt.Errorf("switching git back to previous branch: %w", swichErr)
+						}
+					}()
+				}
+
+				var buf bytes.Buffer
+				params, err := buildRenderParams(&buf)
+				if err != nil {
+					return "", err
+				}
+
+				if err := render.Render(cmd.Context(), params); err != nil {
+					return "", err
+				}
+
+				return buf.String(), nil
+			}
+
+			gitRefResult, err := renderRef(gitRef)
+			if err != nil {
+				return err
+			}
+
+			if diffRef == "" {
+				_, err := fmt.Fprintln(cmd.OutOrStdout(), gitRefResult)
+				return err
+			}
+
+			diffRefResult, err := renderRef(diffRef)
+			if err != nil {
+				return err
+			}
+
+			diffFunc := func() text.DiffFunc {
+				if colorEnabled {
+					return text.DiffColorized
+				}
+				return text.Diff
+			}()
+
+			diff := diffFunc(
+				text.File{Name: cmp.Or(gitRef, "(current)"), Content: gitRefResult},
+				text.File{Name: diffRef, Content: diffRefResult},
+				diffContext,
+			)
+
+			_, err = fmt.Fprint(cmd.OutOrStdout(), diff)
+			return err
 		},
 	}
 
 	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git ref to checkout before render")
+	cmd.Flags().StringVar(&diffRef, "diff-ref", "", "git ref to checkout before render")
+	cmd.Flags().IntVarP(&diffContext, "diff-context", "c", 8, "line context when rendering diff")
+
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	return cmd
