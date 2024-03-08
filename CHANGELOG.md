@@ -1,3 +1,10 @@
+## [0.34.2](https://github.com/nestoca/joy/compare/v0.34.1...v0.34.2) (2024-03-08)
+
+
+### Bug Fixes
+
+* **PL-2247:** handle same version promotion ([#111](https://github.com/nestoca/joy/issues/111)) ([1e6a7fd](https://github.com/nestoca/joy/commit/1e6a7fdbc0757368c7a53ea44849238cb7e4df60))
+
 ## [0.34.1](https://github.com/nestoca/joy/compare/v0.34.0...v0.34.1) (2024-03-08)
 
 
