@@ -1,7 +1,6 @@
 package project
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,12 +9,7 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func List(catalogDir string) error {
-	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
-	}
-
+func List(cat *catalog.Catalog) error {
 	// Configure table
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)

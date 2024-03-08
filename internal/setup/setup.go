@@ -33,6 +33,7 @@ func Setup(version, configDir, catalogDir, catalogRepo string) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(separator)
 
 	// Run diagnostics

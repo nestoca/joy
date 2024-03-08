@@ -34,7 +34,7 @@ type setupArgs struct {
 	gitProvider    *promote.MockGitProvider
 	prProvider     *pr.MockPullRequestProvider
 	promptProvider *promote.MockPromptProvider
-	yamlWriter     *promote.MockYamlWriter
+	yamlWriter     *yml.WriterMock
 	infoProvider   *info.MockProvider
 	linksProvider  *links.MockProvider
 }
@@ -128,18 +128,17 @@ func TestPromotion(t *testing.T) {
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = targetRelease
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
 				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
 				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), false)
-				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
-					expectedYaml, err := expectedPromotedFile.ToYaml()
-					assert.NoError(t, err)
-					assert.Equal(t, expectedYaml, string(actualPromotedFile.Yaml))
+
+				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
 					return nil
-				})
+				}
+
 				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 				args.prProvider.EXPECT().Create(gomock.Any()).Return("https://github.com/owner/repo/pull/123", nil)
@@ -181,18 +180,17 @@ func TestPromotion(t *testing.T) {
 
 				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/testing/test.yaml", targetEnv.Dir)
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
 				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
 				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), true)
-				args.yamlWriter.EXPECT().Write(gomock.Any()).DoAndReturn(func(actualPromotedFile *yml.File) error {
-					expectedYaml, err := expectedPromotedFile.ToYaml()
-					assert.NoError(t, err)
-					assert.Equal(t, expectedYaml, string(actualPromotedFile.Yaml))
+
+				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
 					return nil
-				})
+				}
+
 				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 				args.prProvider.EXPECT().Create(gomock.Any()).Return("https://github.com/owner/repo/pull/123", nil)
@@ -216,7 +214,7 @@ func TestPromotion(t *testing.T) {
 			gitProvider := promote.NewMockGitProvider(ctrl)
 			prProvider := pr.NewMockPullRequestProvider(ctrl)
 			promptProvider := promote.NewMockPromptProvider(ctrl)
-			yamlWriter := promote.NewMockYamlWriter(ctrl)
+			yamlWriter := new(yml.WriterMock)
 			infoProvider := info.NewMockProvider(ctrl)
 			linksProvider := links.NewMockProvider(ctrl)
 
@@ -335,7 +333,7 @@ func newCatalog() *catalog.Catalog {
 	envs := newEnvironments()
 	return &catalog.Catalog{
 		Environments: envs,
-		Releases: &cross.ReleaseList{
+		Releases: cross.ReleaseList{
 			Environments: envs,
 			Items: []*cross.Release{
 				newCrossRelease("release1"),
