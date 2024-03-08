@@ -61,6 +61,30 @@ func GetUncommittedChanges(dir string) ([]string, error) {
 	return strings.Split(trimmed, "\n"), nil
 }
 
+func IsDirty(dir string) (bool, error) {
+	changes, err := GetUncommittedChanges(dir)
+	if err != nil {
+		return false, err
+	}
+	return len(changes) != 0, nil
+}
+
+func Stash(dir string) error {
+	output, err := exec.Command("git", "-C", dir, "stash").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, output)
+	}
+	return nil
+}
+
+func StashApply(dir string) error {
+	output, err := exec.Command("git", "-C", dir, "stash", "apply").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, output)
+	}
+	return nil
+}
+
 func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
 	// Fetch the latest changes from the remote
 	fetchCmd := exec.Command("git", "-C", dir, "fetch", "origin", branch)
@@ -97,7 +121,7 @@ func Checkout(dir, branch string) error {
 }
 
 func SwitchBack(dir string) error {
-	output, err := exec.Command("git", "-C", dir, "switch", "-").CombinedOutput()
+	output, err := exec.Command("git", "-C", dir, "checkout", "-").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, output)
 	}
