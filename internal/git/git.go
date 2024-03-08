@@ -51,11 +51,11 @@ func IsValid(dir string) bool {
 
 func GetUncommittedChanges(dir string) ([]string, error) {
 	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
-	outputBytes, err := cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("executing git status: %s", string(outputBytes))
+		return nil, fmt.Errorf("executing git status: %s", string(output))
 	}
-	trimmed := strings.TrimSpace(string(outputBytes))
+	trimmed := strings.TrimSpace(string(output))
 	if trimmed == "" {
 		return nil, nil
 	}
@@ -64,29 +64,29 @@ func GetUncommittedChanges(dir string) ([]string, error) {
 
 func GetDefaultBranch(dir string) (string, error) {
 	cmd := exec.Command("git", "-C", dir, "symbolic-ref", "refs/remotes/origin/HEAD")
-	outputBytes, err := cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("executing git symbolic-ref: %s", string(output))
 	}
-	longName := strings.TrimSpace(string(outputBytes))
+	longName := strings.TrimSpace(string(output))
 	return strings.TrimPrefix(longName, "refs/remotes/origin/"), nil
 }
 
 func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
 	// Fetch the latest changes from the remote
 	fetchCmd := exec.Command("git", "-C", dir, "fetch", "origin", branch)
-	if err := fetchCmd.Run(); err != nil {
-		fmt.Println("Error fetching from remote:", err)
-		return false, err
+	fetchOutput, err := fetchCmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("fetching from remote: %s", string(fetchOutput))
 	}
 
 	// Use git status --porcelain to check the sync status
 	statusCmd := exec.Command("git", "-C", dir, "status", "--porcelain", "-b")
 	var out bytes.Buffer
 	statusCmd.Stdout = &out
-	if err := statusCmd.Run(); err != nil {
-		fmt.Println("Error checking git status:", err)
-		return false, err
+	statusOutput, err := statusCmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("checking git status: %s", string(statusOutput))
 	}
 
 	// Regular expression to match branch status
@@ -104,19 +104,16 @@ func Checkout(dir, branch string) error {
 	cmd := exec.Command("git", "-C", dir, "checkout", branch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("checkint out branch %s: %w", branch, err)
+		return fmt.Errorf("checking out branch %s: %s", branch, string(output))
 	}
 	return nil
 }
 
 func CreateBranch(dir, name string) error {
-	// Create and checkout branch
 	cmd := exec.Command("git", "-C", dir, "checkout", "-b", name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("creating branch %s: %w", name, err)
+		return fmt.Errorf("creating branch %s: %s", name, string(output))
 	}
 	return nil
 }
@@ -126,8 +123,7 @@ func Add(dir string, files []string) error {
 	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("adding files to index: %w", err)
+		return fmt.Errorf("adding files to index: %s", string(output))
 	}
 	return nil
 }
@@ -136,8 +132,7 @@ func Commit(dir, message string) error {
 	cmd := exec.Command("git", "-C", dir, "commit", "--no-verify", "-m", message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("committing changes: %w", err)
+		return fmt.Errorf("committing changes: %s", string(output))
 	}
 	return nil
 }
@@ -160,8 +155,7 @@ func PushNewBranch(dir, name string) error {
 	cmd := exec.Command("git", "-C", dir, "push", "-u", "origin", name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("pushing new branch %s: %w", name, err)
+		return fmt.Errorf("pushing new branch %s: %s", name, string(output))
 	}
 	return nil
 }
@@ -184,8 +178,7 @@ func Reset(dir string) error {
 	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("checking for uncommitted changes: %w", err)
+		return fmt.Errorf("checking for uncommitted changes: %s", string(output))
 	}
 	outputText := strings.TrimSpace(string(output))
 	if len(outputText) == 0 {
@@ -213,8 +206,7 @@ func Reset(dir string) error {
 	cmd = exec.Command("git", "-C", dir, "reset", "--hard")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(output))
-		return fmt.Errorf("resetting changes: %w", err)
+		return fmt.Errorf("resetting changes: %s", string(output))
 	}
 	fmt.Println("✅ Uncommitted changes discarded successfully!")
 	return nil
@@ -224,7 +216,7 @@ func GetCurrentBranch(dir string) (string, error) {
 	cmd := exec.Command("git", "-C", dir, "rev-parse", "--abbrev-ref", "HEAD")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("getting current branch: %w", err)
+		return "", fmt.Errorf("getting current branch: %s", string(output))
 	}
 	return strings.TrimSpace(string(output)), nil
 }
@@ -233,7 +225,7 @@ func GetCurrentCommit(dir string) (string, error) {
 	cmd := exec.Command("git", "-C", dir, "rev-parse", "HEAD")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("getting current commit: %w", err)
+		return "", fmt.Errorf("getting current commit: %s", string(output))
 	}
 	return strings.TrimSpace(string(output)), nil
 }
