@@ -1,3 +1,10 @@
+## [0.34.1](https://github.com/nestoca/joy/compare/v0.34.0...v0.34.1) (2024-03-08)
+
+
+### Bug Fixes
+
+* **PL-2532:** better-git-errors ([#114](https://github.com/nestoca/joy/issues/114)) ([c1b6d6c](https://github.com/nestoca/joy/commit/c1b6d6c4b151816b23346425fda6f44e69b8fa65))
+
 ## [0.34.0](https://github.com/nestoca/joy/compare/v0.33.1...v0.34.0) (2024-03-07)
 
 
