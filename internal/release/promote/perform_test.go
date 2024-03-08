@@ -99,7 +99,7 @@ func TestRenderMessage(t *testing.T) {
 					},
 				},
 				Repository: "acme/project1",
-				Source: ReleaseWithGitTag{
+				Source: EnvironmentReleaseInfo{
 					Release: &v1alpha1.Release{
 						Spec: v1alpha1.ReleaseSpec{
 							Version: "1.2.4",
@@ -107,7 +107,7 @@ func TestRenderMessage(t *testing.T) {
 					},
 					GitTag: "v1.2.4",
 				},
-				Target: ReleaseWithGitTag{
+				Target: EnvironmentReleaseInfo{
 					Release: &v1alpha1.Release{
 						Spec: v1alpha1.ReleaseSpec{
 							Version: "1.2.3",
@@ -125,7 +125,7 @@ func TestRenderMessage(t *testing.T) {
 					},
 				},
 				Repository: "acme/project2",
-				Source: ReleaseWithGitTag{
+				Source: EnvironmentReleaseInfo{
 					Release: &v1alpha1.Release{
 						Spec: v1alpha1.ReleaseSpec{
 							Version: "1.2.4",
@@ -133,7 +133,7 @@ func TestRenderMessage(t *testing.T) {
 					},
 					GitTag: "v1.2.4",
 				},
-				Target: ReleaseWithGitTag{
+				Target: EnvironmentReleaseInfo{
 					Release: &v1alpha1.Release{
 						Spec: v1alpha1.ReleaseSpec{
 							Version: "1.2.3",

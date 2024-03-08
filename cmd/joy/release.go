@@ -9,28 +9,27 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/davidmdm/x/xerr"
-
-	"github.com/nestoca/joy/internal/git"
-	"github.com/nestoca/joy/internal/text"
-
-	"github.com/nestoca/joy/internal/project"
-
 	"github.com/TwiN/go-color"
+	"github.com/davidmdm/x/xerr"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/helm"
+	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/release/validate"
+	"github.com/nestoca/joy/internal/text"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -47,6 +46,8 @@ func NewReleaseCmd() *cobra.Command {
 	cmd.AddCommand(NewReleaseSelectCmd())
 	cmd.AddCommand(NewReleasePeopleCmd())
 	cmd.AddCommand(NewReleaseRenderCmd())
+	cmd.AddCommand(NewReleaseOpenCmd())
+	cmd.AddCommand(NewReleaseLinksCmd())
 	cmd.AddCommand(NewGitCommands())
 	cmd.AddCommand(NewValidateCommand())
 
@@ -169,15 +170,17 @@ func NewReleasePromoteCmd() *cobra.Command {
 				SelectedEnvironments: selectedEnvironments,
 			}
 
-			_, err = promote.NewDefaultPromotion(
-				cfg.CatalogDir,
-				cfg.GitHubOrganization,
-				cfg.PromoteReleaseCommitTemplate,
-				cfg.PromoteReleasePullRequestTemplate,
-				cfg.RepositoriesDir,
-				cfg.JoyCache,
-				cfg.DefaultGitTagTemplate,
-			).Promote(opts)
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+			_, err = (&promote.Promotion{
+				PromptProvider:      &promote.InteractivePromptProvider{},
+				GitProvider:         promote.NewShellGitProvider(cfg.CatalogDir),
+				PullRequestProvider: github.NewPullRequestProvider(cfg.CatalogDir),
+				YamlWriter:          &promote.FileSystemYamlWriter{},
+				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
+				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
+				InfoProvider:        infoProvider,
+				LinksProvider:       links.NewProvider(infoProvider, cfg.Templates),
+			}).Promote(opts)
 			return err
 		},
 	}
@@ -428,11 +431,11 @@ func NewValidateCommand() *cobra.Command {
 
 			var releases []*v1alpha1.Release
 			for _, item := range cat.Releases.Items {
-				for _, release := range item.Releases {
-					if release == nil {
+				for _, rel := range item.Releases {
+					if rel == nil {
 						continue
 					}
-					releases = append(releases, release)
+					releases = append(releases, rel)
 				}
 			}
 
@@ -507,17 +510,18 @@ func NewGitCommands() *cobra.Command {
 					return fmt.Errorf("no target release found")
 				}
 
-				repoDir, err := project.GetCachedSourceDir(sourceRelease.Project, cfg.GitHubOrganization, cfg.RepositoriesDir, cfg.JoyCache)
+				infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+				repoDir, err := infoProvider.GetProjectSourceDir(sourceRelease.Project)
 				if err != nil {
 					return fmt.Errorf("cloning repository: %w", err)
 				}
 
-				sourceTag, err := release.GetGitTag(sourceRelease, cfg.DefaultGitTagTemplate)
+				sourceTag, err := infoProvider.GetReleaseGitTag(sourceRelease)
 				if err != nil {
 					return fmt.Errorf("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
 				}
 
-				targetTag, err := release.GetGitTag(targetRelease, cfg.DefaultGitTagTemplate)
+				targetTag, err := infoProvider.GetReleaseGitTag(targetRelease)
 				if err != nil {
 					return fmt.Errorf("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
 				}
@@ -566,4 +570,113 @@ func NewGitCommands() *cobra.Command {
 	root.AddCommand(buildCommand("log"))
 
 	return root
+}
+
+func NewReleaseOpenCmd() *cobra.Command {
+	var env string
+
+	cmd := &cobra.Command{
+		Use:     "open [flags] [release] [link]",
+		Aliases: []string{"open", "o"},
+		Short:   "Open release link",
+		Args:    cobra.RangeArgs(0, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			releaseName := ""
+			if len(args) >= 1 {
+				releaseName = args[0]
+			}
+
+			linkName := ""
+			if len(args) >= 2 {
+				linkName = args[1]
+			}
+
+			var filter filtering.Filter
+			if releaseName == "" && len(cfg.Releases.Selected) > 0 {
+				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
+
+			releaseLinks, err := links.GetReleaseLinks(linksProvider, cat, env, releaseName)
+			if err != nil {
+				return fmt.Errorf("getting release links: %w", err)
+			}
+
+			url, err := links.GetOrSelectLinkUrl(releaseLinks, linkName)
+			if err != nil {
+				return err
+			}
+
+			return links.OpenUrl(url)
+		},
+	}
+
+	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment (interactive if not specified)")
+
+	return cmd
+}
+
+func NewReleaseLinksCmd() *cobra.Command {
+	var env string
+
+	cmd := &cobra.Command{
+		Use:     "links [flags] [release] [link]",
+		Aliases: []string{"links", "link", "lnk"},
+		Short:   "List release links",
+		Args:    cobra.RangeArgs(0, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			releaseName := ""
+			if len(args) >= 1 {
+				releaseName = args[0]
+			}
+
+			linkName := ""
+			if len(args) >= 2 {
+				linkName = args[1]
+			}
+
+			var filter filtering.Filter
+			if releaseName == "" && len(cfg.Releases.Selected) > 0 {
+				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
+
+			releaseLinks, err := links.GetReleaseLinks(linksProvider, cat, env, releaseName)
+			if err != nil {
+				return fmt.Errorf("getting release links: %w", err)
+			}
+
+			return links.PrintLinks(releaseLinks, linkName)
+		},
+	}
+
+	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment (interactive if not specified)")
+
+	return cmd
 }

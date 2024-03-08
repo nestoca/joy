@@ -88,7 +88,7 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	prURL, err := executeAndGetOutput(p.dir, args...)
+	prURL, err := ExecuteAndGetOutput(p.dir, args...)
 	if err != nil {
 		return "", fmt.Errorf("creating pull request for branch %s: %w", params.Branch, err)
 	}

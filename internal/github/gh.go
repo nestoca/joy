@@ -41,8 +41,8 @@ func executeInteractively(workDir string, args ...string) error {
 	return nil
 }
 
-// executeAndGetOutput runs gh command with given args and returns the stdout output.
-func executeAndGetOutput(workDir string, args ...string) (string, error) {
+// ExecuteAndGetOutput runs gh command with given args and returns the stdout output.
+func ExecuteAndGetOutput(workDir string, args ...string) (string, error) {
 	if err := EnsureInstalledAndAuthenticated(); err != nil {
 		return "", err
 	}
@@ -91,6 +91,6 @@ func Clone(dir string, opts CloneOptions) error {
 	if opts.OutDir != "" {
 		args = append(args, opts.OutDir)
 	}
-	_, err := executeAndGetOutput(dir, args...)
+	_, err := ExecuteAndGetOutput(dir, args...)
 	return err
 }

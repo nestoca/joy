@@ -2,6 +2,7 @@ package promote
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -24,16 +25,21 @@ type ReleaseInfo struct {
 	Project      *v1alpha1.Project
 	CodeOwners   []string
 	Repository   string
-	Source       ReleaseWithGitTag
-	Target       ReleaseWithGitTag
+	Source       EnvironmentReleaseInfo
+	Target       EnvironmentReleaseInfo
 	OlderGitTag  string
 	NewerGitTag  string
 	IsPrerelease bool
-	// IsUpgrade is now deprecated and kept only temporarily while we transition to ChangeType
-	IsUpgrade  bool
-	ChangeType ChangeType
-	Commits    []*CommitInfo
-	Error      error
+	ChangeType   ChangeType
+	Commits      []*CommitInfo
+	Error        error
+}
+
+type EnvironmentReleaseInfo struct {
+	*v1alpha1.Release
+	DisplayVersion string
+	GitTag         string
+	Links          map[string]string
 }
 
 type PromotionInfo struct {
@@ -71,14 +77,14 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		displayTargetVersion = targetRelease.Spec.Version
 	}
 
-	sourceTag, err := opts.getReleaseGitTagFunc(sourceRelease)
+	sourceTag, err := opts.infoProvider.GetReleaseGitTag(sourceRelease)
 	if err != nil {
 		return nil, fmt.Errorf("getting tag for source version %s of release %s: %w", sourceRelease.Spec.Version, sourceRelease.Name, err)
 	}
 
 	targetTag := sourceTag
 	if targetRelease != nil {
-		targetTag, err = opts.getReleaseGitTagFunc(targetRelease)
+		targetTag, err = opts.infoProvider.GetReleaseGitTag(targetRelease)
 		if err != nil {
 			return nil, fmt.Errorf("getting tag for target version %s of release %s: %w", targetRelease.Spec.Version, targetRelease.Name, err)
 		}
@@ -91,16 +97,24 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		newerTag = targetTag
 	}
 
-	repository := opts.getProjectRepositoryFunc(project)
+	sourceLinks, err := opts.linksProvider.GetReleaseLinks(sourceRelease)
+	if err != nil {
+		return nil, fmt.Errorf("getting source release links: %w", err)
+	}
+	targetLinks, err := opts.linksProvider.GetReleaseLinks(targetRelease)
+	if err != nil {
+		return nil, fmt.Errorf("getting target release links: %w", err)
+	}
+
+	repository := opts.infoProvider.GetProjectRepository(project)
 	releaseInfo := ReleaseInfo{
 		Name:         sourceRelease.Name,
 		Project:      project,
 		Repository:   repository,
-		Source:       ReleaseWithGitTag{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag},
-		Target:       ReleaseWithGitTag{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag},
+		Source:       EnvironmentReleaseInfo{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag, Links: sourceLinks},
+		Target:       EnvironmentReleaseInfo{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag, Links: targetLinks},
 		OlderGitTag:  olderTag,
 		NewerGitTag:  newerTag,
-		IsUpgrade:    changeType == ChangeTypeUpgrade,
 		ChangeType:   changeType,
 		IsPrerelease: IsPrerelease(sourceRelease) || IsPrerelease(targetRelease),
 	}
@@ -109,22 +123,22 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		return &releaseInfo, nil
 	}
 
-	projectDir, err := opts.getProjectSourceDirFunc(project)
+	projectDir, err := opts.infoProvider.GetProjectSourceDir(project)
 	if err != nil {
 		return nil, fmt.Errorf("getting project clone: %w", err)
 	}
 
-	commitsMetadata, err := opts.getCommitsMetadataFunc(projectDir, olderTag, newerTag)
+	commitsMetadata, err := opts.infoProvider.GetCommitsMetadata(projectDir, olderTag, newerTag)
 	if err != nil {
 		return nil, fmt.Errorf("getting commits metadata: %w", err)
 	}
 
-	gitHubAuthors, err := opts.getCommitsGitHubAuthorsFunc(project, olderTag, newerTag)
+	gitHubAuthors, err := opts.infoProvider.GetCommitsGitHubAuthors(project, olderTag, newerTag)
 	if err != nil {
 		return nil, fmt.Errorf("getting GitHub authors: %w", err)
 	}
 
-	codeOwners, err := opts.getCodeOwnersFunc(projectDir)
+	codeOwners, err := opts.infoProvider.GetCodeOwners(projectDir)
 	if err != nil {
 		return nil, fmt.Errorf("getting GitHub authors: %w", err)
 	}
@@ -179,4 +193,20 @@ func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) 
 		return getErrorMessage(fmt.Errorf("executing message template: %w", err)), nil
 	}
 	return message.String(), nil
+}
+
+var pullRequestReferenceRegex = regexp.MustCompile(`(?m)(^|\s)#(\d+)\b`)
+
+func injectPullRequestLinks(repo string, text string) (string, error) {
+	// Iterate over the matches in reverse order, to prevent replacement from offsetting indexes
+	matches := pullRequestReferenceRegex.FindAllStringSubmatchIndex(text, -1)
+	for i := len(matches) - 1; i >= 0; i-- {
+		match := matches[i]
+		prefix := text[match[2]:match[3]]
+		prNumber := text[match[4]:match[5]]
+		replacement := fmt.Sprintf("[#%s](https://github.com/%s/pull/%s)", prNumber, repo, prNumber)
+		text = text[:match[0]] + prefix + replacement + text[match[1]:]
+	}
+
+	return text, nil
 }

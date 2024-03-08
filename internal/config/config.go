@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
@@ -59,15 +60,32 @@ type Config struct {
 	// Default GitHub organization to infer the repository from the project name.
 	GitHubOrganization string `yaml:"gitHubOrganization,omitempty"`
 
-	// DefaultGitTagTemplate serves as the default gitTagTemplate for projects
-	// Can be overridden in the project spec
-	DefaultGitTagTemplate string `yaml:"defaultGitTagTemplate,omitempty"`
+	Templates Templates `yaml:"templates,omitempty"`
+}
 
-	// PromoteReleaseCommitTemplate is the template of pull request commit messages for release promotion
-	PromoteReleaseCommitTemplate string `yaml:"promoteReleaseCommitTemplate,omitempty"`
+type Templates struct {
+	Environment EnvironmentTemplates `yaml:"environment,omitempty"`
+	Project     ProjectTemplates     `yaml:"project,omitempty"`
+	Release     ReleaseTemplates     `yaml:"release,omitempty"`
+}
 
-	// PromoteReleasePullRequestTemplate is the template of pull request titles+bodies for release promotion
-	PromoteReleasePullRequestTemplate string `yaml:"promoteReleasePullRequestTemplate,omitempty"`
+type EnvironmentTemplates struct {
+	Links map[string]string `yaml:"links,omitempty"`
+}
+
+type ProjectTemplates struct {
+	GitTag string            `yaml:"gitTag,omitempty"`
+	Links  map[string]string `yaml:"links,omitempty"`
+}
+
+type ReleaseTemplates struct {
+	Promote ReleasePromoteTemplates `yaml:"promote,omitempty"`
+	Links   map[string]string       `yaml:"links,omitempty"`
+}
+
+type ReleasePromoteTemplates struct {
+	Commit      string `yaml:"commit,omitempty"`
+	PullRequest string `yaml:"pullRequest,omitempty"`
 }
 
 type ValueMapping struct {
@@ -153,43 +171,46 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load catalog configuration: %w", err)
 	}
 
-	if catalogCfg.MinVersion != "" {
-		cfg.MinVersion = catalogCfg.MinVersion
-	}
-
-	if catalogCfg.DefaultChart != "" {
-		cfg.DefaultChart = catalogCfg.DefaultChart
-	}
-
-	if catalogCfg.ValueMapping != nil {
-		cfg.ValueMapping = catalogCfg.ValueMapping
-	}
-
-	if catalogCfg.ReferenceEnvironment != "" {
-		cfg.ReferenceEnvironment = catalogCfg.ReferenceEnvironment
-	}
-
-	if catalogCfg.GitHubOrganization != "" {
-		cfg.GitHubOrganization = catalogCfg.GitHubOrganization
-	}
-
-	if catalogCfg.DefaultGitTagTemplate != "" {
-		cfg.DefaultGitTagTemplate = catalogCfg.DefaultGitTagTemplate
-	}
-
-	if catalogCfg.PromoteReleaseCommitTemplate != "" {
-		cfg.PromoteReleaseCommitTemplate = catalogCfg.PromoteReleaseCommitTemplate
-	}
-
-	if catalogCfg.PromoteReleasePullRequestTemplate != "" {
-		cfg.PromoteReleasePullRequestTemplate = catalogCfg.PromoteReleasePullRequestTemplate
-	}
-
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
 		return nil, fmt.Errorf("invalid minimum version: %s", cfg.MinVersion)
 	}
 
+	deepCopyConfigNonZeroValues(catalogCfg, cfg)
 	return cfg, nil
+}
+
+func deepCopyConfigNonZeroValues(source, target *Config) {
+	deepCopyNonZeroValues(reflect.ValueOf(source).Elem(), reflect.ValueOf(target).Elem())
+}
+
+func deepCopyNonZeroValues(src, tgt reflect.Value) {
+	for i := 0; i < src.NumField(); i++ {
+		srcField := src.Field(i)
+		tgtField := tgt.Field(i)
+
+		switch srcField.Kind() {
+		case reflect.Struct:
+			deepCopyNonZeroValues(srcField, tgtField)
+		case reflect.Map:
+			if srcField.Len() > 0 {
+				if tgtField.IsNil() {
+					tgtField.Set(reflect.MakeMap(tgtField.Type()))
+				}
+				for _, key := range srcField.MapKeys() {
+					srcValue := srcField.MapIndex(key)
+					tgtField.SetMapIndex(key, srcValue)
+				}
+			}
+		default:
+			if !isZeroValue(srcField.Interface()) {
+				tgtField.Set(srcField)
+			}
+		}
+	}
+}
+
+func isZeroValue(x interface{}) bool {
+	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }
 
 func CheckCatalogDir(catalogDir string) error {

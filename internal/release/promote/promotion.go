@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nestoca/joy/internal/release"
+	"github.com/nestoca/joy/internal/links"
 
-	"github.com/nestoca/joy/internal/github"
-	"github.com/nestoca/joy/internal/project"
+	"github.com/nestoca/joy/internal/info"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -17,62 +16,14 @@ import (
 )
 
 type Promotion struct {
-	// Prompt is the prompt to use for user interaction.
-	promptProvider PromptProvider
-
-	// Committer allows committing and pushing changes to git.
-	gitProvider GitProvider
-
-	// PullRequestProvider is the provider of pull requests.
-	pullRequestProvider pr.PullRequestProvider
-
-	// YamlWriter is the writer of YAML files.
-	yamlWriter YamlWriter
-
-	commitTemplate              string
-	pullRequestTemplate         string
-	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
-	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
-	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
-	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
-	getCodeOwnersFunc           func(projectDir string) ([]string, error)
-	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
-}
-
-func NewPromotion(prompt PromptProvider, gitProvider GitProvider, pullRequestProvider pr.PullRequestProvider, yamlWriter YamlWriter, commitTemplate string, pullRequestTemplate string, getProjectRepositoryFunc func(proj *v1alpha1.Project) string, getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error), getCommitsMetadataFunc func(projectDir string, from string, to string) ([]*CommitMetadata, error), getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error), getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error), getCodeOwnersFunc func(projectDir string) ([]string, error)) *Promotion {
-	return &Promotion{
-		promptProvider:              prompt,
-		gitProvider:                 gitProvider,
-		pullRequestProvider:         pullRequestProvider,
-		yamlWriter:                  yamlWriter,
-		commitTemplate:              commitTemplate,
-		pullRequestTemplate:         pullRequestTemplate,
-		getProjectRepositoryFunc:    getProjectRepositoryFunc,
-		getProjectSourceDirFunc:     getProjectSourceDirFunc,
-		getCommitsMetadataFunc:      getCommitsMetadataFunc,
-		getCommitsGitHubAuthorsFunc: getCommitsGitHubAuthorsFunc,
-		getReleaseGitTagFunc:        getReleaseGitTagFunc,
-		getCodeOwnersFunc:           getCodeOwnersFunc,
-	}
-}
-
-func NewDefaultPromotion(catalogDir, gitHubOrganization, commitTemplate, pullRequestTemplate, repositoriesDir, joyCache, defaultGitTagTemplate string) *Promotion {
-	return NewPromotion(&InteractivePromptProvider{}, NewShellGitProvider(catalogDir), github.NewPullRequestProvider(catalogDir), &FileSystemYamlWriter{}, commitTemplate, pullRequestTemplate, func(proj *v1alpha1.Project) string {
-		if proj.Spec.Repository != "" {
-			return proj.Spec.Repository
-		}
-		return fmt.Sprintf("%s/%s", gitHubOrganization, proj.Name)
-	}, func(proj *v1alpha1.Project) (string, error) {
-		return project.GetCachedSourceDir(proj, gitHubOrganization, repositoriesDir, joyCache)
-	}, func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error) {
-		return GetCommitsMetadata(projectDir, fromTag, toTag)
-	}, func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
-		return github.GetCommitsGitHubAuthors(proj, gitHubOrganization, fromTag, toTag)
-	}, func(rel *v1alpha1.Release) (string, error) {
-		return release.GetGitTag(rel, defaultGitTagTemplate)
-	}, func(projectDir string) ([]string, error) {
-		return GetCodeOwners(projectDir)
-	})
+	PromptProvider      PromptProvider
+	GitProvider         GitProvider
+	PullRequestProvider pr.PullRequestProvider
+	YamlWriter          YamlWriter
+	CommitTemplate      string
+	PullRequestTemplate string
+	InfoProvider        info.Provider
+	LinksProvider       links.Provider
 }
 
 type Opts struct {
@@ -127,7 +78,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		opts.SourceEnv, err = p.promptProvider.SelectSourceEnvironment(sourceEnvs)
+		opts.SourceEnv, err = p.PromptProvider.SelectSourceEnvironment(sourceEnvs)
 		if err != nil {
 			return "", err
 		}
@@ -139,7 +90,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		opts.TargetEnv, err = p.promptProvider.SelectTargetEnvironment(targetEnvs)
+		opts.TargetEnv, err = p.PromptProvider.SelectTargetEnvironment(targetEnvs)
 		if err != nil {
 			return "", err
 		}
@@ -160,7 +111,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	}
 
 	if !list.HasAnyPromotableReleases() {
-		p.promptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
+		p.PromptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 		return "", nil
 	}
 
@@ -168,7 +119,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		if len(opts.Releases) > 0 {
 			return list.OnlySpecificReleases(opts.Releases), nil
 		}
-		return p.promptProvider.SelectReleases(list)
+		return p.PromptProvider.SelectReleases(list)
 	}()
 	if err != nil {
 		return "", fmt.Errorf("selecting releases to promote: %w", err)
@@ -177,7 +128,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	invalidList := selectedList.GetNonPromotableReleases(opts.SourceEnv, opts.TargetEnv)
 	if len(invalidList) != 0 {
 		invalid := strings.Join(invalidList, ", ")
-		p.promptProvider.PrintSelectedNonPromotableReleases(invalid, opts.TargetEnv.Name)
+		p.PromptProvider.PrintSelectedNonPromotableReleases(invalid, opts.TargetEnv.Name)
 		return "", fmt.Errorf("cannot promote releases with non-standard version to %s environment", opts.TargetEnv.Name)
 	}
 
@@ -189,19 +140,15 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 
 	// There's a previous check so only one option can be true at a time
 	performParams := PerformOpts{
-		list:                        selectedList,
-		autoMerge:                   opts.AutoMerge,
-		draft:                       opts.Draft,
-		dryRun:                      opts.DryRun,
-		localOnly:                   opts.LocalOnly,
-		commitTemplate:              p.commitTemplate,
-		pullRequestTemplate:         p.pullRequestTemplate,
-		getProjectSourceDirFunc:     p.getProjectSourceDirFunc,
-		getProjectRepositoryFunc:    p.getProjectRepositoryFunc,
-		getCodeOwnersFunc:           p.getCodeOwnersFunc,
-		getCommitsMetadataFunc:      p.getCommitsMetadataFunc,
-		getCommitsGitHubAuthorsFunc: p.getCommitsGitHubAuthorsFunc,
-		getReleaseGitTagFunc:        p.getReleaseGitTagFunc,
+		list:                selectedList,
+		autoMerge:           opts.AutoMerge,
+		draft:               opts.Draft,
+		dryRun:              opts.DryRun,
+		localOnly:           opts.LocalOnly,
+		commitTemplate:      p.CommitTemplate,
+		pullRequestTemplate: p.PullRequestTemplate,
+		infoProvider:        p.InfoProvider,
+		linksProvider:       p.LinksProvider,
 	}
 
 	if opts.NoPrompt {
@@ -209,12 +156,12 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	}
 
 	if opts.AutoMerge || opts.Draft {
-		confirmed, err := p.promptProvider.ConfirmCreatingPromotionPullRequest(opts.AutoMerge, opts.Draft)
+		confirmed, err := p.PromptProvider.ConfirmCreatingPromotionPullRequest(opts.AutoMerge, opts.Draft)
 		if err != nil {
 			return "", fmt.Errorf("confirming creating promotion pull request: %w", err)
 		}
 		if !confirmed {
-			p.promptProvider.PrintCanceled()
+			p.PromptProvider.PrintCanceled()
 			return "", nil
 		}
 
@@ -222,7 +169,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	}
 
 	// Prompt user to select creating a pull request
-	answer, err := p.promptProvider.SelectCreatingPromotionPullRequest()
+	answer, err := p.PromptProvider.SelectCreatingPromotionPullRequest()
 	if err != nil {
 		return "", fmt.Errorf("selecting create promotion pull request: %w", err)
 	}
@@ -231,7 +178,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	case Draft:
 		performParams.draft = true
 	case Cancel:
-		p.promptProvider.PrintCanceled()
+		p.PromptProvider.PrintCanceled()
 		return "", nil
 	}
 
@@ -239,7 +186,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 }
 
 func (p *Promotion) preview(list *cross.ReleaseList) error {
-	p.promptProvider.PrintStartPreview()
+	p.PromptProvider.PrintStartPreview()
 	targetEnv := list.Environments[1]
 
 	for _, rel := range list.Items {
@@ -253,13 +200,13 @@ func (p *Promotion) preview(list *cross.ReleaseList) error {
 		if targetRelease != nil {
 			targetReleaseFile = targetRelease.File
 		}
-		err := p.promptProvider.PrintReleasePreview(targetEnv.Name, rel.Name, targetReleaseFile, rel.PromotedFile)
+		err := p.PromptProvider.PrintReleasePreview(targetEnv.Name, rel.Name, targetReleaseFile, rel.PromotedFile)
 		if err != nil {
 			return fmt.Errorf("printing release preview: %w", err)
 		}
 	}
 
-	p.promptProvider.PrintEndPreview()
+	p.PromptProvider.PrintEndPreview()
 	return nil
 }
 

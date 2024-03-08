@@ -5,6 +5,10 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/nestoca/joy/internal/links"
+
+	"github.com/nestoca/joy/internal/info"
+
 	"github.com/nestoca/joy/internal/github"
 
 	"github.com/stretchr/testify/assert"
@@ -19,45 +23,32 @@ import (
 )
 
 var (
-	simpleCommitTemplate        = "Commit: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
-	simplePullRequestTemplate   = "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
-	simpleProjectRepositoryFunc = func(proj *v1alpha1.Project) string {
-		return "owner/" + proj.Name
-	}
-	simpleProjectSourceDirFunc = func(proj *v1alpha1.Project) (string, error) {
-		return "/dummy/projects/" + proj.Name, nil
-	}
-	simpleCommitsMetadataFunc = func(projectDir, from, to string) ([]*promote.CommitMetadata, error) {
-		return []*promote.CommitMetadata{
-			{
-				Sha:     "sha1",
-				Message: "commit message 1",
-			},
-			{
-				Sha:     "sha2",
-				Message: "commit message 2",
-			},
-		}, nil
-	}
-	simpleCommitsGitHubAuthorsFunc = func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
-		return nil, nil
-	}
-	simpleReleaseGitTagFunc = func(release *v1alpha1.Release) (string, error) {
-		return "v" + release.Spec.Version, nil
-	}
-	simpleGetCodeOwnersFunc = func(dir string) ([]string, error) {
-		return []string{"nestobot"}, nil
-	}
+	simpleCommitTemplate      = "Commit: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
+	simplePullRequestTemplate = "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
 )
 
+func newMockInfoProvider(ctrl *gomock.Controller) *info.MockProvider {
+	infoProvider := info.NewMockProvider(ctrl)
+	infoProvider.EXPECT().GetReleaseGitTag(gomock.Any()).Return("v1.0.0", nil).AnyTimes()
+	infoProvider.EXPECT().GetProjectRepository(gomock.Any()).Return("owner/project").AnyTimes()
+	infoProvider.EXPECT().GetProjectSourceDir(gomock.Any()).Return("/dummy/projects/project", nil).AnyTimes()
+	infoProvider.EXPECT().GetCommitsMetadata(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	infoProvider.EXPECT().GetCommitsGitHubAuthors(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	infoProvider.EXPECT().GetCodeOwners(gomock.Any()).Return([]string{"john-doe"}, nil).AnyTimes()
+	return infoProvider
+}
+
+func newMockLinksProvider(ctrl *gomock.Controller) *links.MockProvider {
+	linksProvider := links.NewMockProvider(ctrl)
+	linksProvider.EXPECT().GetReleaseLinks(gomock.Any()).Return(nil, nil).AnyTimes()
+	return linksProvider
+}
+
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
-	// Create mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-
-	// Set expectations
 	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -69,6 +60,9 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
+
+	infoProvider := newMockInfoProvider(ctrl)
+	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
@@ -86,7 +80,16 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
+	promotion := promote.Promotion{
+		PromptProvider:      promptProvider,
+		GitProvider:         promote.NewShellGitProvider(dir),
+		PullRequestProvider: github.NewPullRequestProvider(dir),
+		YamlWriter:          &promote.FileSystemYamlWriter{},
+		CommitTemplate:      simpleCommitTemplate,
+		PullRequestTemplate: simplePullRequestTemplate,
+		InfoProvider:        infoProvider,
+		LinksProvider:       linksProvider,
+	}
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -101,13 +104,10 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 }
 
 func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
-	// Create mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-
-	// Set expectations
 	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -119,6 +119,9 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
+
+	infoProvider := newMockInfoProvider(ctrl)
+	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
@@ -138,8 +141,16 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
-
+	promotion := promote.Promotion{
+		PromptProvider:      promptProvider,
+		GitProvider:         promote.NewShellGitProvider(dir),
+		PullRequestProvider: github.NewPullRequestProvider(dir),
+		YamlWriter:          &promote.FileSystemYamlWriter{},
+		CommitTemplate:      simpleCommitTemplate,
+		PullRequestTemplate: simplePullRequestTemplate,
+		InfoProvider:        infoProvider,
+		LinksProvider:       linksProvider,
+	}
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -176,8 +187,16 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = false
 
 	// Perform test
-	promotion := promote.NewPromotion(nil, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
-
+	promotion := promote.Promotion{
+		PromptProvider:      nil,
+		GitProvider:         promote.NewShellGitProvider(dir),
+		PullRequestProvider: github.NewPullRequestProvider(dir),
+		YamlWriter:          &promote.FileSystemYamlWriter{},
+		CommitTemplate:      simpleCommitTemplate,
+		PullRequestTemplate: simplePullRequestTemplate,
+		InfoProvider:        nil,
+		LinksProvider:       nil,
+	}
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,
@@ -225,13 +244,10 @@ func closePR(t *testing.T, dir, prURL string) {
 }
 
 func TestDraftPromoteFromStagingToProd(t *testing.T) {
-	// Create mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-
-	// Set expectations
 	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -243,6 +259,9 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintDraftPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
+
+	infoProvider := newMockInfoProvider(ctrl)
+	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
@@ -262,8 +281,16 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	targetEnv.Spec.Promotion.AllowAutoMerge = true
 
 	// Perform test
-	promotion := promote.NewPromotion(promptProvider, promote.NewShellGitProvider(dir), github.NewPullRequestProvider(dir), &promote.FileSystemYamlWriter{}, simpleCommitTemplate, simplePullRequestTemplate, simpleProjectRepositoryFunc, simpleProjectSourceDirFunc, simpleCommitsMetadataFunc, simpleCommitsGitHubAuthorsFunc, simpleReleaseGitTagFunc, simpleGetCodeOwnersFunc)
-
+	promotion := promote.Promotion{
+		PromptProvider:      promptProvider,
+		GitProvider:         promote.NewShellGitProvider(dir),
+		PullRequestProvider: github.NewPullRequestProvider(dir),
+		YamlWriter:          &promote.FileSystemYamlWriter{},
+		CommitTemplate:      simpleCommitTemplate,
+		PullRequestTemplate: simplePullRequestTemplate,
+		InfoProvider:        infoProvider,
+		LinksProvider:       linksProvider,
+	}
 	opts := promote.Opts{
 		Catalog:   cat,
 		SourceEnv: sourceEnv,

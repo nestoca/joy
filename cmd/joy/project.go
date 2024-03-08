@@ -1,12 +1,17 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/project"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func NewProjectCmd() *cobra.Command {
@@ -19,6 +24,8 @@ func NewProjectCmd() *cobra.Command {
 	}
 	cmd.AddCommand(NewProjectListCmd())
 	cmd.AddCommand(NewProjectPeopleCmd())
+	cmd.AddCommand(NewProjectOpenCmd())
+	cmd.AddCommand(NewProjectLinksCmd())
 	return cmd
 }
 
@@ -68,5 +75,92 @@ func NewProjectListCmd() *cobra.Command {
 			return project.List(cfg.CatalogDir)
 		},
 	}
+	return cmd
+}
+
+func NewProjectOpenCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "open [flags] [project] [link]",
+		Aliases: []string{"open", "o"},
+		Short:   "Open project link",
+		Args:    cobra.RangeArgs(0, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			projectName := ""
+			if len(args) >= 1 {
+				projectName = args[0]
+			}
+
+			linkName := ""
+			if len(args) >= 2 {
+				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir: cfg.CatalogDir,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
+
+			projectLinks, err := links.GetProjectLinks(linksProvider, cat, projectName)
+			if err != nil {
+				return fmt.Errorf("getting project links: %w", err)
+			}
+
+			url, err := links.GetOrSelectLinkUrl(projectLinks, linkName)
+			if err != nil {
+				return err
+			}
+
+			return links.OpenUrl(url)
+		},
+	}
+
+	return cmd
+}
+
+func NewProjectLinksCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "links [flags] [project] [link]",
+		Aliases: []string{"links", "link", "lnk"},
+		Short:   "List project links",
+		Args:    cobra.RangeArgs(0, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.FromContext(cmd.Context())
+
+			projectName := ""
+			if len(args) >= 1 {
+				projectName = args[0]
+			}
+
+			linkName := ""
+			if len(args) >= 2 {
+				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir: cfg.CatalogDir,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
+
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
+
+			projectLinks, err := links.GetProjectLinks(linksProvider, cat, projectName)
+			if err != nil {
+				return fmt.Errorf("getting project links: %w", err)
+			}
+
+			return links.PrintLinks(projectLinks, linkName)
+		},
+	}
+
 	return cmd
 }
