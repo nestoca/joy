@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nestoca/joy/internal/links"
-
-	"github.com/nestoca/joy/internal/info"
-
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -19,7 +17,7 @@ type Promotion struct {
 	PromptProvider      PromptProvider
 	GitProvider         GitProvider
 	PullRequestProvider pr.PullRequestProvider
-	YamlWriter          YamlWriter
+	YamlWriter          yml.Writer
 	CommitTemplate      string
 	PullRequestTemplate string
 	InfoProvider        info.Provider
@@ -115,7 +113,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	selectedList, err := func() (*cross.ReleaseList, error) {
+	selectedList, err := func() (cross.ReleaseList, error) {
 		if len(opts.Releases) > 0 {
 			return list.OnlySpecificReleases(opts.Releases), nil
 		}
@@ -185,7 +183,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	return p.perform(performParams)
 }
 
-func (p *Promotion) preview(list *cross.ReleaseList) error {
+func (p *Promotion) preview(list cross.ReleaseList) error {
 	p.PromptProvider.PrintStartPreview()
 	targetEnv := list.Environments[1]
 

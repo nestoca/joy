@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/pr/promote"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -28,17 +25,7 @@ func NewPRPromoteCmd() *cobra.Command {
 		Short:   "Auto-promote builds of pull request to given environment",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
-
-			// Load catalog
-			loadOpts := catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-			}
-			cat, err := catalog.Load(loadOpts)
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat := catalog.FromContext(cmd.Context())
 
 			return promote.
 				NewDefaultPromotion(".").

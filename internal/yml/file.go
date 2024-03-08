@@ -132,10 +132,6 @@ func marshallTreeToYaml(tree *yaml.Node, indent int) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (y *File) WriteYaml() error {
-	return os.WriteFile(y.Path, y.Yaml, 0o644)
-}
-
 func (y *File) ToYaml() (string, error) {
 	return TreeToYaml(y.Tree, y.Indent)
 }

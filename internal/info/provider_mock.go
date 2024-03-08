@@ -4,8 +4,9 @@
 package info
 
 import (
-	v1alpha1 "github.com/nestoca/joy/api/v1alpha1"
 	"sync"
+
+	v1alpha1 "github.com/nestoca/joy/api/v1alpha1"
 )
 
 // Ensure, that ProviderMock does implement Provider.
