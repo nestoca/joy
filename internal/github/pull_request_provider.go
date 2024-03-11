@@ -203,7 +203,7 @@ func (p *PullRequestProvider) createLabels(labels ...string) error {
 	if len(labels) == 0 {
 		return nil
 	}
-	cmd := exec.Command("gh", "label", "list", "--json", "name")
+	cmd := exec.Command("gh", "label", "list", "--json", "name", "--limit", "1000")
 	cmd.Dir = p.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
