@@ -1,3 +1,10 @@
+## [0.34.4](https://github.com/nestoca/joy/compare/v0.34.3...v0.34.4) (2024-03-11)
+
+
+### Bug Fixes
+
+* **PL-2539:** exclude * code owners from PR reviewers ([#117](https://github.com/nestoca/joy/issues/117)) ([2f40775](https://github.com/nestoca/joy/commit/2f40775f4ce3b25868265ec50f85949cd7a76c5d))
+
 ## [0.34.3](https://github.com/nestoca/joy/compare/v0.34.2...v0.34.3) (2024-03-11)
 
 
