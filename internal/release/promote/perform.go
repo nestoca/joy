@@ -209,6 +209,9 @@ func getReviewers(info *PromotionInfo) []string {
 
 	var reviewers []string
 	for reviewer := range uniqueAuthors {
+		if reviewer == "*" {
+			continue
+		}
 		reviewers = append(reviewers, reviewer)
 	}
 	sort.Strings(reviewers)
