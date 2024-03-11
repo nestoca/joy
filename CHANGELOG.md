@@ -1,3 +1,10 @@
+## [0.34.3](https://github.com/nestoca/joy/compare/v0.34.2...v0.34.3) (2024-03-11)
+
+
+### Bug Fixes
+
+* **PL-2538:** default branch detection ([#116](https://github.com/nestoca/joy/issues/116)) ([f6ace3b](https://github.com/nestoca/joy/commit/f6ace3b1e93c21903d29a1ffeb365265e744de6a))
+
 ## [0.34.2](https://github.com/nestoca/joy/compare/v0.34.1...v0.34.2) (2024-03-08)
 
 
