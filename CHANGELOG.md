@@ -1,3 +1,10 @@
+## [0.34.5](https://github.com/nestoca/joy/compare/v0.34.4...v0.34.5) (2024-03-11)
+
+
+### Bug Fixes
+
+* **PL-2541:** fetch all labels first ([fac4cc8](https://github.com/nestoca/joy/commit/fac4cc8338baa838190416a41556c9f351181829))
+
 ## [0.34.4](https://github.com/nestoca/joy/compare/v0.34.3...v0.34.4) (2024-03-11)
 
 
