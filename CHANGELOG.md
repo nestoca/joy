@@ -1,3 +1,10 @@
+## [0.35.0](https://github.com/nestoca/joy/compare/v0.34.5...v0.35.0) (2024-03-11)
+
+
+### Features
+
+* **PL-2449:** add diff-ref to release render ([cbf7c28](https://github.com/nestoca/joy/commit/cbf7c281ea589da8f914cc4e283df73c103f4283))
+
 ## [0.34.5](https://github.com/nestoca/joy/compare/v0.34.4...v0.34.5) (2024-03-11)
 
 
