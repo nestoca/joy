@@ -16,20 +16,19 @@ import (
 type GitOpts struct {
 	IsValid               func(string) bool
 	GetUncommittedChanges func(string) ([]string, error)
-	GetDefaultBranch      func(string) (string, error)
 	GetCurrentBranch      func(string) (string, error)
 	IsInSyncWithRemote    func(string, string) (bool, error)
 	GetCurrentCommit      func(string) (string, error)
 }
 
-type CatalopOpts struct {
+type CatalogOpts struct {
 	Stat         func(string) (fs.FileInfo, error)
 	LoadCatalog  func(catalog.LoadOpts) (*catalog.Catalog, error)
 	CheckCatalog func(string) error
 	Git          GitOpts
 }
 
-func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
+func diagnoseCatalog(catalogDir string, opts CatalogOpts) (group Group) {
 	if opts.Stat == nil {
 		opts.Stat = os.Stat
 	}
@@ -43,7 +42,6 @@ func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
 		opts.Git = GitOpts{
 			IsValid:               git.IsValid,
 			GetUncommittedChanges: git.GetUncommittedChanges,
-			GetDefaultBranch:      git.GetDefaultBranch,
 			GetCurrentBranch:      git.GetCurrentBranch,
 			IsInSyncWithRemote:    git.IsBranchInSyncWithRemote,
 			GetCurrentCommit:      git.GetCurrentCommit,
@@ -83,11 +81,7 @@ func diagnoseCatalog(catalogDir string, opts CatalopOpts) (group Group) {
 			group.AddMsg(success, "Working copy has no uncommitted changes")
 		}
 
-		defaultBranch, err := opts.Git.GetDefaultBranch(catalogDir)
-		if err != nil {
-			group.AddMsg(failed, label("Failed getting default branch", err.Error()))
-		}
-
+		const defaultBranch = "master"
 		currentBranch, err := opts.Git.GetCurrentBranch(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current branch", err.Error()))

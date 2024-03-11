@@ -17,17 +17,16 @@ import (
 func TestCatalogDiagnostics(t *testing.T) {
 	cases := []struct {
 		Name     string
-		Opts     CatalopOpts
+		Opts     CatalogOpts
 		Expected Group
 	}{
 		{
 			Name: "happy",
-			Opts: CatalopOpts{
+			Opts: CatalogOpts{
 				Stat: func(string) (fs.FileInfo, error) { return nil, nil },
 				Git: GitOpts{
 					IsValid:               func(string) bool { return true },
 					GetUncommittedChanges: func(string) ([]string, error) { return nil, nil },
-					GetDefaultBranch:      func(string) (string, error) { return "master", nil },
 					GetCurrentBranch:      func(string) (string, error) { return "master", nil },
 					IsInSyncWithRemote:    func(string, string) (bool, error) { return true, nil },
 					GetCurrentCommit:      func(string) (string, error) { return "origin/HEAD", nil },
@@ -75,7 +74,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 		},
 		{
 			Name: "catalog not exists",
-			Opts: CatalopOpts{
+			Opts: CatalogOpts{
 				Stat:         func(s string) (fs.FileInfo, error) { return nil, os.ErrNotExist },
 				CheckCatalog: func(s string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
 			},
@@ -100,7 +99,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 		},
 		{
 			Name: "git not valid repository",
-			Opts: CatalopOpts{
+			Opts: CatalogOpts{
 				Stat:         func(s string) (fs.FileInfo, error) { return nil, nil },
 				CheckCatalog: func(s string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
 				Git: GitOpts{
