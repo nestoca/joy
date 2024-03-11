@@ -1,7 +1,6 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -62,16 +61,6 @@ func GetUncommittedChanges(dir string) ([]string, error) {
 	return strings.Split(trimmed, "\n"), nil
 }
 
-func GetDefaultBranch(dir string) (string, error) {
-	cmd := exec.Command("git", "-C", dir, "symbolic-ref", "refs/remotes/origin/HEAD")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("executing git symbolic-ref: %s", string(output))
-	}
-	longName := strings.TrimSpace(string(output))
-	return strings.TrimPrefix(longName, "refs/remotes/origin/"), nil
-}
-
 func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
 	// Fetch the latest changes from the remote
 	fetchCmd := exec.Command("git", "-C", dir, "fetch", "origin", branch)
@@ -82,8 +71,6 @@ func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
 
 	// Use git status --porcelain to check the sync status
 	statusCmd := exec.Command("git", "-C", dir, "status", "--porcelain", "-b")
-	var out bytes.Buffer
-	statusCmd.Stdout = &out
 	statusOutput, err := statusCmd.CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("checking git status: %s", string(statusOutput))
@@ -91,7 +78,7 @@ func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
 
 	// Regular expression to match branch status
 	branchStatusRegex := regexp.MustCompile(`## [^ ]+( \[(ahead \d+|behind \d+|diverged \d+ and \d+)\])?`)
-	matches := branchStatusRegex.FindStringSubmatch(out.String())
+	matches := branchStatusRegex.FindStringSubmatch(string(statusOutput))
 
 	// Check if the branch is either ahead, behind or diverged
 	if len(matches) > 1 && matches[1] != "" {
