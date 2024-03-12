@@ -91,9 +91,6 @@ func Clone(dir string, opts CloneOptions) error {
 	if opts.OutDir != "" {
 		args = append(args, opts.OutDir)
 	}
-	out, err := executeAndGetOutput(dir, args...)
-	if err != nil {
-		return fmt.Errorf("error: %s", out)
-	}
-	return nil
+	_, err := executeAndGetOutput(dir, args...)
+	return err
 }
