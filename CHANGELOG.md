@@ -1,3 +1,10 @@
+## [0.35.2](https://github.com/nestoca/joy/compare/v0.35.1...v0.35.2) (2024-03-12)
+
+
+### Bug Fixes
+
+* **PL-2466:** support multi validation errors ([9ee0dbf](https://github.com/nestoca/joy/commit/9ee0dbf4e25e18b98bb6aec15158dc0b71bba7d4))
+
 ## [0.35.1](https://github.com/nestoca/joy/compare/v0.35.0...v0.35.1) (2024-03-12)
 
 
