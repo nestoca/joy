@@ -44,7 +44,23 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 			},
-			ExpectedErr: "hello: conflicting values true and string (mismatched types bool and string)",
+			ExpectedErr: "#values.hello: conflicting values string and true (mismatched types string and bool)",
+		},
+		{
+			Name:    "values missing from spec",
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{}}, Environment: &allowPullRequest},
+			ChartFS: &xfs.FSMock{
+				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
+			},
+			ExpectedErr: "#values.hello: incomplete value string",
+		},
+		{
+			Name:    "multiple errors",
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"one": "one", "two": "two"}}, Environment: &allowPullRequest},
+			ChartFS: &xfs.FSMock{
+				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { one: 1, two: 2 }`), nil },
+			},
+			ExpectedErr: "error:\n  - #values.one: conflicting values 1 and \"one\" (mismatched types int and string)\n  - #values.two: conflicting values 2 and \"two\" (mismatched types int and string)",
 		},
 		{
 			Name:    "render fails",

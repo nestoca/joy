@@ -11,7 +11,6 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	cueerrors "cuelang.org/go/cue/errors"
-	"cuelang.org/go/encoding/gocode/gocodec"
 
 	"github.com/davidmdm/x/xerr"
 
@@ -122,12 +121,14 @@ func validateSchema(release *v1alpha1.Release, chart *helm.Chart) error {
 		CompileBytes(schemaData).
 		LookupPath(cue.MakePath(cue.Def("#values")))
 
-	codec := gocodec.New(runtime, &gocodec.Config{})
+	values := runtime.Encode(release.Spec.Values)
 
-	if errs := cueerrors.Errors(codec.Validate(schema, release.Spec.Values)); len(errs) == 1 {
+	validationErr := schema.Unify(values).Validate(cue.Concrete(true))
+
+	if errs := cueerrors.Errors(validationErr); len(errs) == 1 {
 		return errs[0]
 	} else if len(errs) > 1 {
-		return xerr.MultiErrOrderedFrom(errs[0].Error(), AsErrorList(errs[1:])...)
+		return xerr.MultiErrFrom("", AsErrorList(errs)...)
 	}
 
 	return nil
