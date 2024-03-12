@@ -1,3 +1,10 @@
+## [0.35.1](https://github.com/nestoca/joy/compare/v0.35.0...v0.35.1) (2024-03-12)
+
+
+### Bug Fixes
+
+* **PL-2544:** fix gh command error output ([9c911da](https://github.com/nestoca/joy/commit/9c911da9c002f086ef01185e13eb3d1d9f12cb96))
+
 ## [0.35.0](https://github.com/nestoca/joy/compare/v0.34.5...v0.35.0) (2024-03-11)
 
 
