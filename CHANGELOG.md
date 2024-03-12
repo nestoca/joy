@@ -1,3 +1,10 @@
+## [0.36.0](https://github.com/nestoca/joy/compare/v0.35.2...v0.36.0) (2024-03-12)
+
+
+### Features
+
+* **PL-2418:** add !local tag annotation ([061a73f](https://github.com/nestoca/joy/commit/061a73fe217fa922ae04450168f93b555a8010c1))
+
 ## [0.35.2](https://github.com/nestoca/joy/compare/v0.35.1...v0.35.2) (2024-03-12)
 
 
