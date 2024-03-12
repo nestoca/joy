@@ -11,6 +11,6 @@ var StandardTags = []string{
 	"!!null",
 }
 
-var CustomTags = []string{"!lock"}
+var CustomTags = []string{"!lock", "!local"}
 
 var KnownTags = append(StandardTags, CustomTags...)

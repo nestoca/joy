@@ -695,6 +695,48 @@ func TestYmlMerge(t *testing.T) {
 			Dst:      "[b]",
 			Expected: "[a]",
 		},
+		{
+			Name:     "local map keys",
+			Src:      "{key: !local value}",
+			Dst:      "{}",
+			Expected: "{}",
+		},
+		{
+			Name:     "local map key conflict",
+			Src:      "{key: !local value}",
+			Dst:      "{key: !local other}",
+			Expected: "{key: !local other}",
+		},
+		{
+			Name:     "source does not remove local values",
+			Src:      "{}",
+			Dst:      "{key: !local value}",
+			Expected: "{key: !local value}",
+		},
+		{
+			Name:     "local sequence",
+			Src:      "[!local 1, 2, 3]",
+			Dst:      "[]",
+			Expected: "[2, 3]",
+		},
+		{
+			Name:     "local sequence source empty",
+			Src:      "[]",
+			Dst:      "[!local 1, 2, 3]",
+			Expected: "[!local 1]",
+		},
+		{
+			Name:     "local sequence matching",
+			Src:      "[1, !local 2, 3]",
+			Dst:      "[4, 5, 6]",
+			Expected: "[1, 3]",
+		},
+		{
+			Name:     "local sequence matching with tail",
+			Src:      "[1, !local 2, 3]",
+			Dst:      "[4, 5, 6, !local 7]",
+			Expected: "[1, 3, !local 7]",
+		},
 	}
 
 	for _, tc := range cases {
@@ -709,6 +751,15 @@ func TestYmlMerge(t *testing.T) {
 			actual = bytes.TrimSpace(actual)
 
 			require.Equal(t, tc.Expected, string(actual))
+
+			var result yaml.Node
+			require.NoError(t, yaml.Unmarshal(actual, &result))
+
+			check, err := yaml.Marshal(Merge(&result, &src))
+			require.NoError(t, err)
+
+			check = bytes.TrimSpace(check)
+			require.Equal(t, actual, check, "failed idempotency check")
 		})
 	}
 }

@@ -34,7 +34,7 @@ func Merge(dst, src *yaml.Node) *yaml.Node {
 func merge(dst, src *yaml.Node) *yaml.Node {
 	// If destination is locked, it does not matter what source is.
 	// If destination exists but source is locked, disregard source.
-	if isLocked(dst) || (dst != nil && isLocked(src)) {
+	if isLocked(dst) || (dst != nil && isLocked(src)) || isLocal(dst) || isLocal(src) {
 		return dst
 	}
 
@@ -79,14 +79,39 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
 	var (
-		maxLen  = max(len(dst.Content), len(src.Content))
+		srcIdx  int
+		dstIdx  int
 		content []*yaml.Node
 	)
+	for {
+		// If we have moved past both the source and dst length we must end the loop unless
+		// we want to go to infinity and beyond!
+		if srcIdx >= len(src.Content) && dstIdx >= len(dst.Content) {
+			break
+		}
 
-	for i := 0; i < maxLen; i++ {
-		if value := merge(at(dst, i), at(src, i)); value != nil {
+		// For the destination if the item is local we want to add it to the result, but move the dstIdx
+		// forward until we find a non local element to merge with.
+		for {
+			item := at(dst, dstIdx)
+			if !isLocal(item) {
+				break
+			}
+			content = append(content, item)
+			dstIdx++
+		}
+
+		// ignore local source elements and find the first non local idx.
+		for isLocal(at(src, srcIdx)) {
+			srcIdx++
+		}
+
+		if value := merge(at(dst, dstIdx), at(src, srcIdx)); value != nil {
 			content = append(content, value)
 		}
+
+		srcIdx++
+		dstIdx++
 	}
 
 	dst.Content = content
@@ -155,6 +180,10 @@ func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
 
 func isLocked(node *yaml.Node) bool {
 	return node != nil && node.Tag == "!lock"
+}
+
+func isLocal(node *yaml.Node) bool {
+	return node != nil && node.Tag == "!local"
 }
 
 type KeyValuePair struct {
