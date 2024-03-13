@@ -1,3 +1,10 @@
+## [0.37.1](https://github.com/nestoca/joy/compare/v0.37.0...v0.37.1) (2024-03-13)
+
+
+### Bug Fixes
+
+* **PL-2549:** use nesto fork of survey ([993c222](https://github.com/nestoca/joy/commit/993c222e6a31018a1b336f4c7166cec1c2a9c33a))
+
 ## [0.37.0](https://github.com/nestoca/joy/compare/v0.36.0...v0.37.0) (2024-03-13)
 
 
