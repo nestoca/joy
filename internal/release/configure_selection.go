@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/pkg/catalog"

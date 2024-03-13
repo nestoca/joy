@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/survey/v2"
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
