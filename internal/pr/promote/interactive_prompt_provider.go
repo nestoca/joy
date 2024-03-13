@@ -3,7 +3,7 @@ package promote
 import (
 	"fmt"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal/style"
 )

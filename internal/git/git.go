@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"

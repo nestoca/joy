@@ -4,7 +4,6 @@ go 1.22.0
 
 require (
 	cuelang.org/go v0.7.1
-	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/TwiN/go-color v1.4.1
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
@@ -15,6 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/jedib0t/go-pretty/v6 v6.5.4
+	github.com/nestoca/survey/v2 v2.0.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.8.0
@@ -57,5 +57,3 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-replace github.com/AlecAivazis/survey/v2 => github.com/silphid/survey/v2 v2.3.8
