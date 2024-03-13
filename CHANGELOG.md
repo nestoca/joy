@@ -1,3 +1,10 @@
+## [0.37.0](https://github.com/nestoca/joy/compare/v0.36.0...v0.37.0) (2024-03-13)
+
+
+### Features
+
+* **PL-2549:** make version compatible with go toolchain ([5a453a3](https://github.com/nestoca/joy/commit/5a453a3b3f98121ef56920806355450fe92039da))
+
 ## [0.36.0](https://github.com/nestoca/joy/compare/v0.35.2...v0.36.0) (2024-03-12)
 
 
