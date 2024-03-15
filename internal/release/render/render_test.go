@@ -108,10 +108,8 @@ func TestRender(t *testing.T) {
 										Spec: v1alpha1.ReleaseSpec{
 											Chart: v1alpha1.ReleaseChart{
 												Version: "v1",
-												LegacyReleaseChart: v1alpha1.LegacyReleaseChart{
-													Name:    "name",
-													RepoUrl: "url",
-												},
+												Name:    "name",
+												RepoUrl: "url",
 											},
 										},
 										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
@@ -126,7 +124,8 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://url/name",
+								RepoURL: "oci://url",
+								Name:    "name",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/url/name/v1",
@@ -163,13 +162,14 @@ func TestRender(t *testing.T) {
 						},
 					},
 				},
-				DefaultChart: "default/chart",
+				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://default/chart",
+								RepoURL: "oci://default",
+								Name:    "chart",
 								Version: "v666",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v666",
@@ -209,16 +209,17 @@ func TestRender(t *testing.T) {
 						},
 					},
 				},
-				DefaultChart: "default/chart",
+				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://default/chart",
-								Version: "",
+								RepoURL: "oci://default",
+								Name:    "chart",
+								Version: "v1",
 							},
-							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
 						}).
 						Return(nil)
 
@@ -226,7 +227,7 @@ func TestRender(t *testing.T) {
 						Render(context.Background(), helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
-							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
 							Values: map[string]any{
 								"env":     "{{ .Environment.Name `!}}",
 								"version": "{{ .Release.Spec.Version }}",
@@ -267,16 +268,17 @@ func TestRender(t *testing.T) {
 						},
 					},
 				},
-				DefaultChart: "default/chart",
+				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://default/chart",
-								Version: "",
+								RepoURL: "oci://default",
+								Name:    "chart",
+								Version: "v1",
 							},
-							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
 						}).
 						Return(nil)
 
@@ -284,7 +286,7 @@ func TestRender(t *testing.T) {
 						Render(context.Background(), helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
-							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
 							Values: map[string]any{
 								"env":     "qa",
 								"version": "v1.2.3",
@@ -329,16 +331,17 @@ func TestRender(t *testing.T) {
 					"image.tag":             "{{ .Release.Spec.Version }}",
 					`annotations.nesto\.ca`: true,
 				}},
-				DefaultChart: "default/chart",
+				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://default/chart",
-								Version: "",
+								RepoURL: "oci://default",
+								Name:    "chart",
+								Version: "v1",
 							},
-							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
 						}).
 						Return(nil)
 
@@ -346,7 +349,7 @@ func TestRender(t *testing.T) {
 						Render(context.Background(), helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
-							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
 							Values: map[string]any{
 								"env":         "qa",
 								"version":     "v1.2.3",
@@ -395,16 +398,17 @@ func TestRender(t *testing.T) {
 						`annotations.nesto\.ca`: true,
 					},
 				},
-				DefaultChart: "default/chart",
+				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								URL:     "oci://default/chart",
-								Version: "",
+								RepoURL: "oci://default",
+								Name:    "chart",
+								Version: "v1",
 							},
-							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
+							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
 						}).
 						Return(nil)
 
@@ -412,7 +416,7 @@ func TestRender(t *testing.T) {
 						Render(context.Background(), helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
-							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/chart",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
 							Values: map[string]any{
 								"env":     "qa",
 								"version": "v1.2.3",
@@ -447,9 +451,16 @@ func TestRender(t *testing.T) {
 				Env:     tc.Params.Env,
 				Release: tc.Params.Release,
 				Cache: helm.ChartCache{
-					DefaultChart: tc.Params.DefaultChart,
-					Root:         tc.Params.CacheDir,
-					Puller:       helmMock,
+					Refs: map[string]helm.Chart{
+						"generic": {
+							RepoURL: "default",
+							Name:    "chart",
+							Version: "v1",
+						},
+					},
+					DefaultChartRef: tc.Params.DefaultChart,
+					Root:            tc.Params.CacheDir,
+					Puller:          helmMock,
 				},
 				Catalog:            tc.Params.Catalog,
 				CommonRenderParams: CommonRenderParams{ValueMapping: tc.Params.ValueMapping, IO: io, Helm: helmMock, Color: false},

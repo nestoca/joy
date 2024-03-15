@@ -15,11 +15,16 @@ import (
 )
 
 type ChartCache struct {
-	Refs         map[string]Chart
-	DefaultRef   string
-	DefaultChart string
-	Root         string
+	Refs            map[string]Chart
+	DefaultChartRef string
+	Root            string
 	Puller
+}
+
+type Chart struct {
+	RepoURL string `yaml:"repoUrl"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
 }
 
 type ChartFS struct {
@@ -27,39 +32,60 @@ type ChartFS struct {
 	xfs.FS
 }
 
-func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error) {
-	if legacyChart := release.Spec.Chart.LegacyReleaseChart; (legacyChart != v1alpha1.LegacyReleaseChart{}) {
-		return parseChartURL(fmt.Sprintf("%s/%s:%s", legacyChart.RepoUrl, legacyChart.Name, release.Spec.Chart.Version))
-	}
+// func merge(charts ...Chart) Chart {
 
-	if url := release.Spec.Chart.URL; url != "" {
+// 	var result Chart
+// 	for _, chart := range charts {
+// 		result.Repo =
+// 	}
+// }
+
+func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (chart Chart, err error) {
+	defer func() {
+		uri, parseErr := url.Parse(chart.RepoURL)
+		if parseErr != nil {
+			err = parseErr
+			return
+		}
+		if uri.Scheme == "" {
+			uri.Scheme = "oci"
+		}
+		chart.RepoURL = uri.String()
+		return
+	}()
+
+	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {
 		return Chart{
-			URL:     url,
+			RepoURL: repoURL,
+			Name:    release.Spec.Chart.Name,
 			Version: release.Spec.Chart.Version,
 		}, nil
 	}
 
-	if ref := cmp.Or(release.Spec.Chart.Ref, cache.DefaultRef); ref != "" {
-		chart := cache.Refs[ref]
-		if version := release.Environment.Spec.ChartVersions[ref]; version != "" {
-			chart.Version = version
-		}
-		return chart, nil
-	}
+	ref := cmp.Or(release.Spec.Chart.Ref, cache.DefaultChartRef)
 
-	return parseChartURL(fmt.Sprintf("%s:%s", cache.DefaultChart, release.Spec.Chart.Version))
+	chart = cache.Refs[ref]
+
+	chart.Version = cmp.Or(
+		release.Spec.Chart.Version,
+		release.Environment.Spec.ChartVersions[ref],
+		chart.Version,
+	)
+
+	return
 }
 
 func (cache ChartCache) GetReleaseChartFS(ctx context.Context, release *v1alpha1.Release) (*ChartFS, error) {
 	chart, err := cache.GetReleaseChart(release)
 	if err != nil {
-		return nil, fmt.Errorf("inferring chart from release: %w", err)
+		return nil, err
 	}
 
-	uri, err := url.Parse(chart.URL)
+	uri, err := url.Parse(chart.RepoURL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing chart url: %w", err)
 	}
+	uri = uri.JoinPath(chart.Name)
 
 	versionDir := filepath.Join(cache.Root, uri.Host, uri.Path, chart.Version)
 	if err := os.MkdirAll(versionDir, 0o755); err != nil {

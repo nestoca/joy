@@ -32,8 +32,8 @@ func TestReleaseRender(t *testing.T) {
 		require.NoError(t, clone.Run())
 
 		ctx := config.ToContext(context.Background(), &config.Config{
-			CatalogDir:   testCatalogPath,
-			DefaultChart: "northamerica-northeast1-docker.pkg.dev/nesto-ci-78a3f2e6/charts/generic",
+			CatalogDir:      testCatalogPath,
+			DefaultChartRef: "northamerica-northeast1-docker.pkg.dev/nesto-ci-78a3f2e6/charts/generic",
 			ValueMapping: &config.ValueMapping{
 				Mappings: map[string]any{
 					"image.tag": "{{ .Release.Spec.Version }}",

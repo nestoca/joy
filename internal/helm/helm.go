@@ -34,7 +34,7 @@ type PullOptions struct {
 }
 
 func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
-	chartURL, err := url.Parse(opts.Chart.URL)
+	chartURL, err := url.Parse(opts.Chart.RepoURL)
 	if err != nil {
 		return fmt.Errorf("invalid chart url: %w", err)
 	}

@@ -24,18 +24,18 @@ import (
 )
 
 type ValidateParams struct {
-	Releases     []*v1alpha1.Release
-	DefaultChart string
-	CacheRoot    string
-	Helm         helm.PullRenderer
-	ValueMapping *config.ValueMapping
+	Releases        []*v1alpha1.Release
+	DefaultChartRef string
+	CacheRoot       string
+	Helm            helm.PullRenderer
+	ValueMapping    *config.ValueMapping
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
 	cache := helm.ChartCache{
-		DefaultChart: params.DefaultChart,
-		Root:         params.CacheRoot,
-		Puller:       params.Helm,
+		DefaultChartRef: params.DefaultChartRef,
+		Root:            params.CacheRoot,
+		Puller:          params.Helm,
 	}
 
 	var errs []error
@@ -48,7 +48,7 @@ func Validate(ctx context.Context, params ValidateParams) error {
 		validateParams := ValidateReleaseParams{
 			Chart:        chart,
 			Release:      release,
-			DefaultChart: params.DefaultChart,
+			DefaultChart: params.DefaultChartRef,
 			ValueMapping: params.ValueMapping,
 			Helm:         params.Helm,
 		}

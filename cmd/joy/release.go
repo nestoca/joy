@@ -292,11 +292,10 @@ func NewReleaseRenderCmd() *cobra.Command {
 					Env:     env,
 					Release: releaseName,
 					Cache: helm.ChartCache{
-						Refs:         cfg.Charts,
-						DefaultRef:   cfg.DefaultChartRef,
-						DefaultChart: cfg.DefaultChart,
-						Root:         cfg.JoyCache,
-						Puller:       helm.CLI{IO: internal.IoFromCommand(cmd)},
+						Refs:            cfg.Charts,
+						DefaultChartRef: cfg.DefaultChartRef,
+						Root:            cfg.JoyCache,
+						Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
 					},
 					Catalog: cat,
 					CommonRenderParams: render.CommonRenderParams{
@@ -442,10 +441,10 @@ func NewValidateCommand() *cobra.Command {
 			}
 
 			return validate.Validate(cmd.Context(), validate.ValidateParams{
-				Releases:     releases,
-				ValueMapping: cfg.ValueMapping,
-				DefaultChart: cfg.DefaultChart,
-				CacheRoot:    cfg.JoyCache,
+				Releases:        releases,
+				ValueMapping:    cfg.ValueMapping,
+				DefaultChartRef: cfg.DefaultChartRef,
+				CacheRoot:       cfg.JoyCache,
 				Helm: helm.CLI{
 					IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()},
 				},

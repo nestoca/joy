@@ -39,10 +39,6 @@ type Config struct {
 	// DefaultChartRef refers to the chart that must be used from Charts if a release doesn't specify any chart configuration
 	DefaultChartRef string `yaml:"defaultChartRef,omitempty"`
 
-	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
-	// Deprecated: TODO remove after we migrate to ref system for charts
-	DefaultChart string `yaml:"defaultChart,omitempty"`
-
 	// ReferenceEnvironment is the name of the environment which represents master in git.
 	// IE: if you deploy by default to an environment called "testing" when merging to your main remote branch
 	// then referenceEnvironment should be "testing". This setting allows release versions to be compared to main version.
@@ -184,6 +180,7 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 
 	deepCopyConfigNonZeroValues(catalogCfg, cfg)
+
 	return cfg, nil
 }
 
