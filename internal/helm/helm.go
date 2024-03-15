@@ -29,13 +29,12 @@ type CLI struct {
 }
 
 type PullOptions struct {
-	ChartURL  string
-	Version   string
+	Chart     Chart
 	OutputDir string
 }
 
 func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
-	chartURL, err := url.Parse(opts.ChartURL)
+	chartURL, err := url.Parse(opts.Chart.URL)
 	if err != nil {
 		return fmt.Errorf("invalid chart url: %w", err)
 	}
@@ -59,8 +58,8 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 		args = []string{"pull", chartURL.String(), "--untar", "--untardir", opts.OutputDir}
 	}
 
-	if opts.Version != "" {
-		args = append(args, "--version", opts.Version)
+	if version := opts.Chart.Version; version != "" {
+		args = append(args, "--version", version)
 	}
 
 	cmd := exec.CommandContext(ctx, "helm", args...)

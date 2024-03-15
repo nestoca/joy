@@ -9,6 +9,6 @@ import (
 type ValueMapping = config.ValueMapping
 
 // ReleaseValues returns the values from a Release.Spec.Values after all chart mappings have been applied and templated values subsituted.
-func ReleaseValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings *ValueMapping) (map[string]any, error) {
-	return render.HydrateValues(release, environment, mappings)
+func ReleaseValues(release *v1alpha1.Release, mappings *ValueMapping) (map[string]any, error) {
+	return render.HydrateValues(release, mappings)
 }

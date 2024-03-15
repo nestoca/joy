@@ -292,6 +292,8 @@ func NewReleaseRenderCmd() *cobra.Command {
 					Env:     env,
 					Release: releaseName,
 					Cache: helm.ChartCache{
+						Refs:         cfg.Charts,
+						DefaultRef:   cfg.DefaultChartRef,
 						DefaultChart: cfg.DefaultChart,
 						Root:         cfg.JoyCache,
 						Puller:       helm.CLI{IO: internal.IoFromCommand(cmd)},

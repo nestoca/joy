@@ -107,9 +107,11 @@ func TestRender(t *testing.T) {
 									{
 										Spec: v1alpha1.ReleaseSpec{
 											Chart: v1alpha1.ReleaseChart{
-												Name:    "name",
-												RepoUrl: "url",
 												Version: "v1",
+												LegacyReleaseChart: v1alpha1.LegacyReleaseChart{
+													Name:    "name",
+													RepoUrl: "url",
+												},
 											},
 										},
 										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
@@ -123,8 +125,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://url/name",
-							Version:   "v1",
+							Chart: helm.Chart{
+								URL:     "oci://url/name",
+								Version: "v1",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/url/name/v1",
 						}).
 						Return(errors.New("some informative error"))
@@ -164,8 +168,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://default/chart",
-							Version:   "v666",
+							Chart: helm.Chart{
+								URL:     "oci://default/chart",
+								Version: "v666",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v666",
 						}).
 						Return(errors.New("some informative error"))
@@ -208,8 +214,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://default/chart",
-							Version:   "",
+							Chart: helm.Chart{
+								URL:     "oci://default/chart",
+								Version: "",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
 						Return(nil)
@@ -264,8 +272,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://default/chart",
-							Version:   "",
+							Chart: helm.Chart{
+								URL:     "oci://default/chart",
+								Version: "",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
 						Return(nil)
@@ -324,8 +334,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://default/chart",
-							Version:   "",
+							Chart: helm.Chart{
+								URL:     "oci://default/chart",
+								Version: "",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
 						Return(nil)
@@ -388,8 +400,10 @@ func TestRender(t *testing.T) {
 				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
-							ChartURL:  "oci://default/chart",
-							Version:   "",
+							Chart: helm.Chart{
+								URL:     "oci://default/chart",
+								Version: "",
+							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart",
 						}).
 						Return(nil)

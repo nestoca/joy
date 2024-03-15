@@ -23,14 +23,21 @@ type ReleaseMetadata struct {
 }
 
 type ReleaseChart struct {
+	Ref     string `yaml:"ref,omitempty"`
+	URL     string `yaml:"url,omitempty"`
+	Version string `yaml:"version,omitempty"`
+
+	LegacyReleaseChart
+}
+
+// LegacyReleaseChart represents the previous version of chart management prior to chart refs
+// TODO: remove as soon as migration to chart refs is done
+type LegacyReleaseChart struct {
 	// Name is the name of the chart.
 	Name string `yaml:"name,omitempty" json:"name,omitempty"`
 
 	// RepoUrl is the url of the chart repository.
 	RepoUrl string `yaml:"repoUrl,omitempty" json:"repoUrl,omitempty"`
-
-	// Version of the chart.
-	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 }
 
 type ReleaseSpec struct {

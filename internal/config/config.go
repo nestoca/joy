@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/nestoca/joy/internal/helm"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 )
@@ -32,7 +33,14 @@ type Config struct {
 	// MinVersion is the minimum version of the joy CLI required
 	MinVersion string `yaml:"minVersion,omitempty"`
 
+	// Charts are the known charts that environments and releases can reference
+	Charts map[string]helm.Chart `yaml:"charts,omitempty"`
+
+	// DefaultChartRef refers to the chart that must be used from Charts if a release doesn't specify any chart configuration
+	DefaultChartRef string `yaml:"defaultChartRef,omitempty"`
+
 	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
+	// Deprecated: TODO remove after we migrate to ref system for charts
 	DefaultChart string `yaml:"defaultChart,omitempty"`
 
 	// ReferenceEnvironment is the name of the environment which represents master in git.

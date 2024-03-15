@@ -40,7 +40,7 @@ func Validate(ctx context.Context, params ValidateParams) error {
 
 	var errs []error
 	for _, release := range params.Releases {
-		chart, err := cache.GetReleaseChart(ctx, release)
+		chart, err := cache.GetReleaseChartFS(ctx, release)
 		if err != nil {
 			return fmt.Errorf("getting release chart: %w", err)
 		}
@@ -65,7 +65,7 @@ type ValidateReleaseParams struct {
 	Release      *v1alpha1.Release
 	DefaultChart string
 	ValueMapping *config.ValueMapping
-	Chart        *helm.Chart
+	Chart        *helm.ChartFS
 	Helm         helm.PullRenderer
 }
 
@@ -102,7 +102,7 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	return nil
 }
 
-func validateSchema(release *v1alpha1.Release, chart *helm.Chart) error {
+func validateSchema(release *v1alpha1.Release, chart *helm.ChartFS) error {
 	if release.Spec.Values == nil {
 		return nil
 	}

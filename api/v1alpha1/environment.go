@@ -42,6 +42,10 @@ type EnvironmentSpec struct {
 	// Namespace is the name of environment's namespace within cluster.
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 
+	// ChartVersions allows the environment to override the given version of the catalogs chart references.
+	// This allows for environments to rollout new versions of chart references.
+	ChartVersions map[string]string
+
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
