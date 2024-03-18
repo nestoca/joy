@@ -1,4 +1,5 @@
 //go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
+//go:generate moq -out ./provider_mock.go . Provider
 package info
 
 import (
