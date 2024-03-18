@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nestoca/joy/internal/links"
-
-	"github.com/nestoca/joy/internal/info"
-
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -19,11 +17,34 @@ type Promotion struct {
 	PromptProvider      PromptProvider
 	GitProvider         GitProvider
 	PullRequestProvider pr.PullRequestProvider
-	YamlWriter          YamlWriter
+	YamlWriter          yml.Writer
 	CommitTemplate      string
 	PullRequestTemplate string
 	InfoProvider        info.Provider
 	LinksProvider       links.Provider
+
+	// Prompt is the prompt to use for user interaction.
+	promptProvider PromptProvider
+
+	// Committer allows committing and pushing changes to git.
+	gitProvider GitProvider
+
+	// PullRequestProvider is the provider of pull requests.
+	pullRequestProvider pr.PullRequestProvider
+
+	commitTemplate      string
+	pullRequestTemplate string
+}
+
+func NewPromotion(prompt PromptProvider, gitProvider GitProvider, pullRequestProvider pr.PullRequestProvider, yamlWriter yml.Writer, commitTemplate string, pullRequestTemplate string, getProjectRepositoryFunc func(proj *v1alpha1.Project) string, getProjectSourceDirFunc func(proj *v1alpha1.Project) (string, error), getCommitsMetadataFunc func(projectDir string, from string, to string) ([]*info.CommitMetadata, error), getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error), getReleaseGitTagFunc func(release *v1alpha1.Release) (string, error), getCodeOwnersFunc func(projectDir string) ([]string, error)) *Promotion {
+	return &Promotion{
+		promptProvider:      prompt,
+		gitProvider:         gitProvider,
+		pullRequestProvider: pullRequestProvider,
+		YamlWriter:          yamlWriter,
+		commitTemplate:      commitTemplate,
+		pullRequestTemplate: pullRequestTemplate,
+	}
 }
 
 type Opts struct {

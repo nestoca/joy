@@ -70,12 +70,12 @@ func ImportCert(cat *catalog.Catalog) error {
 	if err != nil {
 		return fmt.Errorf("updating environment sealed secrets cert node value: %w", err)
 	}
-	err = selectedEnv.File.UpdateYamlFromTree()
-	if err != nil {
+
+	if err := selectedEnv.File.UpdateYamlFromTree(); err != nil {
 		return fmt.Errorf("updating environment yaml from tree: %w", err)
 	}
-	err = selectedEnv.File.WriteYaml()
-	if err != nil {
+
+	if err := yml.DiskWriter.WriteFile(selectedEnv.File); err != nil {
 		return fmt.Errorf("writing environment yaml: %w", err)
 	}
 

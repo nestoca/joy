@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/nestoca/joy/internal/links"
+	"github.com/nestoca/joy/internal/yml"
 
 	"github.com/nestoca/joy/internal/info"
 
@@ -84,7 +85,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          &promote.FileSystemYamlWriter{},
+		YamlWriter:          yml.DiskWriter,
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,
@@ -142,7 +143,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          &promote.FileSystemYamlWriter{},
+		YamlWriter:          yml.DiskWriter,
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,
@@ -185,7 +186,7 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 		PromptProvider:      nil,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          &promote.FileSystemYamlWriter{},
+		YamlWriter:          yml.DiskWriter,
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        nil,
@@ -276,7 +277,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          &promote.FileSystemYamlWriter{},
+		YamlWriter:          yml.DiskWriter,
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,

@@ -13,11 +13,13 @@ import (
 func TestCatalogDiagnostics(t *testing.T) {
 	cases := []struct {
 		Name     string
+		Catalog  *catalog.Catalog
 		Opts     CatalogOpts
 		Expected Group
 	}{
 		{
-			Name: "happy",
+			Name:    "happy",
+			Catalog: &catalog.Catalog{},
 			Opts: CatalogOpts{
 				Stat: func(string) (fs.FileInfo, error) { return nil, nil },
 				Git: GitOpts{
@@ -115,7 +117,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", &catalog.Catalog{}, tc.Opts).StripAnsi())
+			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", tc.Catalog, tc.Opts).StripAnsi())
 		})
 	}
 }

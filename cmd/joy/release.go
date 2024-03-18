@@ -30,6 +30,7 @@ import (
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/release/validate"
 	"github.com/nestoca/joy/internal/text"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -169,7 +170,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				PromptProvider:      &promote.InteractivePromptProvider{},
 				GitProvider:         promote.NewShellGitProvider(cfg.CatalogDir),
 				PullRequestProvider: github.NewPullRequestProvider(cfg.CatalogDir),
-				YamlWriter:          &promote.FileSystemYamlWriter{},
+				YamlWriter:          yml.DiskWriter,
 				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
 				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
 				InfoProvider:        infoProvider,
@@ -559,6 +560,7 @@ func NewReleaseOpenCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
 			releaseName := ""
 			if len(args) >= 1 {
@@ -575,14 +577,7 @@ func NewReleaseOpenCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat, err := catalog.Load(catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-				ReleaseFilter:   filter,
-			})
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat = cat.WithReleaseFilter(filter)
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
 			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
@@ -616,6 +611,7 @@ func NewReleaseLinksCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
 			releaseName := ""
 			if len(args) >= 1 {
@@ -632,14 +628,7 @@ func NewReleaseLinksCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat, err := catalog.Load(catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-				ReleaseFilter:   filter,
-			})
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat.WithReleaseFilter(filter)
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
 			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
