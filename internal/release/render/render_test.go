@@ -124,7 +124,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://url",
+								RepoURL: "url",
 								Name:    "name",
 								Version: "v1",
 							},
@@ -168,7 +168,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://default",
+								RepoURL: "default",
 								Name:    "chart",
 								Version: "v666",
 							},
@@ -215,7 +215,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://default",
+								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
@@ -274,7 +274,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://default",
+								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
@@ -337,7 +337,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://default",
+								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
@@ -404,7 +404,7 @@ func TestRender(t *testing.T) {
 					mpr.EXPECT().
 						Pull(context.Background(), helm.PullOptions{
 							Chart: helm.Chart{
-								RepoURL: "oci://default",
+								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},

@@ -267,7 +267,6 @@ func NewReleaseRenderCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			var releaseName string
 			if len(args) == 1 {
@@ -275,6 +274,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 			}
 
 			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
+				// In this case we cannot use the catalog loaded from the context
+				// Since we need to reload at whatever git reference we are at.
+				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+				if err != nil {
+					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
+				}
+
 				return render.RenderParams{
 					Env:     env,
 					Release: releaseName,

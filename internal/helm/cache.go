@@ -27,6 +27,23 @@ type Chart struct {
 	Version string `yaml:"version"`
 }
 
+func (chart Chart) ToURL() (*url.URL, error) {
+	uri, err := url.Parse(chart.RepoURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if uri.Scheme == "" {
+		uri.Scheme = "oci"
+		uri, err = url.Parse(uri.String())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return uri.JoinPath(chart.Name), nil
+}
+
 type ChartFS struct {
 	Chart
 	xfs.FS
@@ -41,18 +58,6 @@ type ChartFS struct {
 // }
 
 func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (chart Chart, err error) {
-	defer func() {
-		uri, parseErr := url.Parse(chart.RepoURL)
-		if parseErr != nil {
-			err = parseErr
-			return
-		}
-		if uri.Scheme == "" {
-			uri.Scheme = "oci"
-		}
-		chart.RepoURL = uri.String()
-	}()
-
 	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {
 		return Chart{
 			RepoURL: repoURL,
@@ -80,11 +85,10 @@ func (cache ChartCache) GetReleaseChartFS(ctx context.Context, release *v1alpha1
 		return nil, err
 	}
 
-	uri, err := url.Parse(chart.RepoURL)
+	uri, err := chart.ToURL()
 	if err != nil {
-		return nil, fmt.Errorf("parsing chart url: %w", err)
+		return nil, fmt.Errorf("computing chart URL: %w", err)
 	}
-	uri = uri.JoinPath(chart.Name)
 
 	versionDir := filepath.Join(cache.Root, uri.Host, uri.Path, chart.Version)
 	if err := os.MkdirAll(versionDir, 0o755); err != nil {

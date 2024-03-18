@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/helm"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 var (
@@ -31,9 +33,16 @@ func TestReleaseRender(t *testing.T) {
 
 		require.NoError(t, clone.Run())
 
-		ctx := config.ToContext(context.Background(), &config.Config{
-			CatalogDir:      testCatalogPath,
-			DefaultChartRef: "northamerica-northeast1-docker.pkg.dev/nesto-ci-78a3f2e6/charts/generic",
+		cfg := &config.Config{
+			CatalogDir: testCatalogPath,
+			Charts: map[string]helm.Chart{
+				"generic": {
+					RepoURL: "northamerica-northeast1-docker.pkg.dev",
+					Name:    "nesto-ci-78a3f2e6/charts/generic",
+					Version: "1.16.0",
+				},
+			},
+			DefaultChartRef: "generic",
 			ValueMapping: &config.ValueMapping{
 				Mappings: map[string]any{
 					"image.tag": "{{ .Release.Spec.Version }}",
@@ -41,7 +50,14 @@ func TestReleaseRender(t *testing.T) {
 			},
 			JoyCache:           testCache,
 			GitHubOrganization: "nestoca",
-		})
+		}
+
+		ctx := config.ToContext(context.Background(), cfg)
+
+		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		require.NoError(t, err)
+
+		ctx = catalog.ToContext(ctx, cat)
 
 		var buffer bytes.Buffer
 
@@ -55,7 +71,7 @@ func TestReleaseRender(t *testing.T) {
 			"test-release",
 		})
 
-		err := cmd.ExecuteContext(ctx)
+		err = cmd.ExecuteContext(ctx)
 		require.NoError(t, err, buffer.String())
 
 		var removals, additions []string

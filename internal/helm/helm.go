@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os/exec"
 	"path"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -34,17 +34,13 @@ type PullOptions struct {
 }
 
 func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
-	chartURL, err := url.Parse(opts.Chart.RepoURL)
-	if err != nil {
-		return fmt.Errorf("invalid chart url: %w", err)
-	}
-
 	if opts.OutputDir == "" {
 		opts.OutputDir = "."
 	}
 
-	if chartURL.Scheme == "" {
-		chartURL.Scheme = "oci"
+	chartURL, err := opts.Chart.ToURL()
+	if err != nil {
+		return fmt.Errorf("invalid chart url: %w", err)
 	}
 
 	var args []string
@@ -67,7 +63,10 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 	cmd.Stderr = cli.Err
 	cmd.Stdin = cli.In
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running %s: %w", strings.Join(cmd.Args, " "), err)
+	}
+	return nil
 }
 
 type RenderOpts struct {
