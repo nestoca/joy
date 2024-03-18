@@ -11,25 +11,15 @@ import (
 )
 
 type Opts struct {
-	CatalogDir  string
+	Catalog     *catalog.Catalog
 	Environment string
 	Project     string
 	Version     string
 }
 
 func Promote(opts Opts) error {
-	// Load Catalog with one environment
-	loadOpts := catalog.LoadOpts{
-		Dir:      opts.CatalogDir,
-		EnvNames: []string{opts.Environment},
-	}
-	cat, err := catalog.Load(loadOpts)
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
-	}
-
 	// Check the release version format
-	if !cat.Environments[0].Spec.Promotion.FromPullRequests {
+	if !opts.Catalog.Environments[0].Spec.Promotion.FromPullRequests {
 		version := "v" + opts.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
 			return fmt.Errorf("cannot promote release with non-standard version to %s environment", opts.Environment)
@@ -37,7 +27,7 @@ func Promote(opts Opts) error {
 	}
 
 	promotionCount := 0
-	for _, crossRelease := range cat.Releases.Items {
+	for _, crossRelease := range opts.Catalog.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release.Spec.Project == opts.Project {
 			// Find version node

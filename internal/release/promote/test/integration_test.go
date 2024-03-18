@@ -66,7 +66,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(catalog.LoadOpts{Dir: dir})
+	cat, err := catalog.Load(dir, nil)
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -125,10 +125,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(catalog.LoadOpts{
-		Dir:             dir,
-		SortEnvsByOrder: true,
-	})
+	cat, err := catalog.Load(dir, nil)
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -170,10 +167,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(catalog.LoadOpts{
-		Dir:             dir,
-		SortEnvsByOrder: true,
-	})
+	cat, err := catalog.Load(dir, nil)
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -265,10 +259,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(catalog.LoadOpts{
-		Dir:             dir,
-		SortEnvsByOrder: true,
-	})
+	cat, err := catalog.Load(dir, nil)
 	assert.NoError(t, err)
 
 	// Resolve source and target environments

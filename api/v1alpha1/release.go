@@ -29,6 +29,16 @@ type ReleaseChart struct {
 	RepoUrl string `yaml:"repoUrl,omitempty" json:"repoUrl,omitempty"`
 }
 
+func (chart ReleaseChart) Validate(validRefs []string) error {
+	if (chart.RepoUrl == "") != (chart.Name == "") {
+		return fmt.Errorf("repoUrl and name must be defined together")
+	}
+	if ref := chart.Ref; ref != "" && !slices.Contains(validRefs, ref) {
+		return fmt.Errorf("unknown ref: %s", ref)
+	}
+	return nil
+}
+
 type ReleaseSpec struct {
 	// Project is the name of the project that the release belongs to.
 	Project string `yaml:"project,omitempty" json:"project,omitempty"`

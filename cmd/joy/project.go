@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
@@ -52,8 +51,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
-			return jac.ListProjectPeople(cfg.CatalogDir, args)
+			cat := catalog.FromContext(cmd.Context())
+			return jac.ListProjectPeople(cat, args)
 		},
 	}
 	return cmd
@@ -71,8 +70,8 @@ func NewProjectListCmd() *cobra.Command {
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
-			return project.List(cfg.CatalogDir)
+			cat := catalog.FromContext(cmd.Context())
+			return project.List(cat)
 		},
 	}
 	return cmd

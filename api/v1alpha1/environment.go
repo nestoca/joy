@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/davidmdm/x/xerr"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -73,6 +74,16 @@ type Environment struct {
 
 	// Dir is the path to the environment directory.
 	Dir string `yaml:"-" json:"-"`
+}
+
+func (env Environment) Validate(validChartRefs []string) error {
+	var errs []error
+	for ref := range env.Spec.ChartVersions {
+		if !slices.Contains(validChartRefs, ref) {
+			errs = append(errs, fmt.Errorf("unkown %s", ref))
+		}
+	}
+	return xerr.MultiErrOrderedFrom("validating chart references", errs...)
 }
 
 func IsValidEnvironment(apiVersion, kind string) bool {

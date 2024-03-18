@@ -12,6 +12,7 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/diagnostics"
 	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 const (
@@ -33,11 +34,17 @@ func Setup(version, configDir, catalogDir, catalogRepo string) error {
 	if err != nil {
 		return err
 	}
+
+	cat, err := catalog.Load(catalogDir, cfg.KnownChartRefs())
+	if err != nil {
+		return fmt.Errorf("loading catalog: %w", err)
+	}
+
 	fmt.Println(separator)
 
 	// Run diagnostics
 	fmt.Print("🔍 Let's run a few diagnostics to check everything is in order...\n\n")
-	_, err = fmt.Println(diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(version, cfg)))
+	_, err = fmt.Println(diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(version, cfg, cat)))
 	return err
 }
 

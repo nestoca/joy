@@ -10,7 +10,7 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
+func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) error {
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)
 	if err != nil {
@@ -26,11 +26,6 @@ func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
 		}
 		fmt.Println("✅ Selected all releases.")
 		return nil
-	}
-
-	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Create list of release names

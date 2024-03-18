@@ -26,7 +26,7 @@ func init() {
 	dependencies.Add(kubectlDependency)
 }
 
-func ImportCert() error {
+func ImportCert(cat *catalog.Catalog) error {
 	if err := kubectlDependency.MustBeInstalled(); err != nil {
 		return err
 	}
@@ -55,16 +55,12 @@ func ImportCert() error {
 		return fmt.Errorf("decoding base64 encoded certificate: %w", err)
 	}
 
-	cat, err := catalog.Load(catalog.LoadOpts{SortEnvsByOrder: true})
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
-	}
-
 	// Select environment
 	selectedEnv, err := environment.SelectSingle(
 		cat.Environments,
 		nil,
-		"Select environment to import sealed secrets certificate into")
+		"Select environment to import sealed secrets certificate into",
+	)
 	if err != nil {
 		return fmt.Errorf("selecting environment: %w", err)
 	}

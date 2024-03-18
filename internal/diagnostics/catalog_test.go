@@ -6,12 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/release/cross"
-	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogDiagnostics(t *testing.T) {
@@ -32,14 +28,6 @@ func TestCatalogDiagnostics(t *testing.T) {
 					GetCurrentCommit:      func(string) (string, error) { return "origin/HEAD", nil },
 				},
 				CheckCatalog: func(s string) error { return nil },
-				LoadCatalog: func(catalog.LoadOpts) (*catalog.Catalog, error) {
-					return &catalog.Catalog{
-						Environments: []*v1alpha1.Environment{},
-						Releases:     &cross.ReleaseList{},
-						Projects:     []*v1alpha1.Project{},
-						Files:        []*yml.File{},
-					}, nil
-				},
 			},
 			Expected: Group{
 				Title: "Catalog",
@@ -127,7 +115,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", tc.Opts).StripAnsi())
+			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", &catalog.Catalog{}, tc.Opts).StripAnsi())
 		})
 	}
 }

@@ -23,21 +23,18 @@ type GitOpts struct {
 
 type CatalogOpts struct {
 	Stat         func(string) (fs.FileInfo, error)
-	LoadCatalog  func(catalog.LoadOpts) (*catalog.Catalog, error)
 	CheckCatalog func(string) error
 	Git          GitOpts
 }
 
-func diagnoseCatalog(catalogDir string, opts CatalogOpts) (group Group) {
+func diagnoseCatalog(catalogDir string, cat *catalog.Catalog, opts CatalogOpts) (group Group) {
 	if opts.Stat == nil {
 		opts.Stat = os.Stat
 	}
 	if opts.CheckCatalog == nil {
 		opts.CheckCatalog = config.CheckCatalogDir
 	}
-	if opts.LoadCatalog == nil {
-		opts.LoadCatalog = catalog.Load
-	}
+
 	if reflect.ValueOf(opts.Git).IsZero() {
 		opts.Git = GitOpts{
 			IsValid:               git.IsValid,
@@ -53,17 +50,6 @@ func diagnoseCatalog(catalogDir string, opts CatalogOpts) (group Group) {
 
 	group.SubGroups = append(group.SubGroups, func() (group Group) {
 		group.Title = "Git working copy"
-
-		if _, err := opts.Stat(catalogDir); os.IsNotExist(err) {
-			group.AddMsg(failed, label("Directory does not exist", catalogDir))
-			return
-		}
-		group.AddMsg(info, label("Directory exists", catalogDir))
-
-		if !git.IsValid(catalogDir) {
-			group.AddMsg(failed, "Working copy is invalid")
-			return
-		}
 
 		group.AddMsg(success, "Working copy is valid")
 
@@ -121,38 +107,6 @@ func diagnoseCatalog(catalogDir string, opts CatalogOpts) (group Group) {
 
 		return
 	}())
-
-	// Diagnose catalog working copy
-
-	var cat *catalog.Catalog
-
-	// Load catalog
-	group.AddSubGroup(func() (group Group) {
-		group.Title = "Loading catalog"
-
-		// Check catalog dir
-		if err := opts.CheckCatalog(catalogDir); err != nil {
-			group.AddMsg(failed, label("Catalog not detected", err.Error()))
-			return
-		}
-
-		group.AddMsg(success, "Catalog detected")
-
-		cata, err := opts.LoadCatalog(catalog.LoadOpts{Dir: catalogDir})
-		if err != nil {
-			group.AddMsg(failed, label("Failed loading catalog", err.Error()))
-			return
-		}
-
-		group.AddMsg(success, "Catalog loaded successfully")
-
-		cat = cata
-		return
-	}())
-
-	if cat == nil {
-		return
-	}
 
 	group.AddSubGroup(func() (group Group) {
 		group.Title = "Resources"

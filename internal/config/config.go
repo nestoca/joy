@@ -92,6 +92,14 @@ type ReleasePromoteTemplates struct {
 	PullRequest string `yaml:"pullRequest,omitempty"`
 }
 
+func (config *Config) KnownChartRefs() []string {
+	var refs []string
+	for ref := range config.Charts {
+		refs = append(refs, ref)
+	}
+	return refs
+}
+
 type ValueMapping struct {
 	ReleaseIgnoreList []string
 	Mappings          map[string]any

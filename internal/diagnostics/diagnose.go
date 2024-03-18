@@ -9,14 +9,15 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func Evaluate(cliVersion string, cfg *config.Config) Groups {
+func Evaluate(cliVersion string, cfg *config.Config, cat *catalog.Catalog) Groups {
 	return Groups{
 		diagnoseExecutable(cfg, cliVersion, ExecutableOptions{}),
 		diagnoseDependencies(dependencies.AllRequired, dependencies.AllOptional),
 		diagnoseConfig(cfg, ConfigOpts{}),
-		diagnoseCatalog(cfg.CatalogDir, CatalogOpts{}),
+		diagnoseCatalog(cfg.CatalogDir, cat, CatalogOpts{}),
 	}
 }
 

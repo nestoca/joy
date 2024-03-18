@@ -84,8 +84,9 @@ func NewReleaseListCmd() *cobra.Command {
 				filter = filtering.NewOwnerFilter(owners)
 			}
 
-			return list.List(list.Opts{
-				CatalogDir:           cfg.CatalogDir,
+			cat := catalog.FromContext(cmd.Context())
+
+			return list.List(cat, list.Opts{
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
@@ -135,14 +136,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat, err := catalog.Load(catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-				ReleaseFilter:   filter,
-			})
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat := catalog.FromContext(cmd.Context()).WithReleaseFilter(filter)
 
 			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
 			if err != nil {
@@ -207,7 +201,8 @@ func NewReleaseSelectCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
+			cat := catalog.FromContext(cmd.Context())
+			return release.ConfigureSelection(cat, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
@@ -237,8 +232,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
-			return jac.ListReleasePeople(cfg.CatalogDir, args)
+			cat := catalog.FromContext(cmd.Context())
+			return jac.ListReleasePeople(cat, args)
 		},
 	}
 	return cmd
@@ -271,23 +266,14 @@ func NewReleaseRenderCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
 			var releaseName string
 			if len(args) == 1 {
 				releaseName = args[0]
 			}
 
-			loadOpts := catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-			}
-
 			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
-				cat, err := catalog.Load(loadOpts)
-				if err != nil {
-					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
-				}
-
 				return render.RenderParams{
 					Env:     env,
 					Release: releaseName,
@@ -418,17 +404,9 @@ func NewValidateCommand() *cobra.Command {
 				return filtering.NewSpecificReleasesFilter(args)
 			}()
 
-			loadOpts := catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				EnvNames:        selectedEnvs,
-				SortEnvsByOrder: true,
-				ReleaseFilter:   releaseFilter,
-			}
-
-			cat, err := catalog.Load(loadOpts)
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat := catalog.FromContext(cmd.Context()).
+				WithEnvironments(selectedEnvs).
+				WithReleaseFilter(releaseFilter)
 
 			var releases []*v1alpha1.Release
 			for _, item := range cat.Releases.Items {
@@ -470,6 +448,7 @@ func NewGitCommands() *cobra.Command {
 			Args:    cobra.MinimumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				cfg := config.FromContext(cmd.Context())
+				cat := catalog.FromContext(cmd.Context())
 
 				if target == "" {
 					target = cfg.ReferenceEnvironment
@@ -477,11 +456,6 @@ func NewGitCommands() *cobra.Command {
 
 				if target == "" {
 					return fmt.Errorf("unable to determine target environment: specify target or set your reference environment in your config")
-				}
-
-				cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
-				if err != nil {
-					return err
 				}
 
 				releaseName := args[0]
