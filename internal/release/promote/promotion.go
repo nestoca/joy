@@ -136,7 +136,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", nil
 	}
 
-	selectedList, err := func() (*cross.ReleaseList, error) {
+	selectedList, err := func() (cross.ReleaseList, error) {
 		if len(opts.Releases) > 0 {
 			return list.OnlySpecificReleases(opts.Releases), nil
 		}
@@ -206,7 +206,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 	return p.perform(performParams)
 }
 
-func (p *Promotion) preview(list *cross.ReleaseList) error {
+func (p *Promotion) preview(list cross.ReleaseList) error {
 	p.PromptProvider.PrintStartPreview()
 	targetEnv := list.Environments[1]
 

@@ -22,16 +22,16 @@ type ReleaseList struct {
 	Items        []*Release
 }
 
-// NewReleaseList creates a new ReleaseList
-func NewReleaseList(environments []*v1alpha1.Environment) *ReleaseList {
-	return &ReleaseList{
+// MakeReleaseList creates a new ReleaseList
+func MakeReleaseList(environments []*v1alpha1.Environment) ReleaseList {
+	return ReleaseList{
 		Environments: environments,
 	}
 }
 
 // LoadReleaseList loads all releases for given environments underneath the given base directory.
-func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment, projects []*v1alpha1.Project, releaseFilter filtering.Filter) (*ReleaseList, error) {
-	crossReleases := NewReleaseList(environments)
+func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment, projects []*v1alpha1.Project, releaseFilter filtering.Filter) (ReleaseList, error) {
+	crossReleases := MakeReleaseList(environments)
 	for _, file := range allFiles {
 		env := findEnvironmentForReleaseFile(environments, file)
 		if env == nil {
@@ -40,7 +40,7 @@ func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment,
 
 		rel, err := v1alpha1.LoadRelease(file)
 		if err != nil {
-			return nil, fmt.Errorf("loading release %s: %w", file.Path, err)
+			return ReleaseList{}, fmt.Errorf("loading release %s: %w", file.Path, err)
 		}
 
 		if rel.Spec.Project != "" && projects != nil && len(projects) != 0 {
@@ -58,7 +58,7 @@ func LoadReleaseList(allFiles []*yml.File, environments []*v1alpha1.Environment,
 		// Add release to cross-release list
 		err = crossReleases.addRelease(rel, env)
 		if err != nil {
-			return nil, fmt.Errorf("adding release %s to environment %s: %w", rel.Name, env.Name, err)
+			return ReleaseList{}, fmt.Errorf("adding release %s to environment %s: %w", rel.Name, env.Name, err)
 		}
 	}
 
@@ -145,8 +145,8 @@ func (r *ReleaseList) SortedCrossReleases() []*Release {
 }
 
 // OnlySpecificReleases returns a subset of the releases in this list that match the given names.
-func (r *ReleaseList) OnlySpecificReleases(releases []string) *ReleaseList {
-	subset := NewReleaseList(r.Environments)
+func (r *ReleaseList) OnlySpecificReleases(releases []string) ReleaseList {
+	subset := MakeReleaseList(r.Environments)
 	for _, item := range r.Items {
 		if slices.Contains(releases, item.Name) {
 			subset.Items = append(subset.Items, item)
@@ -157,10 +157,10 @@ func (r *ReleaseList) OnlySpecificReleases(releases []string) *ReleaseList {
 
 // GetReleasesForPromotion returns a subset of the releases in this list that are promotable,
 // with only the given source and target environments as first and second environments.
-func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Environment) (*ReleaseList, error) {
+func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Environment) (ReleaseList, error) {
 	sourceEnvIndex := r.getEnvironmentIndexByName(sourceEnv.Name)
 	targetEnvIndex := r.getEnvironmentIndexByName(targetEnv.Name)
-	subset := NewReleaseList([]*v1alpha1.Environment{sourceEnv, targetEnv})
+	subset := MakeReleaseList([]*v1alpha1.Environment{sourceEnv, targetEnv})
 	for _, item := range r.Items {
 		// Determine source and target releases
 		sourceRelease := item.Releases[sourceEnvIndex]
@@ -172,7 +172,7 @@ func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Env
 		// Compute promoted file
 		err := newItem.ComputePromotedFile(sourceEnv, targetEnv)
 		if err != nil {
-			return nil, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
+			return ReleaseList{}, fmt.Errorf("computing promoted file for release %s: %w", item.Name, err)
 		}
 		subset.Items = append(subset.Items, newItem)
 	}

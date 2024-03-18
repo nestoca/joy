@@ -16,7 +16,7 @@ func TestPromote(t *testing.T) {
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: []*v1alpha1.Environment{{}},
-			Releases: &cross.ReleaseList{
+			Releases: cross.ReleaseList{
 				Items: []*cross.Release{
 					{
 						Releases: []*v1alpha1.Release{
@@ -57,7 +57,7 @@ func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: []*v1alpha1.Environment{{}},
-			Releases:     &cross.ReleaseList{},
+			Releases:     cross.ReleaseList{},
 		},
 		Environment: "testing",
 		Project:     "promote-build",

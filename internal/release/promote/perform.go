@@ -24,7 +24,7 @@ const (
 )
 
 type PerformOpts struct {
-	list                *cross.ReleaseList
+	list                cross.ReleaseList
 	autoMerge           bool
 	draft               bool
 	dryRun              bool

@@ -28,7 +28,7 @@ type (
 
 type Catalog struct {
 	Environments []*v1alpha1.Environment
-	Releases     *ReleaseList
+	Releases     ReleaseList
 	Projects     []*v1alpha1.Project
 	Files        []*yml.File
 }

@@ -62,7 +62,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{},
+					Releases: cross.ReleaseList{},
 				},
 			},
 			ExpectedError: "getting release: not found: app",
@@ -76,7 +76,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -99,7 +99,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -144,7 +144,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -188,7 +188,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -247,7 +247,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -306,7 +306,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",
@@ -370,7 +370,7 @@ func TestRender(t *testing.T) {
 					Environments: []*v1alpha1.Environment{
 						{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 					},
-					Releases: &cross.ReleaseList{
+					Releases: cross.ReleaseList{
 						Items: []*cross.Release{
 							{
 								Name: "app",

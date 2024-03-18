@@ -50,7 +50,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -109,7 +109,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -243,7 +243,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())

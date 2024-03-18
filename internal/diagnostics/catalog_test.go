@@ -1,9 +1,7 @@
 package diagnostics
 
 import (
-	"errors"
 	"io/fs"
-	"os"
 	"testing"
 
 	"github.com/nestoca/joy/pkg/catalog"
@@ -29,7 +27,6 @@ func TestCatalogDiagnostics(t *testing.T) {
 					IsInSyncWithRemote:    func(string, string) (bool, error) { return true, nil },
 					GetCurrentCommit:      func(string) (string, error) { return "origin/HEAD", nil },
 				},
-				CheckCatalog: func(s string) error { return nil },
 			},
 			Expected: Group{
 				Title: "Catalog",
@@ -37,13 +34,11 @@ func TestCatalogDiagnostics(t *testing.T) {
 					{
 						Title: "Git working copy", Messages: Messages{
 							{Type: "info", Value: "Directory exists: catalogDir"},
-							{Type: "failed", Value: "Working copy is invalid"},
-						},
-					},
-					{
-						Title: "Loading catalog", Messages: Messages{
-							{Type: "success", Value: "Catalog detected"},
-							{Type: "success", Value: "Catalog loaded successfully"},
+							{Type: "success", Value: "Working copy is valid"},
+							{Type: "success", Value: "Working copy has no uncommitted changes"},
+							{Type: "success", Value: "Default branch master is checked out"},
+							{Type: "success", Value: "Default branch is in sync with remote"},
+							{Type: "info", Value: "Current commit: origin/HEAD"},
 						},
 					},
 					{
@@ -53,45 +48,17 @@ func TestCatalogDiagnostics(t *testing.T) {
 							{Type: "info", Value: "Releases: 0"},
 						},
 					},
-					{
-						Title: "Cross-references", Messages: Messages{
-							{Type: "success", Value: "All resource cross-references resolved successfully"},
-						},
-					},
 				},
 				topLevel: true,
 			},
 		},
+
 		{
-			Name: "catalog not exists",
+			Name:    "git not valid repository",
+			Catalog: &catalog.Catalog{},
+
 			Opts: CatalogOpts{
-				Stat:         func(s string) (fs.FileInfo, error) { return nil, os.ErrNotExist },
-				CheckCatalog: func(s string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
-			},
-			Expected: Group{
-				Title: "Catalog",
-				SubGroups: Groups{
-					{
-						Title: "Git working copy",
-						Messages: Messages{
-							{Type: "failed", Value: "Directory does not exist: catalogDir"},
-						},
-					},
-					{
-						Title: "Loading catalog",
-						Messages: Messages{
-							{Type: "failed", Value: "Catalog not detected: no joy catalog found at \"catalogDir\""},
-						},
-					},
-				},
-				topLevel: true,
-			},
-		},
-		{
-			Name: "git not valid repository",
-			Opts: CatalogOpts{
-				Stat:         func(s string) (fs.FileInfo, error) { return nil, nil },
-				CheckCatalog: func(s string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
+				Stat: func(s string) (fs.FileInfo, error) { return nil, nil },
 				Git: GitOpts{
 					IsValid: func(s string) bool { return false },
 				},
@@ -105,11 +72,6 @@ func TestCatalogDiagnostics(t *testing.T) {
 							{Type: "failed", Value: "Working copy is invalid"},
 						},
 					},
-					{
-						Title: "Loading catalog", Messages: Messages{
-							{Type: "failed", Value: "Catalog not detected: no joy catalog found at \"catalogDir\""},
-						},
-					},
 				}, topLevel: true,
 			},
 		},
@@ -117,7 +79,8 @@ func TestCatalogDiagnostics(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", tc.Catalog, tc.Opts).StripAnsi())
+			actual := diagnoseCatalog("catalogDir", tc.Catalog, tc.Opts).StripAnsi()
+			require.Equal(t, tc.Expected, actual)
 		})
 	}
 }
