@@ -441,12 +441,14 @@ func NewValidateCommand() *cobra.Command {
 			}
 
 			return validate.Validate(cmd.Context(), validate.ValidateParams{
-				Releases:        releases,
-				ValueMapping:    cfg.ValueMapping,
-				DefaultChartRef: cfg.DefaultChartRef,
-				CacheRoot:       cfg.JoyCache,
-				Helm: helm.CLI{
-					IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()},
+				Releases:     releases,
+				ValueMapping: cfg.ValueMapping,
+				Helm:         helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
+				ChartCache: helm.ChartCache{
+					Refs:            cfg.Charts,
+					DefaultChartRef: cfg.DefaultChartRef,
+					Root:            cfg.JoyCache,
+					Puller:          helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
 				},
 			})
 		},

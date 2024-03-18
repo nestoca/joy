@@ -51,7 +51,6 @@ func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (chart Chart,
 			uri.Scheme = "oci"
 		}
 		chart.RepoURL = uri.String()
-		return
 	}()
 
 	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {

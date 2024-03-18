@@ -77,7 +77,7 @@ type RenderOpts struct {
 	ChartPath   string
 }
 
-func (CLI) Render(ctx context.Context, opts RenderOpts) error {
+func (cli CLI) Render(ctx context.Context, opts RenderOpts) error {
 	var input bytes.Buffer
 	if err := yaml.NewEncoder(&input).Encode(opts.Values); err != nil {
 		return err
@@ -86,7 +86,7 @@ func (CLI) Render(ctx context.Context, opts RenderOpts) error {
 	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 	cmd.Stdin = &input
 	cmd.Stdout = opts.Dst
-	cmd.Stderr = opts.Dst
+	cmd.Stderr = cli.IO.Err
 
 	return cmd.Run()
 }
