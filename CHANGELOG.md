@@ -1,3 +1,10 @@
+## [0.39.0](https://github.com/nestoca/joy/compare/v0.38.2...v0.39.0) (2024-03-19)
+
+
+### Features
+
+* **PL-2554:** introduce chart refs ([695be80](https://github.com/nestoca/joy/commit/695be805913fcbbf1cf457f41617298ad48fc545))
+
 ## [0.38.2](https://github.com/nestoca/joy/compare/v0.38.1...v0.38.2) (2024-03-19)
 
 
