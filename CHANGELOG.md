@@ -1,3 +1,10 @@
+## [0.38.2](https://github.com/nestoca/joy/compare/v0.38.1...v0.38.2) (2024-03-19)
+
+
+### Bug Fixes
+
+* **PL-2470:** joy release links should not propose envs without release ([#127](https://github.com/nestoca/joy/issues/127)) ([cb66eb9](https://github.com/nestoca/joy/commit/cb66eb9ede368eebcf9a7500231cffc34c969549))
+
 ## [0.38.1](https://github.com/nestoca/joy/compare/v0.38.0...v0.38.1) (2024-03-19)
 
 
