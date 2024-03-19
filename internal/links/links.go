@@ -49,7 +49,7 @@ func GetReleaseLinks(provider Provider, cat *catalog.Catalog, envName, releaseNa
 		return nil, err
 	}
 
-	releaseName, err = getOrSelectReleaseName(cat, releaseName)
+	releaseName, err = getOrSelectReleaseName(cat, env, releaseName)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +57,9 @@ func GetReleaseLinks(provider Provider, cat *catalog.Catalog, envName, releaseNa
 	release, err := cat.Releases.GetEnvironmentRelease(env, releaseName)
 	if err != nil {
 		return nil, err
+	}
+	if release == nil {
+		return nil, fmt.Errorf("release %s not found in environment %s", releaseName, env.Name)
 	}
 
 	links, err := provider.GetReleaseLinks(release)
@@ -158,15 +161,23 @@ func selectProject(cat *catalog.Catalog) (*v1alpha1.Project, error) {
 	return cat.Projects[index], nil
 }
 
-func getOrSelectReleaseName(cat *catalog.Catalog, releaseName string) (string, error) {
-	if releaseName != "" {
-		return releaseName, nil
-	}
-
+func getOrSelectReleaseName(cat *catalog.Catalog, env *v1alpha1.Environment, releaseName string) (string, error) {
+	envIndex := cat.Releases.GetEnvironmentIndex(env)
 	var choices []string
 	for _, release := range cat.Releases.Items {
+		if release.Releases[envIndex] == nil {
+			continue
+		}
+		if releaseName != "" {
+			return releaseName, nil
+		}
 		choices = append(choices, release.Name)
 	}
+
+	if releaseName != "" {
+		return "", fmt.Errorf("release %s not found in environment %s", releaseName, env.Name)
+	}
+
 	prompt := &survey.Select{
 		Message: "Select release",
 		Options: choices,

@@ -91,7 +91,7 @@ func (r *ReleaseList) getEnvironmentIndexByName(name string) int {
 	return -1
 }
 
-func (r *ReleaseList) getEnvironmentIndex(environment *v1alpha1.Environment) int {
+func (r *ReleaseList) GetEnvironmentIndex(environment *v1alpha1.Environment) int {
 	for i, env := range r.Environments {
 		if env == environment {
 			return i
@@ -250,6 +250,6 @@ func (r *ReleaseList) GetEnvironmentRelease(environment *v1alpha1.Environment, r
 	if releaseIndex == -1 {
 		return nil, fmt.Errorf("release %s not found in environment %s", releaseName, environment.Name)
 	}
-	envIndex := r.getEnvironmentIndex(environment)
+	envIndex := r.GetEnvironmentIndex(environment)
 	return r.Items[releaseIndex].Releases[envIndex], nil
 }
