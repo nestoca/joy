@@ -1,3 +1,10 @@
+## [0.39.1](https://github.com/nestoca/joy/compare/v0.39.0...v0.39.1) (2024-03-19)
+
+
+### Bug Fixes
+
+* **PL-2554:** fix bad merge logic in setup ([fed0d76](https://github.com/nestoca/joy/commit/fed0d76ac0cc9ee4d1baf368eb4363dd3448892b))
+
 ## [0.39.0](https://github.com/nestoca/joy/compare/v0.38.2...v0.39.0) (2024-03-19)
 
 
