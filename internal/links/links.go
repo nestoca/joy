@@ -2,8 +2,6 @@ package links
 
 import (
 	"fmt"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -234,27 +232,4 @@ func selectLinkUrl(links map[string]string) (string, error) {
 		return "", fmt.Errorf("selecting link: %w", err)
 	}
 	return links[linkNames[linkIndex]], nil
-}
-
-func OpenUrl(url string) error {
-	fmt.Printf("🔗 Opening: %s\n", style.SecondaryInfo(url))
-
-	var cmd string
-	var args []string
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-	}
-
-	args = append(args, url)
-	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		return fmt.Errorf("opening URL %q: %w", url, err)
-	}
-	return nil
 }

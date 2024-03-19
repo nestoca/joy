@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/pkg/browser"
+
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
@@ -117,7 +119,7 @@ func NewProjectOpenCmd() *cobra.Command {
 				return err
 			}
 
-			return links.OpenUrl(url)
+			return browser.OpenURL(url)
 		},
 	}
 

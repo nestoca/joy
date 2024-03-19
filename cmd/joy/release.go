@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/pkg/browser"
+
 	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
 	"github.com/spf13/cobra"
@@ -620,7 +622,7 @@ func NewReleaseOpenCmd() *cobra.Command {
 				return err
 			}
 
-			return links.OpenUrl(url)
+			return browser.OpenURL(url)
 		},
 	}
 
