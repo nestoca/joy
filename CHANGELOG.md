@@ -1,3 +1,10 @@
+## [0.38.1](https://github.com/nestoca/joy/compare/v0.38.0...v0.38.1) (2024-03-19)
+
+
+### Bug Fixes
+
+* **PL-2470:** joy release links panics when release missing in env ([#126](https://github.com/nestoca/joy/issues/126)) ([f21cf4f](https://github.com/nestoca/joy/commit/f21cf4f14059322e581002568dde232597dceca7))
+
 ## [0.38.0](https://github.com/nestoca/joy/compare/v0.37.1...v0.38.0) (2024-03-19)
 
 
