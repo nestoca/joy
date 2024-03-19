@@ -1,3 +1,10 @@
+## [0.38.0](https://github.com/nestoca/joy/compare/v0.37.1...v0.38.0) (2024-03-19)
+
+
+### Features
+
+* **PL-2470:** add joy release links command ([#124](https://github.com/nestoca/joy/issues/124)) ([6835929](https://github.com/nestoca/joy/commit/683592981fb5ebff2b7902d336064f6289057c20))
+
 ## [0.37.1](https://github.com/nestoca/joy/compare/v0.37.0...v0.37.1) (2024-03-13)
 
 
