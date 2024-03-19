@@ -16,7 +16,7 @@ import (
 )
 
 func GetEnvironmentLinks(provider Provider, cat *catalog.Catalog, envName string) (map[string]string, error) {
-	env, err := getOrSelectEnvironment(cat, envName)
+	env, err := getOrSelectEnvironment(cat.Environments, envName)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,15 @@ func GetProjectLinks(provider Provider, cat *catalog.Catalog, projectName string
 }
 
 func GetReleaseLinks(provider Provider, cat *catalog.Catalog, envName, releaseName string) (map[string]string, error) {
-	env, err := getOrSelectEnvironment(cat, envName)
+	envs := cat.Environments
+	if releaseName != "" {
+		envs = getEnvironmentsByReleaseName(cat, releaseName)
+		if len(envs) == 0 {
+			return nil, fmt.Errorf("release %s not found in any environment", releaseName)
+		}
+	}
+
+	env, err := getOrSelectEnvironment(envs, envName)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +124,25 @@ func GetOrSelectLinkUrl(links map[string]string, linkName string) (string, error
 	return linkUrl, nil
 }
 
-func getOrSelectEnvironment(cat *catalog.Catalog, envName string) (*v1alpha1.Environment, error) {
+func getEnvironmentsByReleaseName(cat *catalog.Catalog, releaseName string) []*v1alpha1.Environment {
+	var envs []*v1alpha1.Environment
+	for index := range cat.Environments {
+		for _, release := range cat.Releases.Items {
+			if release.Name != releaseName || release.Releases[index] == nil {
+				continue
+			}
+			envs = append(envs, cat.Environments[index])
+		}
+	}
+	return envs
+}
+
+func getOrSelectEnvironment(envs []*v1alpha1.Environment, envName string) (*v1alpha1.Environment, error) {
 	if envName == "" {
-		return environment.SelectSingle(cat.Environments, nil, "Select environment")
+		return environment.SelectSingle(envs, nil, "Select environment")
 	}
 
-	return v1alpha1.GetEnvironmentByName(cat.Environments, envName)
+	return v1alpha1.GetEnvironmentByName(envs, envName)
 }
 
 func getOrSelectProject(cat *catalog.Catalog, projectName string) (*v1alpha1.Project, error) {
