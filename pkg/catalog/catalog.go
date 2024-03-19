@@ -13,6 +13,7 @@ import (
 	"gopkg.in/godo.v2/glob"
 
 	"github.com/davidmdm/x/xerr"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"

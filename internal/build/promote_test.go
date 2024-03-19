@@ -3,11 +3,12 @@ package build
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPromote(t *testing.T) {

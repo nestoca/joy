@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
-	"github.com/stretchr/testify/require"
 )
 
 var (

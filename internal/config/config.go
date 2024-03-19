@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/nestoca/joy/internal/helm"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/joy/internal/helm"
 )
 
 const (

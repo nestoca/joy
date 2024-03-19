@@ -4,8 +4,9 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func TestCatalogDiagnostics(t *testing.T) {
