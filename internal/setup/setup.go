@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/nestoca/survey/v2"
@@ -114,7 +115,8 @@ func getCatalogDir(configDir string, catalogDir string) (string, error) {
 		}
 		catalogDir = path.Join(homeDir, strings.TrimPrefix(catalogDir, homePrefix))
 	}
-	return catalogDir, nil
+
+	return filepath.Abs(catalogDir)
 }
 
 func cloneCatalog(catalogRepo, catalogDir string) error {

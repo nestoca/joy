@@ -228,6 +228,9 @@ func deepCopyNonZeroValues(src, tgt reflect.Value) {
 				}
 			}
 		default:
+			if src.Type().Field(i).Tag.Get("yaml") == "-" {
+				continue
+			}
 			if !isZeroValue(srcField.Interface()) {
 				tgtField.Set(srcField)
 			}

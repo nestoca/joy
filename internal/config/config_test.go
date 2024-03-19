@@ -3,8 +3,6 @@ package config
 import (
 	"testing"
 
-	"github.com/go-test/deep"
-
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -162,10 +160,7 @@ func TestDeepCopyConfigNonZeroValues(t *testing.T) {
 			source := tc.GetSource()
 			target := tc.GetTarget()
 			deepCopyConfigNonZeroValues(source, target)
-			diff := deep.Equal(tc.GetExpected(), target)
-			if diff != nil {
-				require.Fail(t, "DeepEqual failed", "diff: %v", diff)
-			}
+			require.Equal(t, tc.GetExpected(), target)
 		})
 	}
 }

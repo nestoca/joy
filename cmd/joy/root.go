@@ -79,7 +79,7 @@ func NewRootCmd(version string) *cobra.Command {
 
 			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
 
-			if cmd == setupCmd || cmd == diagnoseCmd {
+			if cmd == setupCmd || cmd == diagnoseCmd || cmd == versionCmd {
 				return nil
 			}
 
