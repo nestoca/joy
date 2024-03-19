@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
+
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
@@ -32,54 +35,36 @@ type setupArgs struct {
 	prProvider     *pr.MockPullRequestProvider
 	promptProvider *promote.MockPromptProvider
 	yamlWriter     *promote.MockYamlWriter
+	infoProvider   *info.MockProvider
+	linksProvider  *links.MockProvider
+}
+
+func setupDefaultMockInfoProvider(provider *info.MockProvider) {
+	provider.EXPECT().GetReleaseGitTag(gomock.Any()).Return("v1.0.0", nil).AnyTimes()
+	provider.EXPECT().GetProjectRepository(gomock.Any()).Return("owner/project").AnyTimes()
+	provider.EXPECT().GetProjectSourceDir(gomock.Any()).Return("/dummy/projects/project", nil).AnyTimes()
+	provider.EXPECT().GetCommitsMetadata(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	provider.EXPECT().GetCommitsGitHubAuthors(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	provider.EXPECT().GetCodeOwners(gomock.Any()).Return([]string{"john-doe"}, nil).AnyTimes()
+}
+
+func setupDefaultMockLinksProvider(provider *links.MockProvider) {
+	provider.EXPECT().GetReleaseLinks(gomock.Any()).Return(nil, nil).AnyTimes()
 }
 
 func TestPromotion(t *testing.T) {
 	simpleCommitTemplate := "Commit: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
 	simplePullRequestTemplate := "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
-	simpleProjectRepositoryFunc := func(proj *v1alpha1.Project) string {
-		return "owner/" + proj.Name
-	}
-	simpleProjectSourceDirFunc := func(proj *v1alpha1.Project) (string, error) {
-		return "/dummy/projects/" + proj.Name, nil
-	}
-	simpleCommitsMetadataFunc := func(projectDir, from, to string) ([]*promote.CommitMetadata, error) {
-		return []*promote.CommitMetadata{
-			{
-				Sha:     "sha1",
-				Message: "commit message 1",
-			},
-			{
-				Sha:     "sha2",
-				Message: "commit message 2",
-			},
-		}, nil
-	}
-	simpleCommitsGitHubAuthorsFunc := func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
-		return nil, nil
-	}
-	simpleReleaseGitTagFunc := func(release *v1alpha1.Release) (string, error) {
-		return "v" + release.Spec.Version, nil
-	}
-	simpleGetCodeOwnersFunc := func(dir string) ([]string, error) {
-		return []string{"nestobot"}, nil
-	}
 
 	cases := []struct {
-		name                        string
-		opts                        promote.Opts
-		setup                       func(args setupArgs)
-		commitTemplate              string
-		pullRequestTemplate         string
-		pullRequestLinkTemplate     string
-		getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
-		getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
-		getCommitsMetadataFunc      func(projectDir, from, to string) ([]*promote.CommitMetadata, error)
-		getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
-		getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
-		getCodeOwnersFunc           func(dir string) ([]string, error)
-		expectedErrorMessage        string
-		expectedPromoted            bool
+		name                    string
+		opts                    promote.Opts
+		setup                   func(args setupArgs)
+		commitTemplate          string
+		pullRequestTemplate     string
+		pullRequestLinkTemplate string
+		expectedErrorMessage    string
+		expectedPromoted        bool
 	}{
 		{
 			name: "Environment dev is not promotable to staging",
@@ -161,16 +146,13 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
+
+				setupDefaultMockInfoProvider(args.infoProvider)
+				setupDefaultMockLinksProvider(args.linksProvider)
 			},
-			commitTemplate:              simpleCommitTemplate,
-			pullRequestTemplate:         simplePullRequestTemplate,
-			getProjectRepositoryFunc:    simpleProjectRepositoryFunc,
-			getProjectSourceDirFunc:     simpleProjectSourceDirFunc,
-			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
-			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
-			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
-			getCodeOwnersFunc:           simpleGetCodeOwnersFunc,
-			expectedPromoted:            true,
+			commitTemplate:      simpleCommitTemplate,
+			pullRequestTemplate: simplePullRequestTemplate,
+			expectedPromoted:    true,
 		},
 		{
 			name: "Promote release1 from staging to missing release in prod",
@@ -217,16 +199,13 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
+
+				setupDefaultMockInfoProvider(args.infoProvider)
+				setupDefaultMockLinksProvider(args.linksProvider)
 			},
-			commitTemplate:              simpleCommitTemplate,
-			pullRequestTemplate:         simplePullRequestTemplate,
-			getProjectRepositoryFunc:    simpleProjectRepositoryFunc,
-			getProjectSourceDirFunc:     simpleProjectSourceDirFunc,
-			getCommitsMetadataFunc:      simpleCommitsMetadataFunc,
-			getCommitsGitHubAuthorsFunc: simpleCommitsGitHubAuthorsFunc,
-			getReleaseGitTagFunc:        simpleReleaseGitTagFunc,
-			getCodeOwnersFunc:           simpleGetCodeOwnersFunc,
-			expectedPromoted:            true,
+			commitTemplate:      simpleCommitTemplate,
+			pullRequestTemplate: simplePullRequestTemplate,
+			expectedPromoted:    true,
 		},
 	}
 	for _, c := range cases {
@@ -238,6 +217,8 @@ func TestPromotion(t *testing.T) {
 			prProvider := pr.NewMockPullRequestProvider(ctrl)
 			promptProvider := promote.NewMockPromptProvider(ctrl)
 			yamlWriter := promote.NewMockYamlWriter(ctrl)
+			infoProvider := info.NewMockProvider(ctrl)
+			linksProvider := links.NewMockProvider(ctrl)
 
 			// Setup case-specific data and expectations
 			c.setup(setupArgs{
@@ -247,10 +228,21 @@ func TestPromotion(t *testing.T) {
 				prProvider:     prProvider,
 				promptProvider: promptProvider,
 				yamlWriter:     yamlWriter,
+				infoProvider:   infoProvider,
+				linksProvider:  linksProvider,
 			})
 
 			// Perform test
-			promotion := promote.NewPromotion(promptProvider, gitProvider, prProvider, yamlWriter, c.commitTemplate, c.pullRequestTemplate, c.getProjectRepositoryFunc, c.getProjectSourceDirFunc, c.getCommitsMetadataFunc, c.getCommitsGitHubAuthorsFunc, c.getReleaseGitTagFunc, c.getCodeOwnersFunc)
+			promotion := promote.Promotion{
+				PromptProvider:      promptProvider,
+				GitProvider:         gitProvider,
+				PullRequestProvider: prProvider,
+				YamlWriter:          yamlWriter,
+				CommitTemplate:      simpleCommitTemplate,
+				PullRequestTemplate: simplePullRequestTemplate,
+				InfoProvider:        infoProvider,
+				LinksProvider:       linksProvider,
+			}
 			prURL, err := promotion.Promote(c.opts)
 
 			// Check expected results

@@ -1,4 +1,4 @@
-package promote
+package info
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPromotion(t *testing.T) {
+func TestParseCodeOwners(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		content  string

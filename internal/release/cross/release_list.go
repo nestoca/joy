@@ -81,10 +81,19 @@ func findEnvironmentForReleaseFile(environments []*v1alpha1.Environment, release
 	return nil
 }
 
-// getEnvironmentIndex returns the index of the environment with the given name or -1 if not found.
-func (r *ReleaseList) getEnvironmentIndex(name string) int {
+// getEnvironmentIndexByName returns the index of the environment with the given name or -1 if not found.
+func (r *ReleaseList) getEnvironmentIndexByName(name string) int {
 	for i, env := range r.Environments {
 		if env.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func (r *ReleaseList) getEnvironmentIndex(environment *v1alpha1.Environment) int {
+	for i, env := range r.Environments {
+		if env == environment {
 			return i
 		}
 	}
@@ -104,7 +113,7 @@ func (r *ReleaseList) getReleaseIndex(name string) int {
 // addRelease adds a release to given environment.
 func (r *ReleaseList) addRelease(rel *v1alpha1.Release, environment *v1alpha1.Environment) error {
 	// Find environment index
-	environmentIndex := r.getEnvironmentIndex(environment.Name)
+	environmentIndex := r.getEnvironmentIndexByName(environment.Name)
 	if environmentIndex == -1 {
 		return fmt.Errorf("environment %s not found in list", environment.Name)
 	}
@@ -149,8 +158,8 @@ func (r *ReleaseList) OnlySpecificReleases(releases []string) *ReleaseList {
 // GetReleasesForPromotion returns a subset of the releases in this list that are promotable,
 // with only the given source and target environments as first and second environments.
 func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Environment) (*ReleaseList, error) {
-	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
-	targetEnvIndex := r.getEnvironmentIndex(targetEnv.Name)
+	sourceEnvIndex := r.getEnvironmentIndexByName(sourceEnv.Name)
+	targetEnvIndex := r.getEnvironmentIndexByName(targetEnv.Name)
 	subset := NewReleaseList([]*v1alpha1.Environment{sourceEnv, targetEnv})
 	for _, item := range r.Items {
 		// Determine source and target releases
@@ -178,7 +187,7 @@ func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.En
 	}
 
 	var invalidList []string
-	sourceEnvIndex := r.getEnvironmentIndex(sourceEnv.Name)
+	sourceEnvIndex := r.getEnvironmentIndexByName(sourceEnv.Name)
 
 	for _, item := range r.Items {
 		sourceRelease := item.Releases[sourceEnvIndex]
@@ -234,4 +243,13 @@ func (r *ReleaseList) HasAnyPromotableReleases() bool {
 		}
 	}
 	return false
+}
+
+func (r *ReleaseList) GetEnvironmentRelease(environment *v1alpha1.Environment, releaseName string) (*v1alpha1.Release, error) {
+	releaseIndex := r.getReleaseIndex(releaseName)
+	if releaseIndex == -1 {
+		return nil, fmt.Errorf("release %s not found in environment %s", releaseName, environment.Name)
+	}
+	envIndex := r.getEnvironmentIndex(environment)
+	return r.Items[releaseIndex].Releases[envIndex], nil
 }

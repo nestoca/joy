@@ -7,11 +7,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nestoca/joy/internal/links"
+
+	"github.com/nestoca/joy/internal/info"
+
 	"github.com/nestoca/joy/internal/style"
 
 	"github.com/google/uuid"
 
-	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/cross"
 )
@@ -21,25 +24,15 @@ const (
 )
 
 type PerformOpts struct {
-	list                        *cross.ReleaseList
-	autoMerge                   bool
-	draft                       bool
-	dryRun                      bool
-	localOnly                   bool
-	commitTemplate              string
-	pullRequestTemplate         string
-	getProjectSourceDirFunc     func(proj *v1alpha1.Project) (string, error)
-	getProjectRepositoryFunc    func(proj *v1alpha1.Project) string
-	getCommitsMetadataFunc      func(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
-	getCodeOwnersFunc           func(projectDir string) ([]string, error)
-	getCommitsGitHubAuthorsFunc func(proj *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
-	getReleaseGitTagFunc        func(release *v1alpha1.Release) (string, error)
-}
-
-type ReleaseWithGitTag struct {
-	*v1alpha1.Release
-	DisplayVersion string
-	GitTag         string
+	list                *cross.ReleaseList
+	autoMerge           bool
+	draft               bool
+	dryRun              bool
+	localOnly           bool
+	commitTemplate      string
+	pullRequestTemplate string
+	infoProvider        info.Provider
+	linksProvider       links.Provider
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -68,12 +61,12 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		targetRelease := crossRelease.Releases[1]
 		isCreatingTargetRelease := targetRelease == nil
 
-		p.promptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
+		p.PromptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
 
 		if opts.dryRun {
 			fmt.Printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
 		} else {
-			if err := p.yamlWriter.Write(promotedFile); err != nil {
+			if err := p.YamlWriter.Write(promotedFile); err != nil {
 				return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 			}
 		}
@@ -119,11 +112,11 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
 			style.SecondaryInfo(commitMessage))
 	} else {
-		err = p.gitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, commitMessage)
+		err = p.GitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, commitMessage)
 		if err != nil {
 			return "", err
 		}
-		p.promptProvider.PrintBranchCreated(branchName, commitMessage)
+		p.PromptProvider.PrintBranchCreated(branchName, commitMessage)
 	}
 
 	var labels []string
@@ -156,11 +149,11 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 			style.SecondaryInfo(prTitle), style.SecondaryInfo(prBody),
 			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")),
 			style.SecondaryInfo("- "+strings.Join(labels, "\n- ")))
-		p.promptProvider.PrintCompleted()
+		p.PromptProvider.PrintCompleted()
 		return "", nil
 	}
 
-	prURL, err := p.pullRequestProvider.Create(pr.CreateParams{
+	prURL, err := p.PullRequestProvider.Create(pr.CreateParams{
 		Branch:    branchName,
 		Title:     prTitle,
 		Body:      prBody,
@@ -173,16 +166,16 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	}
 
 	if opts.draft {
-		p.promptProvider.PrintDraftPullRequestCreated(prURL)
+		p.PromptProvider.PrintDraftPullRequestCreated(prURL)
 	} else {
-		p.promptProvider.PrintPullRequestCreated(prURL)
+		p.PromptProvider.PrintPullRequestCreated(prURL)
 	}
 
-	if err := p.gitProvider.CheckoutMasterBranch(); err != nil {
+	if err := p.GitProvider.CheckoutMasterBranch(); err != nil {
 		return "", fmt.Errorf("checking out master: %w", err)
 	}
 
-	p.promptProvider.PrintCompleted()
+	p.PromptProvider.PrintCompleted()
 
 	return prURL, nil
 }
