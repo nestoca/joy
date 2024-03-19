@@ -45,7 +45,7 @@ type EnvironmentSpec struct {
 
 	// ChartVersions allows the environment to override the given version of the catalogs chart references.
 	// This allows for environments to rollout new versions of chart references.
-	ChartVersions map[string]string
+	ChartVersions map[string]string `yaml:"chartVersions,omitempty" json:"chartVersions,omitempty"`
 
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
@@ -80,7 +80,7 @@ func (env Environment) Validate(validChartRefs []string) error {
 	var errs []error
 	for ref := range env.Spec.ChartVersions {
 		if !slices.Contains(validChartRefs, ref) {
-			errs = append(errs, fmt.Errorf("unkown %s", ref))
+			errs = append(errs, fmt.Errorf("unkown ref: %s", ref))
 		}
 	}
 	return xerr.MultiErrOrderedFrom("validating chart references", errs...)
