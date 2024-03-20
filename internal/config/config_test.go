@@ -3,6 +3,8 @@ package config
 import (
 	"testing"
 
+	"github.com/go-test/deep"
+
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
@@ -43,8 +45,8 @@ func TestValueMappingUnmarshalling(t *testing.T) {
 func TestDeepCopyConfigNonZeroValues(t *testing.T) {
 	getNonZeroValues1 := func() *Config {
 		return &Config{
-			MinVersion:      "1.0.0",
-			DefaultChartRef: "chart1",
+			MinVersion:   "1.0.0",
+			DefaultChart: "chart1",
 			ValueMapping: &ValueMapping{
 				ReleaseIgnoreList: []string{"ignore1"},
 				Mappings:          map[string]any{"key1": "value1"},
@@ -69,8 +71,8 @@ func TestDeepCopyConfigNonZeroValues(t *testing.T) {
 	}
 	getNonZeroValues2 := func() *Config {
 		return &Config{
-			MinVersion:      "2.0.0",
-			DefaultChartRef: "chart2",
+			MinVersion:   "2.0.0",
+			DefaultChart: "chart2",
 			ValueMapping: &ValueMapping{
 				ReleaseIgnoreList: []string{"ignore2"},
 				Mappings:          map[string]any{"key2": "value2"},
@@ -95,8 +97,8 @@ func TestDeepCopyConfigNonZeroValues(t *testing.T) {
 	}
 	getMergedValues := func() *Config {
 		return &Config{
-			MinVersion:      "2.0.0",
-			DefaultChartRef: "chart2",
+			MinVersion:   "2.0.0",
+			DefaultChart: "chart2",
 			ValueMapping: &ValueMapping{
 				ReleaseIgnoreList: []string{"ignore2"},
 				Mappings:          map[string]any{"key2": "value2"},
@@ -160,7 +162,10 @@ func TestDeepCopyConfigNonZeroValues(t *testing.T) {
 			source := tc.GetSource()
 			target := tc.GetTarget()
 			deepCopyConfigNonZeroValues(source, target)
-			require.Equal(t, tc.GetExpected(), target)
+			diff := deep.Equal(tc.GetExpected(), target)
+			if diff != nil {
+				require.Fail(t, "DeepEqual failed", "diff: %v", diff)
+			}
 		})
 	}
 }

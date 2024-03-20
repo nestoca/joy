@@ -49,7 +49,7 @@ func Render(ctx context.Context, params RenderParams) error {
 		return fmt.Errorf("getting release: %w", err)
 	}
 
-	chart, err := params.Cache.GetReleaseChartFS(ctx, release)
+	chart, err := params.Cache.GetReleaseChart(ctx, release)
 	if err != nil {
 		return fmt.Errorf("getting release chart: %w", err)
 	}
@@ -63,12 +63,12 @@ func Render(ctx context.Context, params RenderParams) error {
 
 type RenderReleaseParams struct {
 	Release *v1alpha1.Release
-	Chart   *helm.ChartFS
+	Chart   *helm.Chart
 	CommonRenderParams
 }
 
 func RenderRelease(ctx context.Context, params RenderReleaseParams) error {
-	values, err := HydrateValues(params.Release, params.ValueMapping)
+	values, err := HydrateValues(params.Release, params.Release.Environment, params.ValueMapping)
 	if err != nil {
 		fmt.Fprintln(params.IO.Out, "error hydrating values:", err)
 		fmt.Fprintln(params.IO.Out, "fallback to raw release.spec.values")
@@ -157,13 +157,13 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (map[string]any, error) {
+func HydrateValues(release *v1alpha1.Release, environment *v1alpha1.Environment, mappings *config.ValueMapping) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
 	}{
 		release,
-		release.Environment,
+		environment,
 	}
 
 	values := maps.Clone(release.Spec.Values)

@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"strings"
 
 	"gopkg.in/godo.v2/glob"
-
-	"github.com/davidmdm/x/xerr"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
@@ -29,15 +26,31 @@ type (
 
 type Catalog struct {
 	Environments []*v1alpha1.Environment
-	Releases     ReleaseList
+	Releases     *ReleaseList
 	Projects     []*v1alpha1.Project
 	Files        []*yml.File
 }
 
-func Load(dir string, validChartRefs []string) (*Catalog, error) {
+// LoadOpts controls how to load catalog and what to load in it.
+type LoadOpts struct {
+	// Dir is the directory to load catalog from.
+	Dir string
+
+	// EnvNames is the list of environment names to load.
+	EnvNames []string
+
+	// SortByOrder controls whether environments should be sorted by their spec.order property.
+	SortEnvsByOrder bool
+
+	// ReleaseFilter allows to specify which releases to load.
+	// Optional, defaults to loading all releases.
+	ReleaseFilter filtering.Filter
+}
+
+func Load(opts LoadOpts) (*Catalog, error) {
 	// Get absolute and clean path of directory, so we can determine whether a release belongs to an environment
 	// by simply comparing the beginning of their paths.
-	dir, err := filepath.Abs(dir)
+	dir, err := filepath.Abs(opts.Dir)
 	if err != nil {
 		return nil, fmt.Errorf("getting absolute path of %s: %w", dir, err)
 	}
@@ -70,20 +83,9 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 		}
 	}
 
-	c.Environments, err = c.loadEnvironments(nil, true)
+	c.Environments, err = c.loadEnvironments(opts.EnvNames, opts.SortEnvsByOrder)
 	if err != nil {
 		return nil, fmt.Errorf("loading environments: %w", err)
-	}
-
-	var errs []error
-	for _, env := range c.Environments {
-		if err := env.Validate(validChartRefs); err != nil {
-			errs = append(errs, fmt.Errorf("%s: %w", env.Name, err))
-		}
-	}
-
-	if err := xerr.MultiErrOrderedFrom("validating environments", errs...); err != nil {
-		return nil, err
 	}
 
 	c.Projects, err = c.loadProjects()
@@ -92,12 +94,15 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 	}
 
 	allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
-
 	if err := validateTagsForFiles(allReleaseFiles); err != nil {
 		return nil, fmt.Errorf("release files with invalid tags: %w", err)
 	}
 
-	c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, c.Projects, nil)
+	for _, file := range allReleaseFiles {
+		validateTags(file.Tree)
+	}
+
+	c.Releases, err = cross.LoadReleaseList(allReleaseFiles, c.Environments, c.Projects, opts.ReleaseFilter)
 	if err != nil {
 		return nil, fmt.Errorf("loading cross-environment releases: %w", err)
 	}
@@ -106,80 +111,7 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 		return nil, fmt.Errorf("resolving references: %w", err)
 	}
 
-	for _, cross := range c.Releases.Items {
-		for _, release := range cross.Releases {
-			if release == nil {
-				continue
-			}
-			if err := release.Spec.Chart.Validate(validChartRefs); err != nil {
-				errs = append(errs, fmt.Errorf("%s/%s: invalid chart: %w", release.Name, release.Environment.Name, err))
-			}
-		}
-	}
-	if err := xerr.MultiErrOrderedFrom("validating releases", errs...); err != nil {
-		return nil, err
-	}
-
 	return c, nil
-}
-
-func (c *Catalog) WithReleaseFilter(filter filtering.Filter) *Catalog {
-	if filter == nil {
-		return c
-	}
-
-	for i, cross := range c.Releases.Items {
-		cross := shallowClone(cross)
-		cross.Releases = []*v1alpha1.Release{}
-		for j, rel := range c.Releases.Items[i].Releases {
-			if rel == nil || !filter.Match(rel) {
-				cross.Releases[j] = nil
-			}
-			cross.Releases[j] = rel
-		}
-		c.Releases.Items[i] = cross
-	}
-
-	return c
-}
-
-func (c *Catalog) WithEnvironments(names []string) *Catalog {
-	if len(names) == 0 {
-		return c
-	}
-
-	allEnvs := c.Environments
-	c.Environments = []*v1alpha1.Environment{}
-
-	var removedIndexes []int
-	for i, env := range allEnvs {
-		if slices.Contains(names, env.Name) {
-			c.Environments = append(c.Environments, env)
-		} else {
-			removedIndexes = append(removedIndexes, i)
-		}
-	}
-
-	for i, cross := range c.Releases.Items {
-		cross := shallowClone(cross)
-		cross.Releases = []*v1alpha1.Release{}
-		for j, rel := range c.Releases.Items[i].Releases {
-			if !slices.Contains(removedIndexes, j) {
-				cross.Releases = append(cross.Releases, rel)
-			}
-		}
-		c.Releases.Items[i] = cross
-	}
-
-	return c
-}
-
-func shallowClone[T any](ptr *T) *T {
-	if ptr == nil {
-		return nil
-	}
-	shallow := *ptr
-	return &shallow
 }
 
 func (c *Catalog) ResolveRefs() error {
@@ -299,18 +231,4 @@ func (c *Catalog) loadProjects() ([]*v1alpha1.Project, error) {
 	})
 
 	return projects, nil
-}
-
-type catalogKey struct{}
-
-func ToContext(ctx context.Context, catalog *Catalog) context.Context {
-	return context.WithValue(ctx, catalogKey{}, catalog)
-}
-
-func FromContext(ctx context.Context) *Catalog {
-	catalog, _ := ctx.Value(catalogKey{}).(*Catalog)
-	if catalog == nil {
-		panic("catalog loaded from context but is absent: cannot continue")
-	}
-	return catalog
 }

@@ -1,6 +1,7 @@
 package list
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -18,6 +19,9 @@ import (
 )
 
 type Opts struct {
+	// CatalogDir is the path to the catalog directory.
+	CatalogDir string
+
 	// SelectedEnvs is the list of environments that were selected by user to work with.
 	SelectedEnvs []string
 
@@ -28,7 +32,16 @@ type Opts struct {
 	ReferenceEnvironment string
 }
 
-func List(cat *catalog.Catalog, opts Opts) error {
+func List(opts Opts) error {
+	cat, err := catalog.Load(catalog.LoadOpts{
+		Dir:             opts.CatalogDir,
+		ReleaseFilter:   opts.Filter,
+		SortEnvsByOrder: true,
+	})
+	if err != nil {
+		return fmt.Errorf("loading catalog: %w", err)
+	}
+
 	t := table.NewWriter()
 	t.SetStyle(table.StyleRounded)
 

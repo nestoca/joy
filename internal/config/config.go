@@ -10,10 +10,6 @@ import (
 
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
-
-	"github.com/davidmdm/x/xerr"
-
-	"github.com/nestoca/joy/internal/helm"
 )
 
 const (
@@ -36,11 +32,8 @@ type Config struct {
 	// MinVersion is the minimum version of the joy CLI required
 	MinVersion string `yaml:"minVersion,omitempty"`
 
-	// Charts are the known charts that environments and releases can reference
-	Charts map[string]helm.Chart `yaml:"charts,omitempty"`
-
-	// DefaultChartRef refers to the chart that must be used from Charts if a release doesn't specify any chart configuration
-	DefaultChartRef string `yaml:"defaultChartRef,omitempty"`
+	// DefaultChart is the chart reference used by the catalog when omitted from the joy release
+	DefaultChart string `yaml:"defaultChart,omitempty"`
 
 	// ReferenceEnvironment is the name of the environment which represents master in git.
 	// IE: if you deploy by default to an environment called "testing" when merging to your main remote branch
@@ -93,14 +86,6 @@ type ReleaseTemplates struct {
 type ReleasePromoteTemplates struct {
 	Commit      string `yaml:"commit,omitempty"`
 	PullRequest string `yaml:"pullRequest,omitempty"`
-}
-
-func (config *Config) KnownChartRefs() []string {
-	var refs []string
-	for ref := range config.Charts {
-		refs = append(refs, ref)
-	}
-	return refs
 }
 
 type ValueMapping struct {
@@ -164,16 +149,6 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
 	}
 
-	var errs []error
-	for ref, chart := range cfg.Charts {
-		if chart.RepoURL == "" || chart.Name == "" || chart.Version == "" {
-			errs = append(errs, fmt.Errorf("%s: %s", ref, "chart must be fully qualified: repoUrl, name, and version are required"))
-		}
-	}
-	if err := xerr.MultiErrOrderedFrom("validating charts", errs...); err != nil {
-		return nil, err
-	}
-
 	rootCache := os.Getenv("XDG_CACHE_HOME")
 	if rootCache == "" {
 		rootCache = filepath.Join(homeDir, ".cache")
@@ -201,7 +176,6 @@ func Load(configDir, catalogDir string) (*Config, error) {
 	}
 
 	deepCopyConfigNonZeroValues(catalogCfg, cfg)
-
 	return cfg, nil
 }
 
@@ -228,9 +202,6 @@ func deepCopyNonZeroValues(src, tgt reflect.Value) {
 				}
 			}
 		default:
-			if src.Type().Field(i).Tag.Get("yaml") == "-" {
-				continue
-			}
 			if !isZeroValue(srcField.Interface()) {
 				tgtField.Set(srcField)
 			}

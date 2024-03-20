@@ -23,12 +23,12 @@ type GitOpts struct {
 
 type CatalogOpts struct {
 	Stat         func(string) (fs.FileInfo, error)
-	LoadCatalog  func(string, []string) (*catalog.Catalog, error)
+	LoadCatalog  func(catalog.LoadOpts) (*catalog.Catalog, error)
 	CheckCatalog func(string) error
 	Git          GitOpts
 }
 
-func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
+func diagnoseCatalog(catalogDir string, opts CatalogOpts) (group Group) {
 	if opts.Stat == nil {
 		opts.Stat = os.Stat
 	}
@@ -54,20 +54,20 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 	group.SubGroups = append(group.SubGroups, func() (group Group) {
 		group.Title = "Git working copy"
 
-		if _, err := opts.Stat(cfg.CatalogDir); os.IsNotExist(err) {
-			group.AddMsg(failed, label("Directory does not exist", cfg.CatalogDir))
+		if _, err := opts.Stat(catalogDir); os.IsNotExist(err) {
+			group.AddMsg(failed, label("Directory does not exist", catalogDir))
 			return
 		}
-		group.AddMsg(info, label("Directory exists", cfg.CatalogDir))
+		group.AddMsg(info, label("Directory exists", catalogDir))
 
-		if !git.IsValid(cfg.CatalogDir) {
+		if !git.IsValid(catalogDir) {
 			group.AddMsg(failed, "Working copy is invalid")
 			return
 		}
 
 		group.AddMsg(success, "Working copy is valid")
 
-		uncommittedChanges, err := opts.Git.GetUncommittedChanges(cfg.CatalogDir)
+		uncommittedChanges, err := opts.Git.GetUncommittedChanges(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed checking for uncommitted changes", err.Error()))
 		}
@@ -82,7 +82,7 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 		}
 
 		const defaultBranch = "master"
-		currentBranch, err := opts.Git.GetCurrentBranch(cfg.CatalogDir)
+		currentBranch, err := opts.Git.GetCurrentBranch(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current branch", err.Error()))
 		} else {
@@ -97,7 +97,7 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 			}
 		}
 
-		isInSync, err := opts.Git.IsInSyncWithRemote(cfg.CatalogDir, defaultBranch)
+		isInSync, err := opts.Git.IsInSyncWithRemote(catalogDir, defaultBranch)
 		if err != nil {
 			group.AddMsg(failed, label("Failed checking default branch sync state", err.Error()))
 		} else {
@@ -112,7 +112,7 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 			}
 		}
 
-		commit, err := opts.Git.GetCurrentCommit(cfg.CatalogDir)
+		commit, err := opts.Git.GetCurrentCommit(catalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current commit", err.Error()))
 		} else {
@@ -131,14 +131,14 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 		group.Title = "Loading catalog"
 
 		// Check catalog dir
-		if err := opts.CheckCatalog(cfg.CatalogDir); err != nil {
+		if err := opts.CheckCatalog(catalogDir); err != nil {
 			group.AddMsg(failed, label("Catalog not detected", err.Error()))
 			return
 		}
 
 		group.AddMsg(success, "Catalog detected")
 
-		cata, err := opts.LoadCatalog(cfg.CatalogDir, cfg.KnownChartRefs())
+		cata, err := opts.LoadCatalog(catalog.LoadOpts{Dir: catalogDir})
 		if err != nil {
 			group.AddMsg(failed, label("Failed loading catalog", err.Error()))
 			return

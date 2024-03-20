@@ -9,7 +9,7 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) error {
+func ConfigureSelection(catalogDir, configFilePath string, all bool) error {
 	// Load fresh copy of config file, without any alterations/defaults applied
 	cfg, err := config.LoadFile(configFilePath)
 	if err != nil {
@@ -25,6 +25,16 @@ func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) e
 		}
 		fmt.Println("✅ Selected all environments.")
 		return nil
+	}
+
+	// Load catalog
+	loadOpts := catalog.LoadOpts{
+		Dir:             catalogDir,
+		SortEnvsByOrder: true,
+	}
+	cat, err := catalog.Load(loadOpts)
+	if err != nil {
+		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Create list of environment names

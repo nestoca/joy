@@ -43,8 +43,7 @@ Only selected environments will be included in releases table columns.`,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
-			return environment.ConfigureSelection(cat, cfg.FilePath, allFlag)
+			return environment.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")
@@ -59,7 +58,7 @@ func NewEnvironmentOpenCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
+
 			envName := ""
 			if len(args) >= 1 {
 				envName = args[0]
@@ -68,6 +67,14 @@ func NewEnvironmentOpenCmd() *cobra.Command {
 			linkName := ""
 			if len(args) >= 2 {
 				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
 			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
@@ -98,7 +105,6 @@ func NewEnvironmentLinksCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			envName := ""
 			if len(args) >= 1 {
@@ -108,6 +114,14 @@ func NewEnvironmentLinksCmd() *cobra.Command {
 			linkName := ""
 			if len(args) >= 2 {
 				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
 			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)

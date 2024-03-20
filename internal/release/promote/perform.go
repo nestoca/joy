@@ -24,7 +24,7 @@ const (
 )
 
 type PerformOpts struct {
-	list                cross.ReleaseList
+	list                *cross.ReleaseList
 	autoMerge           bool
 	draft               bool
 	dryRun              bool
@@ -66,7 +66,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		if opts.dryRun {
 			fmt.Printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
 		} else {
-			if err := p.YamlWriter.WriteFile(promotedFile); err != nil {
+			if err := p.YamlWriter.Write(promotedFile); err != nil {
 				return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 			}
 		}

@@ -15,7 +15,7 @@ type PromptProvider interface {
 	SelectTargetEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error)
 
 	// SelectReleases prompts user to select releases to promote.
-	SelectReleases(list cross.ReleaseList) (cross.ReleaseList, error)
+	SelectReleases(list *cross.ReleaseList) (*cross.ReleaseList, error)
 
 	// ConfirmCreatingPromotionPullRequest prompts user to confirm whether to continue creating promotion pull request
 	// or abort.
