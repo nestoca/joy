@@ -695,7 +695,13 @@ func NewReleaseLinksCmd() *cobra.Command {
 				return fmt.Errorf("getting release links: %w", err)
 			}
 
-			return links.PrintLinks(releaseLinks, linkName)
+			output, err := links.FormatLinks(releaseLinks, linkName)
+			if err != nil {
+				return fmt.Errorf("formatting links: %w", err)
+			}
+
+			_, err = fmt.Fprint(cmd.OutOrStdout(), output)
+			return err
 		},
 	}
 

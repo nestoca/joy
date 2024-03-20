@@ -147,7 +147,13 @@ func NewProjectLinksCmd() *cobra.Command {
 				return fmt.Errorf("getting project links: %w", err)
 			}
 
-			return links.PrintLinks(projectLinks, linkName)
+			output, err := links.FormatLinks(projectLinks, linkName)
+			if err != nil {
+				return fmt.Errorf("formatting links: %w", err)
+			}
+
+			_, err = fmt.Fprint(cmd.OutOrStdout(), output)
+			return err
 		},
 	}
 
