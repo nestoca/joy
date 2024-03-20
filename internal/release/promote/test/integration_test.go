@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/nestoca/joy/internal/links"
-	"github.com/nestoca/joy/internal/yml"
 
 	"github.com/nestoca/joy/internal/info"
 
@@ -50,7 +49,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -67,7 +66,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(dir, nil)
+	cat, err := catalog.Load(catalog.LoadOpts{Dir: dir})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -85,7 +84,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          yml.DiskWriter,
+		YamlWriter:          &promote.FileSystemYamlWriter{},
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,
@@ -109,7 +108,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -126,7 +125,10 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(dir, nil)
+	cat, err := catalog.Load(catalog.LoadOpts{
+		Dir:             dir,
+		SortEnvsByOrder: true,
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -143,7 +145,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          yml.DiskWriter,
+		YamlWriter:          &promote.FileSystemYamlWriter{},
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,
@@ -168,7 +170,10 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(dir, nil)
+	cat, err := catalog.Load(catalog.LoadOpts{
+		Dir:             dir,
+		SortEnvsByOrder: true,
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -186,7 +191,7 @@ func TestEnforceEnvironmentAllowAutoMerge(t *testing.T) {
 		PromptProvider:      nil,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          yml.DiskWriter,
+		YamlWriter:          &promote.FileSystemYamlWriter{},
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        nil,
@@ -243,7 +248,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	defer ctrl.Finish()
 
 	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list cross.ReleaseList) (cross.ReleaseList, error) { return list, nil })
+	promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
 	promptProvider.EXPECT().PrintStartPreview()
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
@@ -260,7 +265,10 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(dir, nil)
+	cat, err := catalog.Load(catalog.LoadOpts{
+		Dir:             dir,
+		SortEnvsByOrder: true,
+	})
 	assert.NoError(t, err)
 
 	// Resolve source and target environments
@@ -277,7 +285,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 		PromptProvider:      promptProvider,
 		GitProvider:         promote.NewShellGitProvider(dir),
 		PullRequestProvider: github.NewPullRequestProvider(dir),
-		YamlWriter:          yml.DiskWriter,
+		YamlWriter:          &promote.FileSystemYamlWriter{},
 		CommitTemplate:      simpleCommitTemplate,
 		PullRequestTemplate: simplePullRequestTemplate,
 		InfoProvider:        infoProvider,

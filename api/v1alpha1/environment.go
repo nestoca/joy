@@ -7,8 +7,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/davidmdm/x/xerr"
-
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -44,10 +42,6 @@ type EnvironmentSpec struct {
 	// Namespace is the name of environment's namespace within cluster.
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 
-	// ChartVersions allows the environment to override the given version of the catalog's chart references.
-	// This allows for environments to rollout new versions of chart references.
-	ChartVersions map[string]string `yaml:"chartVersions,omitempty" json:"chartVersions,omitempty"`
-
 	// Owners is the list of identifiers of owners of the environment.
 	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
@@ -75,16 +69,6 @@ type Environment struct {
 
 	// Dir is the path to the environment directory.
 	Dir string `yaml:"-" json:"-"`
-}
-
-func (env Environment) Validate(validChartRefs []string) error {
-	var errs []error
-	for ref := range env.Spec.ChartVersions {
-		if !slices.Contains(validChartRefs, ref) {
-			errs = append(errs, fmt.Errorf("unknown ref: %s", ref))
-		}
-	}
-	return xerr.MultiErrOrderedFrom("validating chart references", errs...)
 }
 
 func IsValidEnvironment(apiVersion, kind string) bool {

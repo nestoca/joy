@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/build"
-	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/nestoca/joy/internal/config"
 )
 
 func NewBuildCmd() *cobra.Command {
@@ -33,10 +33,10 @@ Usage: joy build promote <env> <project> <version>`,
 			project := args[1]
 			version := args[2]
 
-			cat := catalog.FromContext(cmd.Context())
+			cfg := config.FromContext(cmd.Context())
 
 			return build.Promote(build.Opts{
-				Catalog:     cat,
+				CatalogDir:  cfg.CatalogDir,
 				Environment: env,
 				Project:     project,
 				Version:     version,

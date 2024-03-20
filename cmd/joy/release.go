@@ -32,7 +32,6 @@ import (
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/release/validate"
 	"github.com/nestoca/joy/internal/text"
-	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -87,9 +86,8 @@ func NewReleaseListCmd() *cobra.Command {
 				filter = filtering.NewOwnerFilter(owners)
 			}
 
-			cat := catalog.FromContext(cmd.Context())
-
-			return list.List(cat, list.Opts{
+			return list.List(list.Opts{
+				CatalogDir:           cfg.CatalogDir,
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
@@ -139,7 +137,14 @@ func NewReleasePromoteCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat := catalog.FromContext(cmd.Context()).WithReleaseFilter(filter)
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
 
 			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
 			if err != nil {
@@ -172,7 +177,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				PromptProvider:      &promote.InteractivePromptProvider{},
 				GitProvider:         promote.NewShellGitProvider(cfg.CatalogDir),
 				PullRequestProvider: github.NewPullRequestProvider(cfg.CatalogDir),
-				YamlWriter:          yml.DiskWriter,
+				YamlWriter:          &promote.FileSystemYamlWriter{},
 				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
 				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
 				InfoProvider:        infoProvider,
@@ -204,8 +209,7 @@ func NewReleaseSelectCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
-			return release.ConfigureSelection(cat, cfg.FilePath, allFlag)
+			return release.ConfigureSelection(cfg.CatalogDir, cfg.FilePath, allFlag)
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
@@ -235,8 +239,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-			return jac.ListReleasePeople(cat, args)
+			cfg := config.FromContext(cmd.Context())
+			return jac.ListReleasePeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -275,10 +279,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 				releaseName = args[0]
 			}
 
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+			}
+
 			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
-				// In this case we cannot use the catalog loaded from the context
-				// Since we need to reload at whatever git reference we are at.
-				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+				cat, err := catalog.Load(loadOpts)
 				if err != nil {
 					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
 				}
@@ -287,10 +294,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 					Env:     env,
 					Release: releaseName,
 					Cache: helm.ChartCache{
-						Refs:            cfg.Charts,
-						DefaultChartRef: cfg.DefaultChartRef,
-						Root:            cfg.JoyCache,
-						Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
+						DefaultChart: cfg.DefaultChart,
+						Root:         cfg.JoyCache,
+						Puller:       helm.CLI{IO: internal.IoFromCommand(cmd)},
 					},
 					Catalog: cat,
 					CommonRenderParams: render.CommonRenderParams{
@@ -413,9 +419,17 @@ func NewValidateCommand() *cobra.Command {
 				return filtering.NewSpecificReleasesFilter(args)
 			}()
 
-			cat := catalog.FromContext(cmd.Context()).
-				WithEnvironments(selectedEnvs).
-				WithReleaseFilter(releaseFilter)
+			loadOpts := catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				EnvNames:        selectedEnvs,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   releaseFilter,
+			}
+
+			cat, err := catalog.Load(loadOpts)
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
 
 			var releases []*v1alpha1.Release
 			for _, item := range cat.Releases.Items {
@@ -430,12 +444,10 @@ func NewValidateCommand() *cobra.Command {
 			return validate.Validate(cmd.Context(), validate.ValidateParams{
 				Releases:     releases,
 				ValueMapping: cfg.ValueMapping,
-				Helm:         helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
-				ChartCache: helm.ChartCache{
-					Refs:            cfg.Charts,
-					DefaultChartRef: cfg.DefaultChartRef,
-					Root:            cfg.JoyCache,
-					Puller:          helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
+				DefaultChart: cfg.DefaultChart,
+				CacheRoot:    cfg.JoyCache,
+				Helm: helm.CLI{
+					IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()},
 				},
 			})
 		},
@@ -457,7 +469,6 @@ func NewGitCommands() *cobra.Command {
 			Args:    cobra.MinimumNArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				cfg := config.FromContext(cmd.Context())
-				cat := catalog.FromContext(cmd.Context())
 
 				if target == "" {
 					target = cfg.ReferenceEnvironment
@@ -465,6 +476,11 @@ func NewGitCommands() *cobra.Command {
 
 				if target == "" {
 					return fmt.Errorf("unable to determine target environment: specify target or set your reference environment in your config")
+				}
+
+				cat, err := catalog.Load(catalog.LoadOpts{Dir: cfg.CatalogDir})
+				if err != nil {
+					return err
 				}
 
 				releaseName := args[0]
@@ -568,7 +584,6 @@ func NewReleaseOpenCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			releaseName := ""
 			if len(args) >= 1 {
@@ -585,7 +600,14 @@ func NewReleaseOpenCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat = cat.WithReleaseFilter(filter)
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
 			linksProvider := links.NewProvider(infoProvider, cfg.Templates)
@@ -619,7 +641,6 @@ func NewReleaseLinksCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			releaseName := ""
 			if len(args) >= 1 {
@@ -636,7 +657,14 @@ func NewReleaseLinksCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat.WithReleaseFilter(filter)
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir:             cfg.CatalogDir,
+				SortEnvsByOrder: true,
+				ReleaseFilter:   filter,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
+			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
 			linksProvider := links.NewProvider(infoProvider, cfg.Templates)

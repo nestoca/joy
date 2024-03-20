@@ -11,7 +11,6 @@ import (
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
-	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func NewRootCmd(version string) *cobra.Command {
@@ -79,17 +78,11 @@ func NewRootCmd(version string) *cobra.Command {
 
 			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
 
-			if cmd == setupCmd || cmd == diagnoseCmd || cmd == versionCmd {
+			if cmd == setupCmd {
 				return nil
 			}
 
-			cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
-			cmd.SetContext(catalog.ToContext(cmd.Context(), cat))
-
-			return nil
+			return config.CheckCatalogDir(cfg.CatalogDir)
 		},
 	}
 

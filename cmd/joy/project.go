@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/browser"
+
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
@@ -53,8 +54,8 @@ This command requires the jac cli: https://github.com/nestoca/jac
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-			return jac.ListProjectPeople(cat, args)
+			cfg := config.FromContext(cmd.Context())
+			return jac.ListProjectPeople(cfg.CatalogDir, args)
 		},
 	}
 	return cmd
@@ -72,8 +73,8 @@ func NewProjectListCmd() *cobra.Command {
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-			return project.List(cat)
+			cfg := config.FromContext(cmd.Context())
+			return project.List(cfg.CatalogDir)
 		},
 	}
 	return cmd
@@ -87,7 +88,6 @@ func NewProjectOpenCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			projectName := ""
 			if len(args) >= 1 {
@@ -97,6 +97,13 @@ func NewProjectOpenCmd() *cobra.Command {
 			linkName := ""
 			if len(args) >= 2 {
 				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir: cfg.CatalogDir,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
 			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
@@ -127,7 +134,6 @@ func NewProjectLinksCmd() *cobra.Command {
 		Args:    cobra.RangeArgs(0, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
 
 			projectName := ""
 			if len(args) >= 1 {
@@ -137,6 +143,13 @@ func NewProjectLinksCmd() *cobra.Command {
 			linkName := ""
 			if len(args) >= 2 {
 				linkName = args[1]
+			}
+
+			cat, err := catalog.Load(catalog.LoadOpts{
+				Dir: cfg.CatalogDir,
+			})
+			if err != nil {
+				return fmt.Errorf("loading catalog: %w", err)
 			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
