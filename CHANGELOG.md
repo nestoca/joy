@@ -1,3 +1,10 @@
+## [0.40.0](https://github.com/nestoca/joy/compare/v0.39.1...v0.40.0) (2024-03-20)
+
+
+### Features
+
+* **PL-2554:** temporarily revert chart ref changes ([52fbaa8](https://github.com/nestoca/joy/commit/52fbaa8da7cf584b010ea232b6356e8fa9d7e8ba))
+
 ## [0.38.2](https://github.com/nestoca/joy/compare/v0.38.1...v0.38.2) (2024-03-19)
 
 
