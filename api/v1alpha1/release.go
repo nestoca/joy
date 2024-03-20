@@ -45,6 +45,9 @@ type ReleaseSpec struct {
 
 	// Values is the values to use to render the chart.
 	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
+
+	// Links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
+	Links map[string]string `yaml:"links,omitempty" json:"links,omitempty"`
 }
 
 type Release struct {

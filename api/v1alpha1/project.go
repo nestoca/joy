@@ -41,6 +41,12 @@ type ProjectSpec struct {
 	// GitTagTemplate allows you to configure what your git tag look like relative to a release via go templates
 	// example: gitTagTemplate: api/v{{ .Release.Spec.Version }}
 	GitTagTemplate string `yaml:"gitTagTemplate,omitempty" json:"gitTagTemplate,omitempty"`
+
+	// Links is the map of project-level overrides and additions for project links defined in catalog configuration.
+	Links map[string]string `yaml:"links,omitempty" json:"links,omitempty"`
+
+	// ReleaseLinks is the map of project-level overrides and additions for release links defined in catalog configuration.
+	ReleaseLinks map[string]string `yaml:"releaseLinks,omitempty" json:"releaseLinks,omitempty"`
 }
 
 type Project struct {
