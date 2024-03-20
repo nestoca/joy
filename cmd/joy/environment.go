@@ -118,7 +118,13 @@ func NewEnvironmentLinksCmd() *cobra.Command {
 				return fmt.Errorf("getting project links: %w", err)
 			}
 
-			return links.PrintLinks(envLinks, linkName)
+			output, err := links.FormatLinks(envLinks, linkName)
+			if err != nil {
+				return fmt.Errorf("formatting links: %w", err)
+			}
+
+			_, err = fmt.Fprint(cmd.OutOrStdout(), output)
+			return err
 		},
 	}
 

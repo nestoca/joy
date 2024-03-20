@@ -1,0 +1,13 @@
+gitHubOrganization: acme
+templates:
+  environment:
+    links:
+      cd: https://argo-cd.acme.com/applications/{{ .Environment.Name }}
+  project:
+    links:
+      repo: https://github.com/{{ .Repository }}
+      actions: https://github.com/{{ .Repository }}/actions
+      pulls: https://github.com/{{ .Repository }}/pulls
+  release:
+    links:
+      tag: https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}

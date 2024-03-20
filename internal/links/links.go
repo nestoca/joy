@@ -78,20 +78,19 @@ func GetReleaseLinks(provider Provider, cat *catalog.Catalog, envName, releaseNa
 	return links, nil
 }
 
-func PrintLinks(links map[string]string, linkName string) error {
+func FormatLinks(links map[string]string, linkName string) (string, error) {
 	if linkName != "" {
 		linkUrl := links[linkName]
 		if linkUrl == "" {
-			return getLinkNotFoundError(linkName, links)
+			return "", getLinkNotFoundError(linkName, links)
 		}
-		fmt.Print(linkUrl)
-		return nil
+		return linkUrl, nil
 	}
 
-	return printLinksTable(links)
+	return formatLinksTable(links)
 }
 
-func printLinksTable(links map[string]string) error {
+func formatLinksTable(links map[string]string) (string, error) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleRounded)
 
@@ -103,8 +102,7 @@ func printLinksTable(links map[string]string) error {
 		t.AppendRow(table.Row{style.Resource(linkName), linkUrl})
 	}
 
-	_, err := fmt.Println(t.Render())
-	return err
+	return t.Render() + "\n", nil
 }
 
 func GetOrSelectLinkUrl(links map[string]string, linkName string) (string, error) {
