@@ -3,6 +3,7 @@ package links
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 	"text/template"
 
@@ -47,7 +48,7 @@ func (r *provider) GetEnvironmentLinks(environment *v1alpha1.Environment) (map[s
 }
 
 func (r *provider) GetProjectLinks(project *v1alpha1.Project) (map[string]string, error) {
-	templates := r.templates.Project.Links
+	templates := resolveProjectTemplates(project, r.templates.Project.Links)
 	links := make(map[string]string, len(templates))
 	for name, tmpl := range templates {
 		link, err := r.renderProjectLink(tmpl, project)
@@ -60,7 +61,7 @@ func (r *provider) GetProjectLinks(project *v1alpha1.Project) (map[string]string
 }
 
 func (r *provider) GetReleaseLinks(release *v1alpha1.Release) (map[string]string, error) {
-	templates := r.templates.Release.Links
+	templates := resolveReleaseTemplates(release, r.templates.Project.Links, r.templates.Release.Links)
 	links := make(map[string]string, len(templates))
 	for name, tmpl := range templates {
 		link, err := r.renderReleaseLink(tmpl, release)
@@ -122,4 +123,21 @@ func renderLink(linkTemplate string, data any) (string, error) {
 		return "", fmt.Errorf("executing link template %q: %w", linkTemplate, err)
 	}
 	return message.String(), nil
+}
+
+func resolveProjectTemplates(project *v1alpha1.Project, catalogProjectLinks map[string]string) map[string]string {
+	links := make(map[string]string)
+	maps.Copy(links, catalogProjectLinks)
+	maps.Copy(links, project.Spec.Links)
+	return links
+}
+
+func resolveReleaseTemplates(release *v1alpha1.Release, catalogProjectLinks map[string]string, catalogReleaseLinks map[string]string) map[string]string {
+	links := make(map[string]string)
+	maps.Copy(links, catalogProjectLinks)
+	maps.Copy(links, catalogReleaseLinks)
+	maps.Copy(links, release.Project.Spec.Links)
+	maps.Copy(links, release.Project.Spec.ReleaseLinks)
+	maps.Copy(links, release.Spec.Links)
+	return links
 }

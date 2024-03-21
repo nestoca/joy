@@ -236,7 +236,7 @@ func selectLinkUrl(links map[string]string) (string, error) {
 	var choices []string
 	for _, linkName := range linkNames {
 		linkUrl := links[linkName]
-		choices = append(choices, fmt.Sprintf("%s: %s", style.Resource(linkName), style.SecondaryInfo(linkUrl)))
+		choices = append(choices, fmt.Sprintf("%s: %s", style.Resource(linkName), linkUrl))
 	}
 
 	// Transform allows to show only link name after user confirms selection,
