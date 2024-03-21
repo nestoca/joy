@@ -1,3 +1,10 @@
+## [0.41.0](https://github.com/nestoca/joy/compare/v0.40.0...v0.41.0) (2024-03-21)
+
+
+### Features
+
+* **PL-2563:** catalog/project/release link inheritance and override ([#130](https://github.com/nestoca/joy/issues/130)) ([5bbfa16](https://github.com/nestoca/joy/commit/5bbfa16dd5be0ea7947c9f99441cab4b3ed36673))
+
 ## [0.40.0](https://github.com/nestoca/joy/compare/v0.39.1...v0.40.0) (2024-03-20)
 
 
