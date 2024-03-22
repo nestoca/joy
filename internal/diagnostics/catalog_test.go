@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -32,10 +33,10 @@ func TestCatalogDiagnostics(t *testing.T) {
 					GetCurrentCommit:      func(string) (string, error) { return "origin/HEAD", nil },
 				},
 				CheckCatalog: func(s string) error { return nil },
-				LoadCatalog: func(catalog.LoadOpts) (*catalog.Catalog, error) {
+				LoadCatalog: func(string, []string) (*catalog.Catalog, error) {
 					return &catalog.Catalog{
 						Environments: []*v1alpha1.Environment{},
-						Releases:     &cross.ReleaseList{},
+						Releases:     cross.ReleaseList{},
 						Projects:     []*v1alpha1.Project{},
 						Files:        []*yml.File{},
 					}, nil
@@ -127,7 +128,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog("catalogDir", tc.Opts).StripAnsi())
+			require.Equal(t, tc.Expected, diagnoseCatalog(&config.Config{CatalogDir: "catalogDir"}, tc.Opts).StripAnsi())
 		})
 	}
 }

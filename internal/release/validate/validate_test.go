@@ -127,7 +127,7 @@ func TestValidateRelease(t *testing.T) {
 
 			err := ValidateRelease(context.Background(), ValidateReleaseParams{
 				Release: tc.Release,
-				Chart:   &helm.Chart{FS: tc.ChartFS},
+				Chart:   &helm.ChartFS{FS: tc.ChartFS},
 				Helm:    mockedPullRenderer,
 			})
 

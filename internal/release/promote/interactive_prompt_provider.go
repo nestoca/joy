@@ -63,7 +63,7 @@ func (i *InteractivePromptProvider) SelectTargetEnvironment(environments []*v1al
 	return environments[index], nil
 }
 
-func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList, maxColumnWidth int) (*cross.ReleaseList, error) {
+func (i *InteractivePromptProvider) SelectReleases(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
 	sourceEnv := list.Environments[sourceEnvIndex]
 	targetEnv := list.Environments[targetEnvIndex]
 
@@ -113,7 +113,7 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList, maxC
 		survey.WithKeepFilter(true),
 		survey.WithValidator(survey.Required))
 	if err != nil {
-		return nil, fmt.Errorf("prompting for releases to promote: %w", err)
+		return cross.ReleaseList{}, fmt.Errorf("prompting for releases to promote: %w", err)
 	}
 
 	// Create new cross-release list with only the selected releases.

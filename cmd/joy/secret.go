@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/secret"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -35,7 +34,7 @@ func NewSecretImportCmd() *cobra.Command {
 
 This command requires kubectl cli to be installed: https://kubernetes.io/docs/tasks/tools/#kubectl`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return secret.ImportCert()
+			return secret.ImportCert(catalog.FromContext(cmd.Context()))
 		},
 	}
 	return cmd
@@ -60,18 +59,7 @@ This command requires the sealed-secrets kubeseal cli to be installed: https://g
 The sealed secrets public certificate must also have been imported into the environment using 'joy secret import' command.
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := config.FromContext(cmd.Context())
-
-			// Load catalog
-			loadOpts := catalog.LoadOpts{
-				Dir:             cfg.CatalogDir,
-				SortEnvsByOrder: true,
-			}
-
-			cat, err := catalog.Load(loadOpts)
-			if err != nil {
-				return fmt.Errorf("loading catalog: %w", err)
-			}
+			cat := catalog.FromContext(cmd.Context())
 
 			opts := secret.SealOptions{
 				Env:         env,
