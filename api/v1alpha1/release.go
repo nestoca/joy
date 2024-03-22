@@ -24,7 +24,7 @@ type ReleaseMetadata struct {
 
 type ReleaseChart struct {
 	Ref     string `yaml:"ref,omitempty"`
-	Version string `yaml:"version,omitempty"`
+	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 	Name    string `yaml:"name,omitempty" json:"name,omitempty"`
 	RepoUrl string `yaml:"repoUrl,omitempty" json:"repoUrl,omitempty"`
 }
