@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os/exec"
 	"path"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -29,23 +29,18 @@ type CLI struct {
 }
 
 type PullOptions struct {
-	ChartURL  string
-	Version   string
+	Chart     Chart
 	OutputDir string
 }
 
 func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
-	chartURL, err := url.Parse(opts.ChartURL)
-	if err != nil {
-		return fmt.Errorf("invalid chart url: %w", err)
-	}
-
 	if opts.OutputDir == "" {
 		opts.OutputDir = "."
 	}
 
-	if chartURL.Scheme == "" {
-		chartURL.Scheme = "oci"
+	chartURL, err := opts.Chart.ToURL()
+	if err != nil {
+		return fmt.Errorf("invalid chart url: %w", err)
 	}
 
 	var args []string
@@ -59,8 +54,8 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 		args = []string{"pull", chartURL.String(), "--untar", "--untardir", opts.OutputDir}
 	}
 
-	if opts.Version != "" {
-		args = append(args, "--version", opts.Version)
+	if version := opts.Chart.Version; version != "" {
+		args = append(args, "--version", version)
 	}
 
 	cmd := exec.CommandContext(ctx, "helm", args...)
@@ -68,7 +63,10 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 	cmd.Stderr = cli.Err
 	cmd.Stdin = cli.In
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running %s: %w", strings.Join(cmd.Args, " "), err)
+	}
+	return nil
 }
 
 type RenderOpts struct {
@@ -78,7 +76,7 @@ type RenderOpts struct {
 	ChartPath   string
 }
 
-func (CLI) Render(ctx context.Context, opts RenderOpts) error {
+func (cli CLI) Render(ctx context.Context, opts RenderOpts) error {
 	var input bytes.Buffer
 	if err := yaml.NewEncoder(&input).Encode(opts.Values); err != nil {
 		return err
@@ -87,7 +85,7 @@ func (CLI) Render(ctx context.Context, opts RenderOpts) error {
 	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 	cmd.Stdin = &input
 	cmd.Stdout = opts.Dst
-	cmd.Stderr = opts.Dst
+	cmd.Stderr = cli.IO.Err
 
 	return cmd.Run()
 }

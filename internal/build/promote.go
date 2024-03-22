@@ -11,25 +11,16 @@ import (
 )
 
 type Opts struct {
-	CatalogDir  string
+	Catalog     *catalog.Catalog
+	Writer      yml.Writer
 	Environment string
 	Project     string
 	Version     string
 }
 
 func Promote(opts Opts) error {
-	// Load Catalog with one environment
-	loadOpts := catalog.LoadOpts{
-		Dir:      opts.CatalogDir,
-		EnvNames: []string{opts.Environment},
-	}
-	cat, err := catalog.Load(loadOpts)
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
-	}
-
 	// Check the release version format
-	if !cat.Environments[0].Spec.Promotion.FromPullRequests {
+	if !opts.Catalog.Environments[0].Spec.Promotion.FromPullRequests {
 		version := "v" + opts.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
 			return fmt.Errorf("cannot promote release with non-standard version to %s environment", opts.Environment)
@@ -37,27 +28,23 @@ func Promote(opts Opts) error {
 	}
 
 	promotionCount := 0
-	for _, crossRelease := range cat.Releases.Items {
+	for _, crossRelease := range opts.Catalog.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release.Spec.Project == opts.Project {
-			// Find version node
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
 				return fmt.Errorf("release %s has no version property: %w", release.Name, err)
 			}
 
-			// Update version node
 			versionNode.Value = opts.Version
-			err = release.File.UpdateYamlFromTree()
-			if err != nil {
+			if err := release.File.UpdateYamlFromTree(); err != nil {
 				return fmt.Errorf("updating release yaml from node tree: %w", err)
 			}
 
-			// Write release file back
-			err = release.File.WriteYaml()
-			if err != nil {
+			if err := opts.Writer.WriteFile(release.File); err != nil {
 				return fmt.Errorf("writing release file: %w", err)
 			}
+
 			fmt.Printf("✅ Promoted release %s to version %s\n", style.Resource(release.Name), style.Version(opts.Version))
 			promotionCount++
 		}

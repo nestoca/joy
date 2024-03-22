@@ -26,14 +26,9 @@ func init() {
 	dependencies.Add(dependency)
 }
 
-func ListProjectPeople(catalogDir string, extraArgs []string) error {
+func ListProjectPeople(cat *catalog.Catalog, extraArgs []string) error {
 	if err := dependency.MustBeInstalled(); err != nil {
 		return err
-	}
-
-	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Select project
@@ -45,14 +40,9 @@ func ListProjectPeople(catalogDir string, extraArgs []string) error {
 	return listPeopleWithGroups(selectedProject.Spec.Owners, extraArgs)
 }
 
-func ListReleasePeople(catalogDir string, extraArgs []string) error {
+func ListReleasePeople(cat *catalog.Catalog, extraArgs []string) error {
 	if err := dependency.MustBeInstalled(); err != nil {
 		return err
-	}
-
-	cat, err := catalog.Load(catalog.LoadOpts{Dir: catalogDir})
-	if err != nil {
-		return fmt.Errorf("loading catalog: %w", err)
 	}
 
 	// Select cross-release

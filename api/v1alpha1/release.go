@@ -23,14 +23,23 @@ type ReleaseMetadata struct {
 }
 
 type ReleaseChart struct {
-	// Name is the name of the chart.
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
-
-	// RepoUrl is the url of the chart repository.
+	Ref     string `yaml:"ref,omitempty"`
+	Version string `yaml:"version,omitempty"`
+	Name    string `yaml:"name,omitempty" json:"name,omitempty"`
 	RepoUrl string `yaml:"repoUrl,omitempty" json:"repoUrl,omitempty"`
+}
 
-	// Version of the chart.
-	Version string `yaml:"version,omitempty" json:"version,omitempty"`
+func (chart ReleaseChart) Validate(validRefs []string) error {
+	if (chart.RepoUrl == "") != (chart.Name == "") {
+		return fmt.Errorf("repoUrl and name must be defined together")
+	}
+	if chart.RepoUrl != "" && chart.Version == "" {
+		return fmt.Errorf("version is required when chart is not a reference")
+	}
+	if ref := chart.Ref; ref != "" && !slices.Contains(validRefs, ref) {
+		return fmt.Errorf("unknown ref: %s", ref)
+	}
+	return nil
 }
 
 type ReleaseSpec struct {
