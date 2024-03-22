@@ -63,7 +63,7 @@ func (i *InteractivePromptProvider) SelectTargetEnvironment(environments []*v1al
 	return environments[index], nil
 }
 
-func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cross.ReleaseList, error) {
+func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList, maxColumnWidth int) (*cross.ReleaseList, error) {
 	sourceEnv := list.Environments[sourceEnvIndex]
 	targetEnv := list.Environments[targetEnvIndex]
 
@@ -74,12 +74,12 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 		if crossRel.VersionInSync && crossRel.ValuesInSync {
 			choice = fmt.Sprintf("%s\t%s",
 				style.InSyncRelease(crossRel.Name),
-				inSyncDisplayReleaseVersion(crossRel))
+				inSyncDisplayReleaseVersion(crossRel, maxColumnWidth))
 		} else {
 			choice = fmt.Sprintf("%s\t%s\t>\t%s\t",
 				style.OutOfSyncRelease(crossRel.Name),
-				outOfSyncDisplayReleaseVersionBefore(crossRel),
-				outOfSyncDisplayReleaseVersionAfter(crossRel))
+				outOfSyncDisplayReleaseVersionBefore(crossRel, maxColumnWidth),
+				outOfSyncDisplayReleaseVersionAfter(crossRel, maxColumnWidth))
 		}
 		choices = append(choices, choice)
 	}
@@ -124,22 +124,22 @@ func (i *InteractivePromptProvider) SelectReleases(list *cross.ReleaseList) (*cr
 	return list.OnlySpecificReleases(selectedReleaseNames), nil
 }
 
-func inSyncDisplayReleaseVersion(crossRel *cross.Release) string {
-	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], true)
+func inSyncDisplayReleaseVersion(crossRel *cross.Release, maxColumnWidth int) string {
+	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], true, maxColumnWidth)
 	return style.InSyncReleaseVersion(version)
 }
 
-func outOfSyncDisplayReleaseVersionBefore(crossRel *cross.Release) string {
-	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], crossRel.ValuesInSync)
+func outOfSyncDisplayReleaseVersionBefore(crossRel *cross.Release, maxColumnWidth int) string {
+	version := releaseDisplayVersion(crossRel.Releases[targetEnvIndex], crossRel.ValuesInSync, maxColumnWidth)
 	return style.DiffBefore(version)
 }
 
-func outOfSyncDisplayReleaseVersionAfter(crossRel *cross.Release) string {
-	version := releaseDisplayVersion(crossRel.Releases[sourceEnvIndex], crossRel.ValuesInSync)
+func outOfSyncDisplayReleaseVersionAfter(crossRel *cross.Release, maxColumnWidth int) string {
+	version := releaseDisplayVersion(crossRel.Releases[sourceEnvIndex], crossRel.ValuesInSync, maxColumnWidth)
 	return style.DiffAfter(version)
 }
 
-func releaseDisplayVersion(rel *v1alpha1.Release, valuesInSync bool) string {
+func releaseDisplayVersion(rel *v1alpha1.Release, valuesInSync bool, maxColumnWidth int) string {
 	version := "-"
 	if rel != nil {
 		version = rel.Spec.Version
@@ -149,6 +149,9 @@ func releaseDisplayVersion(rel *v1alpha1.Release, valuesInSync bool) string {
 	}
 	if !valuesInSync && version != "-" {
 		version += "*"
+	}
+	if len(version) > maxColumnWidth {
+		return version[:maxColumnWidth-3] + "..."
 	}
 	return version
 }

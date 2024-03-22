@@ -58,6 +58,7 @@ func NewReleaseCmd() *cobra.Command {
 
 func NewReleaseListCmd() *cobra.Command {
 	var releases, envs, owners string
+	var narrow, wide bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -91,20 +92,24 @@ func NewReleaseListCmd() *cobra.Command {
 				SelectedEnvs:         selectedEnvs,
 				Filter:               filter,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
+				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 			})
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&envs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
+	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
+	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.MarkFlagsMutuallyExclusive("releases", "owners")
+	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
 	return cmd
 }
 
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
-	var autoMerge, draft, dryRun, localOnly, noPrompt bool
+	var autoMerge, draft, dryRun, localOnly, noPrompt, narrow, wide bool
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -170,6 +175,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				DryRun:               dryRun,
 				LocalOnly:            localOnly,
 				SelectedEnvironments: selectedEnvironments,
+				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 			}
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
@@ -194,6 +200,9 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
 	cmd.Flags().BoolVar(&localOnly, "local-only", false, "Similar to dry-run, but updates the release file(s) on the local filesystem only. There is no branch, commits, or PR created.")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
+	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
+	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
+	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
 	return cmd
 }

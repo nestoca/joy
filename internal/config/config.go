@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -61,6 +62,30 @@ type Config struct {
 	GitHubOrganization string `yaml:"gitHubOrganization,omitempty"`
 
 	Templates Templates `yaml:"templates,omitempty"`
+
+	ColumnWidths ColumnWidths `yaml:"columnWidths,omitempty"`
+}
+
+const (
+	DefaultNarrowColumnWidth = 20
+	DefaultNormalColumnWidth = 40
+	DefaultWideColumnWidth   = 80
+)
+
+type ColumnWidths struct {
+	Narrow int `yaml:"narrow,omitempty"`
+	Normal int `yaml:"normal,omitempty"`
+	Wide   int `yaml:"wide,omitempty"`
+}
+
+func (c ColumnWidths) Get(narrow, wide bool) int {
+	if narrow {
+		return cmp.Or(c.Narrow, DefaultNarrowColumnWidth)
+	}
+	if wide {
+		return cmp.Or(c.Wide, DefaultWideColumnWidth)
+	}
+	return cmp.Or(c.Normal, DefaultNormalColumnWidth)
 }
 
 type Templates struct {

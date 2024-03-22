@@ -59,6 +59,8 @@ type Opts struct {
 
 	// LocalOnly indicates if the promotion should only write the promotion changes to the working tree without creating a branch, commit or pull request.
 	LocalOnly bool
+
+	MaxColumnWidth int
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -119,7 +121,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		if len(opts.Releases) > 0 {
 			return list.OnlySpecificReleases(opts.Releases), nil
 		}
-		return p.PromptProvider.SelectReleases(list)
+		return p.PromptProvider.SelectReleases(list, opts.MaxColumnWidth)
 	}()
 	if err != nil {
 		return "", fmt.Errorf("selecting releases to promote: %w", err)
