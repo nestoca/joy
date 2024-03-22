@@ -1,3 +1,10 @@
+## [0.41.1](https://github.com/nestoca/joy/compare/v0.41.0...v0.41.1) (2024-03-22)
+
+
+### Bug Fixes
+
+* **PL-2574:** should not save selection to catalog config ([#132](https://github.com/nestoca/joy/issues/132)) ([5391d97](https://github.com/nestoca/joy/commit/5391d97c524c919a85a97237574dd01ef6924742))
+
 ## [0.41.0](https://github.com/nestoca/joy/compare/v0.40.0...v0.41.0) (2024-03-21)
 
 
