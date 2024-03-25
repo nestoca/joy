@@ -1,3 +1,15 @@
+## [0.42.0](https://github.com/nestoca/joy/compare/v0.41.2...v0.42.0) (2024-03-25)
+
+
+### Features
+
+* **PL-2554:** support chart refs ([1d3c9fb](https://github.com/nestoca/joy/commit/1d3c9fb4350cc5a18e33bc78e15ea59e02da57d5))
+
+
+### Bug Fixes
+
+* **PL-2554:** fix achilles heel and add a json tag ([b63a110](https://github.com/nestoca/joy/commit/b63a1108c07592e6bab5932b35a5dae710986ae2))
+
 ## [0.41.2](https://github.com/nestoca/joy/compare/v0.41.1...v0.41.2) (2024-03-25)
 
 ## [0.41.1](https://github.com/nestoca/joy/compare/v0.41.0...v0.41.1) (2024-03-22)
