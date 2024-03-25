@@ -81,8 +81,8 @@ func findEnvironmentForReleaseFile(environments []*v1alpha1.Environment, release
 	return nil
 }
 
-// getEnvironmentIndexByName returns the index of the environment with the given name or -1 if not found.
-func (r *ReleaseList) getEnvironmentIndexByName(name string) int {
+// GetEnvironmentIndexByName returns the index of the environment with the given name or -1 if not found.
+func (r *ReleaseList) GetEnvironmentIndexByName(name string) int {
 	for i, env := range r.Environments {
 		if env.Name == name {
 			return i
@@ -113,7 +113,7 @@ func (r *ReleaseList) getReleaseIndex(name string) int {
 // addRelease adds a release to given environment.
 func (r *ReleaseList) addRelease(rel *v1alpha1.Release, environment *v1alpha1.Environment) error {
 	// Find environment index
-	environmentIndex := r.getEnvironmentIndexByName(environment.Name)
+	environmentIndex := r.GetEnvironmentIndexByName(environment.Name)
 	if environmentIndex == -1 {
 		return fmt.Errorf("environment %s not found in list", environment.Name)
 	}
@@ -155,8 +155,8 @@ func (r *ReleaseList) OnlySpecificReleases(releases []string) ReleaseList {
 // GetReleasesForPromotion returns a subset of the releases in this list that are promotable,
 // with only the given source and target environments as first and second environments.
 func (r *ReleaseList) GetReleasesForPromotion(sourceEnv, targetEnv *v1alpha1.Environment) (ReleaseList, error) {
-	sourceEnvIndex := r.getEnvironmentIndexByName(sourceEnv.Name)
-	targetEnvIndex := r.getEnvironmentIndexByName(targetEnv.Name)
+	sourceEnvIndex := r.GetEnvironmentIndexByName(sourceEnv.Name)
+	targetEnvIndex := r.GetEnvironmentIndexByName(targetEnv.Name)
 	subset := MakeReleaseList([]*v1alpha1.Environment{sourceEnv, targetEnv})
 	for _, item := range r.Items {
 		// Determine source and target releases
@@ -184,7 +184,7 @@ func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.En
 	}
 
 	var invalidList []string
-	sourceEnvIndex := r.getEnvironmentIndexByName(sourceEnv.Name)
+	sourceEnvIndex := r.GetEnvironmentIndexByName(sourceEnv.Name)
 
 	for _, item := range r.Items {
 		sourceRelease := item.Releases[sourceEnvIndex]
