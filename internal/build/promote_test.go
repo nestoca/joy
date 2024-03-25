@@ -14,10 +14,12 @@ import (
 func TestPromote(t *testing.T) {
 	var writer yml.WriterMock
 
+	environments := []*v1alpha1.Environment{{}}
 	opts := Opts{
 		Catalog: &catalog.Catalog{
-			Environments: []*v1alpha1.Environment{{}},
+			Environments: environments,
 			Releases: cross.ReleaseList{
+				Environments: environments,
 				Items: []*cross.Release{
 					{
 						Releases: []*v1alpha1.Release{
