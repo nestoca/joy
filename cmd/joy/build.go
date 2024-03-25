@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/build"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -40,6 +41,7 @@ Usage: joy build promote <env> <project> <version>`,
 				Environment: env,
 				Project:     project,
 				Version:     version,
+				Writer:      yml.DiskWriter,
 			})
 		},
 	}

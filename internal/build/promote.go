@@ -28,8 +28,13 @@ func Promote(opts Opts) error {
 	}
 
 	promotionCount := 0
+	releaseIndex := opts.Catalog.Releases.GetEnvironmentIndexByName(opts.Environment)
 	for _, crossRelease := range opts.Catalog.Releases.Items {
-		release := crossRelease.Releases[0]
+		release := crossRelease.Releases[releaseIndex]
+		if release == nil {
+			// The release may not be present in the target environment
+			continue
+		}
 		if release.Spec.Project == opts.Project {
 			versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 			if err != nil {
