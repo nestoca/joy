@@ -2,8 +2,6 @@ package list
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"slices"
 	"strings"
 
@@ -30,6 +28,8 @@ type Opts struct {
 	Filter filtering.Filter
 
 	ReferenceEnvironment string
+
+	MaxColumnWidth int
 }
 
 func List(opts Opts) error {
@@ -77,7 +77,7 @@ func List(opts Opts) error {
 			style.InSyncVersion("in-sync"),
 		})
 
-		io.WriteString(os.Stdout, legend.Render()+"\n")
+		fmt.Println(legend.Render())
 	}
 
 	for _, crossRelease := range cat.Releases.Items {
@@ -91,6 +91,9 @@ func List(opts Opts) error {
 			}
 			if slices.Contains(disallowEnvIndexes, i) {
 				continue
+			}
+			if opts.MaxColumnWidth != 0 && len(displayVersion) > opts.MaxColumnWidth {
+				displayVersion = displayVersion[:opts.MaxColumnWidth-3] + "..."
 			}
 			row = append(row, displayVersion)
 		}
@@ -128,7 +131,7 @@ func List(opts Opts) error {
 		t.AppendRow(row)
 	}
 
-	io.WriteString(os.Stdout, t.Render()+"\n")
+	fmt.Println(t.Render())
 
 	return nil
 }

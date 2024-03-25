@@ -128,7 +128,7 @@ func TestPromotion(t *testing.T) {
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = targetRelease
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list *cross.ReleaseList, maxColumnWidth int) (*cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
@@ -181,7 +181,7 @@ func TestPromotion(t *testing.T) {
 
 				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/testing/test.yaml", targetEnv.Dir)
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any()).DoAndReturn(func(list *cross.ReleaseList) (*cross.ReleaseList, error) { return list, nil })
+				args.promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list *cross.ReleaseList, maxColumnWidth int) (*cross.ReleaseList, error) { return list, nil })
 				args.promptProvider.EXPECT().PrintStartPreview()
 				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)
 				args.promptProvider.EXPECT().PrintEndPreview()
