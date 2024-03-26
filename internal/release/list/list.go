@@ -69,6 +69,15 @@ func List(cat *catalog.Catalog, opts Opts) error {
 	}
 
 	for _, crossRelease := range cat.Releases.Items {
+		if opts.Filter != nil {
+			ok := slices.ContainsFunc(crossRelease.Releases, func(rel *v1alpha1.Release) bool {
+				return rel != nil && opts.Filter.Match(rel)
+			})
+			if !ok {
+				continue
+			}
+		}
+
 		var masterVersion string
 		row := table.Row{crossRelease.Name}
 
