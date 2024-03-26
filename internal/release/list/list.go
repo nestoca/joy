@@ -11,7 +11,6 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -19,10 +18,6 @@ import (
 type Opts struct {
 	// SelectedEnvs is the list of environments that were selected by user to work with.
 	SelectedEnvs []string
-
-	// Filter specifies releases to list.
-	// Optional, defaults to listing all releases.
-	Filter filtering.Filter
 
 	ReferenceEnvironment string
 

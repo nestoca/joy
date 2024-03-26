@@ -128,16 +128,19 @@ func (c *Catalog) WithReleaseFilter(filter filtering.Filter) *Catalog {
 		return c
 	}
 
-	for i, cross := range c.Releases.Items {
-		cross := shallowClone(cross)
-		cross.Releases = []*v1alpha1.Release{}
-		for j, rel := range c.Releases.Items[i].Releases {
+	releases := c.Releases.Items
+	c.Releases.Items = []*cross.Release{}
+
+	for _, cross := range releases {
+		for i, rel := range cross.Releases {
 			if rel == nil || !filter.Match(rel) {
-				cross.Releases[j] = nil
+				cross.Releases[i] = nil
 			}
-			cross.Releases[j] = rel
 		}
-		c.Releases.Items[i] = cross
+		if !slices.ContainsFunc(cross.Releases, func(rel *v1alpha1.Release) bool { return rel != nil }) {
+			continue
+		}
+		c.Releases.Items = append(c.Releases.Items, cross)
 	}
 
 	return c
