@@ -1,3 +1,10 @@
+## [0.42.5](https://github.com/nestoca/joy/compare/v0.42.4...v0.42.5) (2024-03-26)
+
+
+### Bug Fixes
+
+* **PL-2598:** better chart rendering errors ([ac592f8](https://github.com/nestoca/joy/commit/ac592f81e9c5a01596170735df0654a92ba40439))
+
 ## [0.42.4](https://github.com/nestoca/joy/compare/v0.42.3...v0.42.4) (2024-03-26)
 
 
