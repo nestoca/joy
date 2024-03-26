@@ -305,7 +305,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 							Err: cmd.ErrOrStderr(),
 							In:  cmd.InOrStdin(),
 						},
-						Helm:  helm.CLI{},
+						Helm: helm.CLI{
+							IO: internal.IoFromCommand(cmd),
+						},
 						Color: colorEnabled,
 					},
 				}, nil
