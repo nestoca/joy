@@ -1,3 +1,11 @@
+## [0.42.2](https://github.com/nestoca/joy/compare/v0.42.1...v0.42.2) (2024-03-26)
+
+
+### Bug Fixes
+
+* **PL-2584:** fix withEnvironments and build promote ([31b6b0d](https://github.com/nestoca/joy/commit/31b6b0d8156295c67031ac79114da1d0a6f11464))
+* **PL-2584:** fix withEnvironments and build promote ([2525d90](https://github.com/nestoca/joy/commit/2525d90517c82edb94986279f1ee7d3eab8e22fe))
+
 ## [0.42.1](https://github.com/nestoca/joy/compare/v0.42.0...v0.42.1) (2024-03-25)
 
 
