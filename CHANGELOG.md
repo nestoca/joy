@@ -1,3 +1,10 @@
+## [0.42.4](https://github.com/nestoca/joy/compare/v0.42.3...v0.42.4) (2024-03-26)
+
+
+### Bug Fixes
+
+* **PL-2597:** joy rel ls coloring affected by narrowed down columns ([#138](https://github.com/nestoca/joy/issues/138)) ([1718fad](https://github.com/nestoca/joy/commit/1718fadb6a41c9edccf1444a01cfaf023338bf45))
+
 ## [0.42.3](https://github.com/nestoca/joy/compare/v0.42.2...v0.42.3) (2024-03-26)
 
 
