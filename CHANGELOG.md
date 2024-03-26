@@ -1,3 +1,10 @@
+## [0.42.3](https://github.com/nestoca/joy/compare/v0.42.2...v0.42.3) (2024-03-26)
+
+
+### Bug Fixes
+
+* **PL-2584:** fix rel prom ([f1f7683](https://github.com/nestoca/joy/commit/f1f7683a5989d1e3af9a12cbdf59dae173727614))
+
 ## [0.42.2](https://github.com/nestoca/joy/compare/v0.42.1...v0.42.2) (2024-03-26)
 
 
