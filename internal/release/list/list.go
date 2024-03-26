@@ -64,51 +64,28 @@ func List(cat *catalog.Catalog, opts Opts) error {
 	}
 
 	for _, crossRelease := range cat.Releases.Items {
-		var masterVersion string
 		row := table.Row{crossRelease.Name}
 
-		for i, rel := range crossRelease.Releases {
-			displayVersion := GetReleaseDisplayVersion(rel)
+		var referenceVersion string
+		for _, rel := range crossRelease.Releases {
 			if rel != nil && rel.Environment.Name == opts.ReferenceEnvironment {
-				masterVersion = "v" + displayVersion
+				referenceVersion = GetReleaseDisplayVersion(rel)
 			}
+		}
+
+		for i, rel := range crossRelease.Releases {
 			if slices.Contains(disallowEnvIndexes, i) {
 				continue
 			}
+			displayVersion := GetReleaseDisplayVersion(rel)
+			version := displayVersion
 			if opts.MaxColumnWidth != 0 && len(displayVersion) > opts.MaxColumnWidth {
 				displayVersion = displayVersion[:opts.MaxColumnWidth-3] + "..."
 			}
-			row = append(row, displayVersion)
-		}
-
-		if useColors {
-			for i, value := range row {
-				// The first index corresponds to the name which we do not want to colorize
-				if i == 0 {
-					continue
-				}
-
-				version, _ := value.(string)
-				if version == "-" {
-					continue
-				}
-				if !strings.HasPrefix(version, "v") {
-					version = "v" + version
-				}
-
-				switch semver.Compare(version, masterVersion) {
-				case -1:
-					if semver.Prerelease(version)+semver.Build(version) != "" {
-						row[i] = style.DirtyVersion(value)
-					} else {
-						row[i] = style.BehindVersion(value)
-					}
-				case 0:
-					row[i] = style.InSyncVersion(value)
-				case 1:
-					row[i] = style.AheadVersion(value)
-				}
+			if useColors {
+				displayVersion = colorizeVersion(displayVersion, version, referenceVersion)
 			}
+			row = append(row, displayVersion)
 		}
 
 		t.AppendRow(row)
@@ -119,13 +96,44 @@ func List(cat *catalog.Catalog, opts Opts) error {
 	return nil
 }
 
+const (
+	NoReleaseVersion = "-"
+	NoVersion        = "no version"
+)
+
+func colorizeVersion(text, version, referenceVersion string) string {
+	if version == NoReleaseVersion || version == NoVersion ||
+		referenceVersion == NoReleaseVersion || referenceVersion == NoVersion {
+		return text
+	}
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
+	if !strings.HasPrefix(referenceVersion, "v") {
+		referenceVersion = "v" + referenceVersion
+	}
+
+	switch semver.Compare(version, referenceVersion) {
+	case -1:
+		if semver.Prerelease(version)+semver.Build(version) != "" {
+			return style.DirtyVersion(text)
+		} else {
+			return style.BehindVersion(text)
+		}
+	case 1:
+		return style.AheadVersion(text)
+	default:
+		return style.InSyncVersion(text)
+	}
+}
+
 func GetReleaseDisplayVersion(rel *v1alpha1.Release) string {
 	if rel == nil {
-		return "-"
+		return NoReleaseVersion
 	}
 	version := rel.Spec.Version
 	if version == "" {
-		version = "no version"
+		return NoVersion
 	}
 	return version
 }
