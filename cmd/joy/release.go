@@ -69,13 +69,12 @@ func NewReleaseListCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
-			// Filtering
-			var filter filtering.Filter
 			if releases != "" {
-				filter = filtering.NewNamePatternFilter(releases)
+				cat = cat.WithReleaseFilter(filtering.NewNamePatternFilter(releases))
 			} else if len(cfg.Releases.Selected) > 0 {
-				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
+				cat = cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
 
 			selectedEnvs := func() []string {
@@ -85,14 +84,11 @@ func NewReleaseListCmd() *cobra.Command {
 				return strings.Split(envs, ",")
 			}()
 			if owners != "" {
-				filter = filtering.NewOwnerFilter(owners)
+				cat = cat.WithReleaseFilter(filtering.NewOwnerFilter(owners))
 			}
-
-			cat := catalog.FromContext(cmd.Context())
 
 			return list.List(cat, list.Opts{
 				SelectedEnvs:         selectedEnvs,
-				Filter:               filter,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
 				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 			})
