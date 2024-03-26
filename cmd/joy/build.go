@@ -34,7 +34,7 @@ Usage: joy build promote <env> <project> <version>`,
 			project := args[1]
 			version := args[2]
 
-			cat := catalog.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context()).WithEnvironments([]string{env})
 
 			return build.Promote(build.Opts{
 				Catalog:     cat,
