@@ -160,15 +160,16 @@ func (c *Catalog) WithEnvironments(names []string) *Catalog {
 		}
 	}
 
-	for i, cross := range c.Releases.Items {
-		cross := shallowClone(cross)
+	c.Releases.Environments = c.Environments
+
+	for _, cross := range c.Releases.Items {
+		releases := cross.Releases
 		cross.Releases = []*v1alpha1.Release{}
-		for j, rel := range c.Releases.Items[i].Releases {
+		for j, rel := range releases {
 			if !slices.Contains(removedIndexes, j) {
 				cross.Releases = append(cross.Releases, rel)
 			}
 		}
-		c.Releases.Items[i] = cross
 	}
 
 	return c

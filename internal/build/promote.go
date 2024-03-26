@@ -53,6 +53,23 @@ func Promote(opts Opts) error {
 			fmt.Printf("✅ Promoted release %s to version %s\n", style.Resource(release.Name), style.Version(opts.Version))
 			promotionCount++
 		}
+
+		versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
+		if err != nil {
+			return fmt.Errorf("release %s has no version property: %w", release.Name, err)
+		}
+
+		versionNode.Value = opts.Version
+		if err := release.File.UpdateYamlFromTree(); err != nil {
+			return fmt.Errorf("updating release yaml from node tree: %w", err)
+		}
+
+		if err := opts.Writer.WriteFile(release.File); err != nil {
+			return fmt.Errorf("writing release file: %w", err)
+		}
+
+		fmt.Printf("✅ Promoted release %s to version %s\n", style.Resource(release.Name), style.Version(opts.Version))
+		promotionCount++
 	}
 
 	// Print summary
