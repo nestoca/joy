@@ -14,7 +14,7 @@ import (
 func TestPromote(t *testing.T) {
 	var writer yml.WriterMock
 
-	environments := []*v1alpha1.Environment{{}}
+	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "staging"}}}
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: environments,
@@ -24,17 +24,19 @@ func TestPromote(t *testing.T) {
 					{
 						Releases: []*v1alpha1.Release{
 							{
-								Spec: v1alpha1.ReleaseSpec{Project: "promote-build"},
-								File: makeFile(t, "{ spec: { version: 0.0.0 } }"),
+								ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "release1"},
+								Spec:            v1alpha1.ReleaseSpec{Project: "promote-build"},
+								File:            makeFile(t, "{ spec: { version: 0.0.0 } }"),
 							},
 						},
 					},
 				},
 			},
 		},
-		Writer:  &writer,
-		Project: "promote-build",
-		Version: "1.1.2",
+		Environment: "staging",
+		Writer:      &writer,
+		Project:     "promote-build",
+		Version:     "1.1.2",
 	}
 
 	require.NoError(t, Promote(opts))
@@ -44,7 +46,7 @@ func TestPromote(t *testing.T) {
 	require.Equal(t, "1.1.2", yml.FindNodeValueOrDefault(file.Tree, "spec.version", ""))
 }
 
-func TestPromoteWithInvalidVersion(t *testing.T) {
+func TestPromoteWithPrereleaseVersion(t *testing.T) {
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: []*v1alpha1.Environment{{}},
@@ -53,7 +55,7 @@ func TestPromoteWithInvalidVersion(t *testing.T) {
 		Project:     "promote-build",
 		Version:     "1.1.2-updated",
 	}
-	require.EqualError(t, Promote(opts), "cannot promote release with non-standard version to testing environment")
+	require.EqualError(t, Promote(opts), "cannot promote pre-release version to testing environment")
 }
 
 func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
