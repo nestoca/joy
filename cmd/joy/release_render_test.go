@@ -24,6 +24,9 @@ var (
 )
 
 func TestReleaseRender(t *testing.T) {
+	require.NoError(t, os.RemoveAll(testCache))
+	require.NoError(t, os.MkdirAll(testCache, 0o755))
+
 	t.Run("diff", func(t *testing.T) {
 		require.NoError(t, os.RemoveAll(testCatalogPath))
 
@@ -62,7 +65,8 @@ func TestReleaseRender(t *testing.T) {
 		var buffer bytes.Buffer
 
 		cmd := NewReleaseRenderCmd()
-		cmd.SetOutput(&buffer)
+		cmd.SetOut(&buffer)
+		cmd.SetErr(&buffer)
 		cmd.SetArgs([]string{
 			"--color=false",
 			"--env=testing",
