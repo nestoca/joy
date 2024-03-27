@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/nestoca/joy/internal/config"
@@ -11,7 +12,7 @@ import (
 
 func EnsureCleanAndUpToDateWorkingCopy(ctx context.Context) error {
 	if config.FlagsFromContext(ctx).SkipCatalogUpdate {
-		fmt.Println("ℹ️ Skipping catalog update and dirty check.")
+		_, _ = fmt.Fprintln(os.Stderr, "ℹ️ Skipping catalog update and dirty check.")
 		return nil
 	}
 
@@ -22,14 +23,14 @@ func EnsureCleanAndUpToDateWorkingCopy(ctx context.Context) error {
 		return fmt.Errorf("getting uncommitted changes: %w", err)
 	}
 	if len(changes) > 0 {
-		return fmt.Errorf("uncommitted changes detected:\n%s", style.Warning(strings.Join(changes, "\n")))
+		return fmt.Errorf("uncommitted catalog changes detected:\n%s", style.Warning(strings.Join(changes, "\n")))
 	}
 
 	const defaultBranch = "master"
 	if err = Checkout(dir, defaultBranch); err != nil {
 		return fmt.Errorf("checking out default branch: %w", err)
 	}
-	fmt.Printf("ℹ️ Catalog: checking out %s branch\n", style.Code(defaultBranch))
+	_, _ = fmt.Fprintf(os.Stderr, "ℹ️ Catalog: checking out %s branch\n", style.Code(defaultBranch))
 
 	if err = Pull(dir); err != nil {
 		return fmt.Errorf("pulling changes: %w", err)

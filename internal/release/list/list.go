@@ -1,6 +1,7 @@
 package list
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -15,85 +16,126 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-type Opts struct {
-	// SelectedEnvs is the list of environments that were selected by user to work with.
-	SelectedEnvs []string
-
+type Params struct {
+	SelectedEnvs         []string
 	ReferenceEnvironment string
-
-	MaxColumnWidth int
 }
 
-func List(cat *catalog.Catalog, opts Opts) error {
-	t := table.NewWriter()
-	t.SetStyle(table.StyleRounded)
+const (
+	UnknownStatus    = "unknown"
+	PreReleaseStatus = "pre-release"
+	BehindStatus     = "behind"
+	AheadStatus      = "ahead"
+	InSyncStatus     = "in-sync"
+)
 
-	var disallowEnvIndexes []int
-	headers := table.Row{"NAME"}
+type Release struct {
+	*v1alpha1.Release `json:",inline"`
+	DisplayVersion    string `json:"version"`
+	Status            string `json:"status"`
+	Environment       string `json:"environment"`
+}
+
+type CrossRelease struct {
+	Name     string    `json:"name"`
+	Releases []Release `json:"releases"`
+}
+
+type ReleaseList struct {
+	Environments         []string       `json:"environments"`
+	ReferenceEnvironment string         `json:"referenceEnvironment"`
+	CrossReleases        []CrossRelease `json:"crossReleases"`
+}
+
+func GetReleaseList(cat *catalog.Catalog, params Params) (ReleaseList, error) {
+	releaseList := ReleaseList{
+		ReferenceEnvironment: params.ReferenceEnvironment,
+	}
+
+	var selectedEnvIndices []int
 	for i, env := range cat.Releases.Environments {
-		if len(opts.SelectedEnvs) > 0 && !slices.Contains(opts.SelectedEnvs, env.Name) {
-			disallowEnvIndexes = append(disallowEnvIndexes, i)
+		if len(params.SelectedEnvs) > 0 && !slices.Contains(params.SelectedEnvs, env.Name) {
 			continue
 		}
-		headers = append(headers, strings.ToUpper(env.Name))
-	}
-
-	t.AppendHeader(headers)
-
-	var useColors bool
-	for _, env := range cat.Environments {
-		if env.Name == opts.ReferenceEnvironment {
-			useColors = true
-			break
-		}
-	}
-
-	if useColors {
-		legend := table.NewWriter()
-		legend.SetStyle(table.StyleRounded)
-
-		legend.AppendRow(table.Row{
-			"Legend: reference-environment: " + opts.ReferenceEnvironment,
-			style.DirtyVersion("pre-release (PR)"),
-			style.BehindVersion("behind"),
-			style.AheadVersion("ahead"),
-			style.InSyncVersion("in-sync"),
-		})
-
-		fmt.Println(legend.Render())
+		selectedEnvIndices = append(selectedEnvIndices, i)
+		releaseList.Environments = append(releaseList.Environments, env.Name)
 	}
 
 	for _, crossRelease := range cat.Releases.Items {
-		row := table.Row{crossRelease.Name}
+		outputRelease := CrossRelease{
+			Name: crossRelease.Name,
+		}
 
-		var referenceVersion string
+		referenceVersion := NoReleaseVersion
 		for _, rel := range crossRelease.Releases {
-			if rel != nil && rel.Environment.Name == opts.ReferenceEnvironment {
+			if rel != nil && rel.Environment.Name == params.ReferenceEnvironment {
 				referenceVersion = GetReleaseDisplayVersion(rel)
 			}
 		}
 
-		for i, rel := range crossRelease.Releases {
-			if slices.Contains(disallowEnvIndexes, i) {
+		for envIndex, rel := range crossRelease.Releases {
+			if !slices.Contains(selectedEnvIndices, envIndex) {
 				continue
 			}
 			displayVersion := GetReleaseDisplayVersion(rel)
-			version := displayVersion
-			if opts.MaxColumnWidth != 0 && len(displayVersion) > opts.MaxColumnWidth {
-				displayVersion = displayVersion[:opts.MaxColumnWidth-3] + "..."
-			}
-			if useColors {
-				displayVersion = colorizeVersion(displayVersion, version, referenceVersion)
-			}
-			row = append(row, displayVersion)
+
+			outputRelease.Releases = append(outputRelease.Releases, Release{
+				Release:        rel,
+				DisplayVersion: displayVersion,
+				Status:         getVersionStatus(displayVersion, referenceVersion),
+				Environment:    cat.Environments[envIndex].Name,
+			})
 		}
 
+		releaseList.CrossReleases = append(releaseList.CrossReleases, outputRelease)
+	}
+
+	return releaseList, nil
+}
+
+func FormatReleaseListAsTable(releaseList ReleaseList, referenceEnvironment string, maxColumnWidth int) string {
+	t := table.NewWriter()
+	t.SetStyle(table.StyleRounded)
+
+	headers := table.Row{"NAME"}
+	for _, env := range releaseList.Environments {
+		headers = append(headers, strings.ToUpper(env))
+	}
+	t.AppendHeader(headers)
+
+	legend := table.NewWriter()
+	legend.SetStyle(table.StyleRounded)
+	legend.AppendRow(table.Row{
+		"Reference Environment: " + referenceEnvironment,
+		style.DirtyVersion("Pre-Release (PR)"),
+		style.BehindVersion("Behind"),
+		style.AheadVersion("Ahead"),
+		style.InSyncVersion("In-Sync"),
+	})
+	fmt.Println(legend.Render())
+
+	for _, release := range releaseList.CrossReleases {
+		row := table.Row{release.Name}
+		for _, version := range release.Releases {
+			displayVersion := version.DisplayVersion
+			if maxColumnWidth != 0 && len(version.DisplayVersion) > maxColumnWidth {
+				displayVersion = displayVersion[:maxColumnWidth-3] + "..."
+			}
+			displayVersion = colorizeVersion(displayVersion, version.Status)
+			row = append(row, displayVersion)
+		}
 		t.AppendRow(row)
 	}
 
-	fmt.Println(t.Render())
+	return t.Render()
+}
 
-	return nil
+func FormatReleaseListAsJson(releaseList ReleaseList) (string, error) {
+	b, err := json.MarshalIndent(releaseList, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("marshalling output as JSON: %w", err)
+	}
+	return string(b), nil
 }
 
 const (
@@ -101,10 +143,10 @@ const (
 	NoVersion        = "no version"
 )
 
-func colorizeVersion(text, version, referenceVersion string) string {
+func getVersionStatus(version, referenceVersion string) string {
 	if version == NoReleaseVersion || version == NoVersion ||
 		referenceVersion == NoReleaseVersion || referenceVersion == NoVersion {
-		return text
+		return UnknownStatus
 	}
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
@@ -116,14 +158,29 @@ func colorizeVersion(text, version, referenceVersion string) string {
 	switch semver.Compare(version, referenceVersion) {
 	case -1:
 		if semver.Prerelease(version)+semver.Build(version) != "" {
-			return style.DirtyVersion(text)
+			return PreReleaseStatus
 		} else {
-			return style.BehindVersion(text)
+			return BehindStatus
 		}
 	case 1:
-		return style.AheadVersion(text)
+		return AheadStatus
 	default:
-		return style.InSyncVersion(text)
+		return InSyncStatus
+	}
+}
+
+func colorizeVersion(version, status string) string {
+	switch status {
+	case PreReleaseStatus:
+		return style.DirtyVersion(version)
+	case BehindStatus:
+		return style.BehindVersion(version)
+	case AheadStatus:
+		return style.AheadVersion(version)
+	case InSyncStatus:
+		return style.InSyncVersion(version)
+	default:
+		return version
 	}
 }
 
