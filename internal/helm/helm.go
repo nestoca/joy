@@ -18,7 +18,7 @@ type Puller interface {
 	Pull(context.Context, PullOptions) error
 }
 
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
+//go:generate moq -stub -out ./pull_renderer_mock.go . PullRenderer
 type PullRenderer interface {
 	Puller
 	Render(ctx context.Context, opts RenderOpts) error
