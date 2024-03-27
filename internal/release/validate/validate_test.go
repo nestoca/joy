@@ -8,7 +8,6 @@ import (
 
 	"github.com/davidmdm/x/xfs"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/helm"
@@ -22,7 +21,7 @@ func TestValidateRelease(t *testing.T) {
 		Name          string
 		Release       *v1alpha1.Release
 		ChartFS       *xfs.FSMock
-		HelmSetup     func(*helm.MockPullRenderer)
+		HelmSetup     func(*helm.PullRendererMock)
 		ExpectedErr   string
 		SkipReadCalls bool
 	}{
@@ -32,9 +31,6 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 				DirNameFunc:  func() string { return "." },
-			},
-			HelmSetup: func(mpr *helm.MockPullRenderer) {
-				mpr.EXPECT().Render(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			ExpectedErr: "",
 		},
@@ -70,8 +66,10 @@ func TestValidateRelease(t *testing.T) {
 				DirNameFunc:  func() string { return "" },
 			},
 
-			HelmSetup: func(mpr *helm.MockPullRenderer) {
-				mpr.EXPECT().Render(gomock.Any(), gomock.Any()).Return(errors.New("failed to render"))
+			HelmSetup: func(mock *helm.PullRendererMock) {
+				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) error {
+					return errors.New("failed to render")
+				}
 			},
 			ExpectedErr: "rendering chart: failed to render",
 		},
@@ -82,10 +80,11 @@ func TestValidateRelease(t *testing.T) {
 				ReadFileFunc: func(string) ([]byte, error) { return nil, os.ErrNotExist },
 				DirNameFunc:  func() string { return "" },
 			},
-			HelmSetup: func(mpr *helm.MockPullRenderer) {
-				mpr.EXPECT().Render(gomock.Any(), gomock.Any()).Return(errors.New("failed to render"))
-			},
-			ExpectedErr: "rendering chart: failed to render",
+			HelmSetup: func(mock *helm.PullRendererMock) {
+				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) error {
+					return errors.New("failed to render")
+				}
+			}, ExpectedErr: "rendering chart: failed to render",
 		},
 		{
 			Name:    "fail to read schema",
@@ -102,9 +101,6 @@ func TestValidateRelease(t *testing.T) {
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 				DirNameFunc:  func() string { return "." },
 			},
-			HelmSetup: func(mpr *helm.MockPullRenderer) {
-				mpr.EXPECT().Render(gomock.Any(), gomock.Any()).Return(nil)
-			},
 			ExpectedErr: "",
 		},
 		{
@@ -117,18 +113,15 @@ func TestValidateRelease(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mockedPullRenderer := helm.NewMockPullRenderer(ctrl)
+			mock := new(helm.PullRendererMock)
 			if tc.HelmSetup != nil {
-				tc.HelmSetup(mockedPullRenderer)
+				tc.HelmSetup(mock)
 			}
 
 			err := ValidateRelease(context.Background(), ValidateReleaseParams{
 				Release: tc.Release,
 				Chart:   &helm.ChartFS{FS: tc.ChartFS},
-				Helm:    mockedPullRenderer,
+				Helm:    mock,
 			})
 
 			if tc.SkipReadCalls {
