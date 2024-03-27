@@ -60,9 +60,11 @@ func NewReleaseCmd() *cobra.Command {
 func NewReleaseListCmd() *cobra.Command {
 	var releases, envs, owners string
 	var narrow, wide bool
+	var jsonOutput bool
 	cmd := &cobra.Command{
 		Use:     "list",
-		Aliases: []string{"ls"},
+		Aliases: []string{"ls", "l"},
+		Args:    cobra.RangeArgs(0, 1),
 		Short:   "List releases across environments",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
@@ -72,7 +74,12 @@ func NewReleaseListCmd() *cobra.Command {
 			cat := catalog.FromContext(cmd.Context())
 
 			if releases != "" {
-				cat = cat.WithReleaseFilter(filtering.NewNamePatternFilter(releases))
+				return fmt.Errorf("--releases flag no longer supported, please specify comma-delimited list of releases as first positional argument")
+			}
+
+			if len(args) > 0 {
+				releasePattern := args[0]
+				cat = cat.WithReleaseFilter(filtering.NewNamePatternFilter(releasePattern))
 			} else if len(cfg.Releases.Selected) > 0 {
 				cat = cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
@@ -87,11 +94,26 @@ func NewReleaseListCmd() *cobra.Command {
 				cat = cat.WithReleaseFilter(filtering.NewOwnerFilter(owners))
 			}
 
-			return list.List(cat, list.Opts{
+			releaseList, err := list.GetReleaseList(cat, list.Params{
 				SelectedEnvs:         selectedEnvs,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
-				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 			})
+			if err != nil {
+				return fmt.Errorf("getting release list: %w", err)
+			}
+
+			if jsonOutput {
+				output, err := list.FormatReleaseListAsJson(releaseList)
+				if err != nil {
+					return fmt.Errorf("formatting release list as JSON: %w", err)
+				}
+				fmt.Println(output)
+				return nil
+			}
+
+			output := list.FormatReleaseListAsTable(releaseList, cfg.ReferenceEnvironment, cfg.ColumnWidths.Get(narrow, wide))
+			fmt.Println(output)
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to configured selection or all)")
@@ -99,7 +121,7 @@ func NewReleaseListCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
-	cmd.MarkFlagsMutuallyExclusive("releases", "owners")
+	cmd.Flags().BoolVarP(&jsonOutput, "json", "j", false, "Output as JSON")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
 	return cmd

@@ -182,8 +182,7 @@ func PushNewBranch(dir, name string) error {
 func Pull(dir string, args ...string) error {
 	args = append([]string{"-C", dir, "pull"}, args...)
 	cmd := exec.Command("git", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
