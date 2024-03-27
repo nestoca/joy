@@ -50,20 +50,17 @@ func NewExecuteCmd() *cobra.Command {
 
 			script, err := func() (Script, error) {
 				if len(args) == 0 {
-					script, err := selectScript(scripts)
-					if err != nil {
-						return Script{}, fmt.Errorf("selecting script: %w", err)
-					}
-					return script, nil
+					return selectScript(scripts)
 				}
-
-				script, err := getScript(scripts, args[0])
-				if err != nil {
-					return Script{}, fmt.Errorf("getting script: %w", err)
-				}
-				args = args[1:]
-				return script, nil
+				return getScript(scripts, args[0])
 			}()
+			if err != nil {
+				return fmt.Errorf("getting/selecting script: %w", err)
+			}
+
+			if len(args) > 0 {
+				args = args[1:]
+			}
 
 			return execute(cfg.CatalogDir, script.Path, args)
 		},
