@@ -1,3 +1,10 @@
+## [0.43.1](https://github.com/nestoca/joy/compare/v0.43.0...v0.43.1) (2024-03-27)
+
+
+### Bug Fixes
+
+* **PL-2530:** joy extensions swallowed error ([#142](https://github.com/nestoca/joy/issues/142)) ([0a08a46](https://github.com/nestoca/joy/commit/0a08a4669f89f451957549635abddec43f07957d))
+
 ## [0.43.0](https://github.com/nestoca/joy/compare/v0.42.5...v0.43.0) (2024-03-27)
 
 
