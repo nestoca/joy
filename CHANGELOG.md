@@ -1,3 +1,10 @@
+## [0.43.0](https://github.com/nestoca/joy/compare/v0.42.5...v0.43.0) (2024-03-27)
+
+
+### Features
+
+* **PL-2530:** add joy extensions ([#141](https://github.com/nestoca/joy/issues/141)) ([8181d3b](https://github.com/nestoca/joy/commit/8181d3b4a7adf075128b1576ba4dd6cac1d1ddbb))
+
 ## [0.42.5](https://github.com/nestoca/joy/compare/v0.42.4...v0.42.5) (2024-03-26)
 
 
