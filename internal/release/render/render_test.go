@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
@@ -19,14 +18,15 @@ import (
 
 func TestRender(t *testing.T) {
 	type RenderTestParams struct {
-		Env           string
-		Release       string
-		DefaultChart  string
-		CacheDir      string
-		Catalog       *catalog.Catalog
-		IO            internal.IO
-		SetupHelmMock func(*helm.MockPullRenderer)
-		ValueMapping  *config.ValueMapping
+		Env            string
+		Release        string
+		DefaultChart   string
+		CacheDir       string
+		Catalog        *catalog.Catalog
+		IO             internal.IO
+		SetupHelmMock  func(*helm.PullRendererMock)
+		HelmAssertions func(*testing.T, *helm.PullRendererMock)
+		ValueMapping   *config.ValueMapping
 	}
 
 	var (
@@ -120,17 +120,25 @@ func TestRender(t *testing.T) {
 					},
 				},
 				CacheDir: "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				SetupHelmMock: func(mock *helm.PullRendererMock) {
+					mock.PullFunc = func(contextMoqParam context.Context, pullOptions helm.PullOptions) error {
+						return errors.New("some informative error")
+					}
+				},
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "url",
 								Name:    "name",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/url/name/v1",
-						}).
-						Return(errors.New("some informative error"))
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
 				},
 			},
 			ExpectedError: "getting release chart: pulling chart: some informative error",
@@ -164,17 +172,25 @@ func TestRender(t *testing.T) {
 				},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				SetupHelmMock: func(mock *helm.PullRendererMock) {
+					mock.PullFunc = func(contextMoqParam context.Context, pullOptions helm.PullOptions) error {
+						return errors.New("some informative error")
+					}
+				},
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "default",
 								Name:    "chart",
 								Version: "v666",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v666",
-						}).
-						Return(errors.New("some informative error"))
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
 				},
 			},
 			ExpectedError: "getting release chart: pulling chart: some informative error",
@@ -211,20 +227,24 @@ func TestRender(t *testing.T) {
 				},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
-						}).
-						Return(nil)
-
-					mpr.EXPECT().
-						Render(context.Background(), helm.RenderOpts{
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
+					require.Len(t, mock.RenderCalls(), 1)
+					require.Equal(
+						t,
+						helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
 							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
@@ -232,8 +252,9 @@ func TestRender(t *testing.T) {
 								"env":     "{{ .Environment.Name `!}}",
 								"version": "{{ .Release.Spec.Version }}",
 							},
-						}).
-						Return(nil)
+						},
+						mock.RenderCalls()[0].Opts,
+					)
 				},
 			},
 			ExpectedOut: "error hydrating values: template: :1: unterminated raw quoted string\nfallback to raw release.spec.values\n",
@@ -270,20 +291,29 @@ func TestRender(t *testing.T) {
 				},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				SetupHelmMock: func(mock *helm.PullRendererMock) {
+					mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) error {
+						return errors.New("bebop")
+					}
+				},
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
-						}).
-						Return(nil)
-
-					mpr.EXPECT().
-						Render(context.Background(), helm.RenderOpts{
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
+					require.Len(t, mock.RenderCalls(), 1)
+					require.Equal(
+						t,
+						helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
 							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
@@ -291,8 +321,9 @@ func TestRender(t *testing.T) {
 								"env":     "qa",
 								"version": "v1.2.3",
 							},
-						}).
-						Return(errors.New("bebop"))
+						},
+						mock.RenderCalls()[0].Opts,
+					)
 				},
 			},
 			ExpectedError: "rendering chart: bebop",
@@ -333,20 +364,24 @@ func TestRender(t *testing.T) {
 				}},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
-						}).
-						Return(nil)
-
-					mpr.EXPECT().
-						Render(context.Background(), helm.RenderOpts{
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
+					require.Len(t, mock.RenderCalls(), 1)
+					require.Equal(
+						t,
+						helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
 							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
@@ -356,8 +391,9 @@ func TestRender(t *testing.T) {
 								"image":       map[string]any{"tag": "v1.2.3"},
 								"annotations": map[string]any{"nesto.ca": true},
 							},
-						}).
-						Return(nil)
+						},
+						mock.RenderCalls()[0].Opts,
+					)
 				},
 			},
 		},
@@ -400,20 +436,24 @@ func TestRender(t *testing.T) {
 				},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				SetupHelmMock: func(mpr *helm.MockPullRenderer) {
-					mpr.EXPECT().
-						Pull(context.Background(), helm.PullOptions{
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.PullCalls(), 1)
+					require.Equal(
+						t,
+						helm.PullOptions{
 							Chart: helm.Chart{
 								RepoURL: "default",
 								Name:    "chart",
 								Version: "v1",
 							},
 							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
-						}).
-						Return(nil)
-
-					mpr.EXPECT().
-						Render(context.Background(), helm.RenderOpts{
+						},
+						mock.PullCalls()[0].PullOptions,
+					)
+					require.Len(t, mock.RenderCalls(), 1)
+					require.Equal(
+						t,
+						helm.RenderOpts{
 							Dst:         &stdout,
 							ReleaseName: "app",
 							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
@@ -421,8 +461,9 @@ func TestRender(t *testing.T) {
 								"env":     "qa",
 								"version": "v1.2.3",
 							},
-						}).
-						Return(nil)
+						},
+						mock.RenderCalls()[0].Opts,
+					)
 				},
 			},
 		},
@@ -438,13 +479,13 @@ func TestRender(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			stdout.Reset()
 
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			helmMock := new(helm.PullRendererMock)
 
-			helmMock := helm.NewMockPullRenderer(ctrl)
-
-			if tc.Params.SetupHelmMock != nil {
-				tc.Params.SetupHelmMock(helmMock)
+			if setup := tc.Params.SetupHelmMock; setup != nil {
+				setup(helmMock)
+			}
+			if assertions := tc.Params.HelmAssertions; assertions != nil {
+				defer assertions(t, helmMock)
 			}
 
 			err := Render(context.Background(), RenderParams{
