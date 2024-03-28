@@ -1,3 +1,10 @@
+## [0.45.0](https://github.com/nestoca/joy/compare/v0.44.0...v0.45.0) (2024-03-28)
+
+
+### Features
+
+* **PL-2605:** user-defined template variables in PR/commit templates ([75ed257](https://github.com/nestoca/joy/commit/75ed257df2a9af8efc811879dc50e143c1210d6f))
+
 ## [0.44.0](https://github.com/nestoca/joy/compare/v0.43.1...v0.44.0) (2024-03-27)
 
 
