@@ -45,7 +45,9 @@ Promote {{ len .Releases }} releases ({{ $sourceEnv }} -> {{ $targetEnv }})
 {{- range .Commits -}}
 | [github/{{ $repository }}/{{ .Sha }}]({{ .ShortSha }}) | @{{ .GitHubAuthor }} | {{ .Message }} |
 {{ end }}
-{{- end -}}`
+{{- end }}
+Variable1: {{ .Variables.variable1 }}
+`
 
 const expectedMessage = `Promote 2 releases (staging -> production)
 # Promotions
@@ -68,6 +70,8 @@ const expectedMessage = `Promote 2 releases (staging -> production)
 | --- | --- | --- |
 | [github/acme/project2/1234567890123456789012345678901234567890](1234567) | @gh-author1 | commit message 1 |
 | [github/acme/project2/4567890123456789012345678901234567890123](4567890) | @gh-author2 | commit message 2 |
+
+Variable1: value1
 `
 
 func TestRenderMessage(t *testing.T) {
@@ -143,6 +147,9 @@ func TestRenderMessage(t *testing.T) {
 				},
 				Commits: commits,
 			},
+		},
+		Variables: map[string]string{
+			"variable1": "value1",
 		},
 	}
 

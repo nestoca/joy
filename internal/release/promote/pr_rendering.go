@@ -46,6 +46,7 @@ type PromotionInfo struct {
 	SourceEnvironment *v1alpha1.Environment
 	TargetEnvironment *v1alpha1.Environment
 	Releases          []*ReleaseInfo
+	Variables         map[string]string
 	Error             error
 }
 

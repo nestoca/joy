@@ -20,6 +20,7 @@ type Promotion struct {
 	YamlWriter          yml.Writer
 	CommitTemplate      string
 	PullRequestTemplate string
+	TemplateVariables   map[string]string
 	InfoProvider        info.Provider
 	LinksProvider       links.Provider
 }
@@ -147,6 +148,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		localOnly:           opts.LocalOnly,
 		commitTemplate:      p.CommitTemplate,
 		pullRequestTemplate: p.PullRequestTemplate,
+		templateVariables:   p.TemplateVariables,
 		infoProvider:        p.InfoProvider,
 		linksProvider:       p.LinksProvider,
 	}

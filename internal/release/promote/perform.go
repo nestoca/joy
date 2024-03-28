@@ -31,6 +31,7 @@ type PerformOpts struct {
 	localOnly           bool
 	commitTemplate      string
 	pullRequestTemplate string
+	templateVariables   map[string]string
 	infoProvider        info.Provider
 	linksProvider       links.Provider
 }
@@ -47,6 +48,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	info := &PromotionInfo{
 		SourceEnvironment: sourceEnv,
 		TargetEnvironment: targetEnv,
+		Variables:         opts.templateVariables,
 	}
 
 	var promotedFiles []string
