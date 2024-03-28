@@ -32,7 +32,7 @@ type setupArgs struct {
 	t              *testing.T
 	opts           *promote.Opts
 	gitProvider    *promote.MockGitProvider
-	prProvider     *pr.MockPullRequestProvider
+	prProvider     *pr.PullRequestProviderMock
 	promptProvider *promote.MockPromptProvider
 	yamlWriter     *yml.WriterMock
 	infoProvider   *info.ProviderMock
@@ -155,7 +155,9 @@ func TestPromotion(t *testing.T) {
 
 				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-				args.prProvider.EXPECT().Create(gomock.Any()).Return("https://github.com/owner/repo/pull/123", nil)
+				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
@@ -207,7 +209,11 @@ func TestPromotion(t *testing.T) {
 
 				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-				args.prProvider.EXPECT().Create(gomock.Any()).Return("https://github.com/owner/repo/pull/123", nil)
+
+				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
+
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
@@ -226,7 +232,7 @@ func TestPromotion(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			gitProvider := promote.NewMockGitProvider(ctrl)
-			prProvider := pr.NewMockPullRequestProvider(ctrl)
+			prProvider := new(pr.PullRequestProviderMock)
 			promptProvider := promote.NewMockPromptProvider(ctrl)
 			yamlWriter := new(yml.WriterMock)
 			infoProvider := new(info.ProviderMock)
