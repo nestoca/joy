@@ -112,9 +112,6 @@ type ProviderMock struct {
 
 // GetCodeOwners calls GetCodeOwnersFunc.
 func (mock *ProviderMock) GetCodeOwners(projectDir string) ([]string, error) {
-	if mock.GetCodeOwnersFunc == nil {
-		panic("ProviderMock.GetCodeOwnersFunc: method is nil but Provider.GetCodeOwners was just called")
-	}
 	callInfo := struct {
 		ProjectDir string
 	}{
@@ -123,6 +120,13 @@ func (mock *ProviderMock) GetCodeOwners(projectDir string) ([]string, error) {
 	mock.lockGetCodeOwners.Lock()
 	mock.calls.GetCodeOwners = append(mock.calls.GetCodeOwners, callInfo)
 	mock.lockGetCodeOwners.Unlock()
+	if mock.GetCodeOwnersFunc == nil {
+		var (
+			stringsOut []string
+			errOut     error
+		)
+		return stringsOut, errOut
+	}
 	return mock.GetCodeOwnersFunc(projectDir)
 }
 
@@ -144,9 +148,6 @@ func (mock *ProviderMock) GetCodeOwnersCalls() []struct {
 
 // GetCommitsGitHubAuthors calls GetCommitsGitHubAuthorsFunc.
 func (mock *ProviderMock) GetCommitsGitHubAuthors(project *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error) {
-	if mock.GetCommitsGitHubAuthorsFunc == nil {
-		panic("ProviderMock.GetCommitsGitHubAuthorsFunc: method is nil but Provider.GetCommitsGitHubAuthors was just called")
-	}
 	callInfo := struct {
 		Project *v1alpha1.Project
 		FromTag string
@@ -159,6 +160,13 @@ func (mock *ProviderMock) GetCommitsGitHubAuthors(project *v1alpha1.Project, fro
 	mock.lockGetCommitsGitHubAuthors.Lock()
 	mock.calls.GetCommitsGitHubAuthors = append(mock.calls.GetCommitsGitHubAuthors, callInfo)
 	mock.lockGetCommitsGitHubAuthors.Unlock()
+	if mock.GetCommitsGitHubAuthorsFunc == nil {
+		var (
+			stringToStringOut map[string]string
+			errOut            error
+		)
+		return stringToStringOut, errOut
+	}
 	return mock.GetCommitsGitHubAuthorsFunc(project, fromTag, toTag)
 }
 
@@ -184,9 +192,6 @@ func (mock *ProviderMock) GetCommitsGitHubAuthorsCalls() []struct {
 
 // GetCommitsMetadata calls GetCommitsMetadataFunc.
 func (mock *ProviderMock) GetCommitsMetadata(projectDir string, fromTag string, toTag string) ([]*CommitMetadata, error) {
-	if mock.GetCommitsMetadataFunc == nil {
-		panic("ProviderMock.GetCommitsMetadataFunc: method is nil but Provider.GetCommitsMetadata was just called")
-	}
 	callInfo := struct {
 		ProjectDir string
 		FromTag    string
@@ -199,6 +204,13 @@ func (mock *ProviderMock) GetCommitsMetadata(projectDir string, fromTag string, 
 	mock.lockGetCommitsMetadata.Lock()
 	mock.calls.GetCommitsMetadata = append(mock.calls.GetCommitsMetadata, callInfo)
 	mock.lockGetCommitsMetadata.Unlock()
+	if mock.GetCommitsMetadataFunc == nil {
+		var (
+			commitMetadatasOut []*CommitMetadata
+			errOut             error
+		)
+		return commitMetadatasOut, errOut
+	}
 	return mock.GetCommitsMetadataFunc(projectDir, fromTag, toTag)
 }
 
@@ -224,9 +236,6 @@ func (mock *ProviderMock) GetCommitsMetadataCalls() []struct {
 
 // GetProjectRepository calls GetProjectRepositoryFunc.
 func (mock *ProviderMock) GetProjectRepository(project *v1alpha1.Project) string {
-	if mock.GetProjectRepositoryFunc == nil {
-		panic("ProviderMock.GetProjectRepositoryFunc: method is nil but Provider.GetProjectRepository was just called")
-	}
 	callInfo := struct {
 		Project *v1alpha1.Project
 	}{
@@ -235,6 +244,12 @@ func (mock *ProviderMock) GetProjectRepository(project *v1alpha1.Project) string
 	mock.lockGetProjectRepository.Lock()
 	mock.calls.GetProjectRepository = append(mock.calls.GetProjectRepository, callInfo)
 	mock.lockGetProjectRepository.Unlock()
+	if mock.GetProjectRepositoryFunc == nil {
+		var (
+			sOut string
+		)
+		return sOut
+	}
 	return mock.GetProjectRepositoryFunc(project)
 }
 
@@ -256,9 +271,6 @@ func (mock *ProviderMock) GetProjectRepositoryCalls() []struct {
 
 // GetProjectSourceDir calls GetProjectSourceDirFunc.
 func (mock *ProviderMock) GetProjectSourceDir(project *v1alpha1.Project) (string, error) {
-	if mock.GetProjectSourceDirFunc == nil {
-		panic("ProviderMock.GetProjectSourceDirFunc: method is nil but Provider.GetProjectSourceDir was just called")
-	}
 	callInfo := struct {
 		Project *v1alpha1.Project
 	}{
@@ -267,6 +279,13 @@ func (mock *ProviderMock) GetProjectSourceDir(project *v1alpha1.Project) (string
 	mock.lockGetProjectSourceDir.Lock()
 	mock.calls.GetProjectSourceDir = append(mock.calls.GetProjectSourceDir, callInfo)
 	mock.lockGetProjectSourceDir.Unlock()
+	if mock.GetProjectSourceDirFunc == nil {
+		var (
+			sOut   string
+			errOut error
+		)
+		return sOut, errOut
+	}
 	return mock.GetProjectSourceDirFunc(project)
 }
 
@@ -288,9 +307,6 @@ func (mock *ProviderMock) GetProjectSourceDirCalls() []struct {
 
 // GetReleaseGitTag calls GetReleaseGitTagFunc.
 func (mock *ProviderMock) GetReleaseGitTag(release *v1alpha1.Release) (string, error) {
-	if mock.GetReleaseGitTagFunc == nil {
-		panic("ProviderMock.GetReleaseGitTagFunc: method is nil but Provider.GetReleaseGitTag was just called")
-	}
 	callInfo := struct {
 		Release *v1alpha1.Release
 	}{
@@ -299,6 +315,13 @@ func (mock *ProviderMock) GetReleaseGitTag(release *v1alpha1.Release) (string, e
 	mock.lockGetReleaseGitTag.Lock()
 	mock.calls.GetReleaseGitTag = append(mock.calls.GetReleaseGitTag, callInfo)
 	mock.lockGetReleaseGitTag.Unlock()
+	if mock.GetReleaseGitTagFunc == nil {
+		var (
+			sOut   string
+			errOut error
+		)
+		return sOut, errOut
+	}
 	return mock.GetReleaseGitTagFunc(release)
 }
 
