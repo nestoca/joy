@@ -28,15 +28,27 @@ var (
 	simplePullRequestTemplate = "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})"
 )
 
-func newMockInfoProvider(ctrl *gomock.Controller) *info.MockProvider {
-	infoProvider := info.NewMockProvider(ctrl)
-	infoProvider.EXPECT().GetReleaseGitTag(gomock.Any()).Return("v1.0.0", nil).AnyTimes()
-	infoProvider.EXPECT().GetProjectRepository(gomock.Any()).Return("owner/project").AnyTimes()
-	infoProvider.EXPECT().GetProjectSourceDir(gomock.Any()).Return("/dummy/projects/project", nil).AnyTimes()
-	infoProvider.EXPECT().GetCommitsMetadata(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	infoProvider.EXPECT().GetCommitsGitHubAuthors(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	infoProvider.EXPECT().GetCodeOwners(gomock.Any()).Return([]string{"john-doe"}, nil).AnyTimes()
-	return infoProvider
+func newMockInfoProvider() *info.ProviderMock {
+	return &info.ProviderMock{
+		GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
+			return "v1.0.0", nil
+		},
+		GetProjectRepositoryFunc: func(project *v1alpha1.Project) string {
+			return "owner/project"
+		},
+		GetProjectSourceDirFunc: func(project *v1alpha1.Project) (string, error) {
+			return "/dummp/projects/project", nil
+		},
+		GetCommitsMetadataFunc: func(projectDir, fromTag, toTag string) ([]*info.CommitMetadata, error) {
+			return nil, nil
+		},
+		GetCommitsGitHubAuthorsFunc: func(project *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+			return nil, nil
+		},
+		GetCodeOwnersFunc: func(projectDir string) ([]string, error) {
+			return []string{"john-doe"}, nil
+		},
+	}
 }
 
 func newMockLinksProvider(ctrl *gomock.Controller) *links.MockProvider {
@@ -62,7 +74,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
 
-	infoProvider := newMockInfoProvider(ctrl)
+	infoProvider := newMockInfoProvider()
 	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
@@ -121,7 +133,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
 
-	infoProvider := newMockInfoProvider(ctrl)
+	infoProvider := newMockInfoProvider()
 	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
@@ -255,7 +267,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintDraftPullRequestCreated(gomock.Any())
 	promptProvider.EXPECT().PrintCompleted()
 
-	infoProvider := newMockInfoProvider(ctrl)
+	infoProvider := newMockInfoProvider()
 	linksProvider := newMockLinksProvider(ctrl)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
