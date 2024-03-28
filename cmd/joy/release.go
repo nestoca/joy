@@ -130,6 +130,7 @@ func NewReleaseListCmd() *cobra.Command {
 func NewReleasePromoteCmd() *cobra.Command {
 	var sourceEnv, targetEnv string
 	var autoMerge, draft, dryRun, localOnly, noPrompt, narrow, wide bool
+	var templateVars []string
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -174,6 +175,11 @@ func NewReleasePromoteCmd() *cobra.Command {
 				return err
 			}
 
+			templateVariables, err := parseTemplateVars(templateVars)
+			if err != nil {
+				return err
+			}
+
 			selectedEnvironments := v1alpha1.GetEnvironmentsByNames(cat.Environments, cfg.Environments.Selected)
 
 			opts := promote.Opts{
@@ -199,6 +205,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				YamlWriter:          yml.DiskWriter,
 				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
 				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
+				TemplateVariables:   templateVariables,
 				InfoProvider:        infoProvider,
 				LinksProvider:       links.NewProvider(infoProvider, cfg.Templates),
 			}).Promote(opts)
@@ -213,11 +220,24 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run (do not create PR)")
 	cmd.Flags().BoolVar(&localOnly, "local-only", false, "Similar to dry-run, but updates the release file(s) on the local filesystem only. There is no branch, commits, or PR created.")
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
+	cmd.Flags().StringSliceVar(&templateVars, "template-var", nil, "Variable to pass to PR/commit templates, in the form of key=value (flag can be specified multiple times)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
 	return cmd
+}
+
+func parseTemplateVars(templateVars []string) (map[string]string, error) {
+	vars := make(map[string]string)
+	for _, templateVar := range templateVars {
+		key, value, ok := strings.Cut(templateVar, "=")
+		if !ok {
+			return nil, fmt.Errorf("malformed template variable (expecting 'key=value' pair): %q", templateVar)
+		}
+		vars[key] = value
+	}
+	return vars, nil
 }
 
 func NewReleaseSelectCmd() *cobra.Command {
