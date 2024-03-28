@@ -35,17 +35,31 @@ type setupArgs struct {
 	prProvider     *pr.MockPullRequestProvider
 	promptProvider *promote.MockPromptProvider
 	yamlWriter     *yml.WriterMock
-	infoProvider   *info.MockProvider
+	infoProvider   *info.ProviderMock
 	linksProvider  *links.MockProvider
 }
 
-func setupDefaultMockInfoProvider(provider *info.MockProvider) {
-	provider.EXPECT().GetReleaseGitTag(gomock.Any()).Return("v1.0.0", nil).AnyTimes()
-	provider.EXPECT().GetProjectRepository(gomock.Any()).Return("owner/project").AnyTimes()
-	provider.EXPECT().GetProjectSourceDir(gomock.Any()).Return("/dummy/projects/project", nil).AnyTimes()
-	provider.EXPECT().GetCommitsMetadata(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	provider.EXPECT().GetCommitsGitHubAuthors(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	provider.EXPECT().GetCodeOwners(gomock.Any()).Return([]string{"john-doe"}, nil).AnyTimes()
+func setupDefaultMockInfoProvider(provider *info.ProviderMock) {
+	*provider = info.ProviderMock{
+		GetCodeOwnersFunc: func(projectDir string) ([]string, error) {
+			return []string{"john-doe"}, nil
+		},
+		GetCommitsGitHubAuthorsFunc: func(project *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error) {
+			return nil, nil
+		},
+		GetCommitsMetadataFunc: func(projectDir string, fromTag string, toTag string) ([]*info.CommitMetadata, error) {
+			return nil, nil
+		},
+		GetProjectRepositoryFunc: func(project *v1alpha1.Project) string {
+			return "owner/project"
+		},
+		GetProjectSourceDirFunc: func(project *v1alpha1.Project) (string, error) {
+			return "/dummy/projects/project", nil
+		},
+		GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
+			return "v1.0.0", nil
+		},
+	}
 }
 
 func setupDefaultMockLinksProvider(provider *links.MockProvider) {
@@ -215,7 +229,7 @@ func TestPromotion(t *testing.T) {
 			prProvider := pr.NewMockPullRequestProvider(ctrl)
 			promptProvider := promote.NewMockPromptProvider(ctrl)
 			yamlWriter := new(yml.WriterMock)
-			infoProvider := info.NewMockProvider(ctrl)
+			infoProvider := new(info.ProviderMock)
 			linksProvider := links.NewMockProvider(ctrl)
 
 			// Setup case-specific data and expectations

@@ -1,4 +1,3 @@
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package info
 
 import (
@@ -21,7 +20,7 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 )
 
-//go:generate moq -out ./provider_mock.go . Provider
+//go:generate moq -stub -out ./provider_mock.go . Provider
 type Provider interface {
 	GetProjectRepository(project *v1alpha1.Project) string
 	GetProjectSourceDir(project *v1alpha1.Project) (string, error)
