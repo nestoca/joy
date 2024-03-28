@@ -10,6 +10,7 @@ type CreateParams struct {
 	Draft     bool
 }
 
+//go:generate moq -stub -out ./pull_request_provider_mock.go . PullRequestProvider
 type PullRequestProvider interface {
 	// EnsureInstalledAndAuthenticated ensures the service provider is installed and authorized.
 	EnsureInstalledAndAuthenticated() error
