@@ -27,9 +27,6 @@ reports
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Mockgen-generated files
-**/mock_*.go
-
 # Go workspace file
 go.work
 

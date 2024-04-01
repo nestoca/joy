@@ -5,25 +5,20 @@ run:
 	@echo "Ex: 'go run ./cmd/joy help'"
 
 setup:
-	@go install go.uber.org/mock/mockgen@v0.3.0
-	@go install github.com/matryer/moq@v0.3.4
 	@go install mvdan.cc/gofumpt@v0.5.0
 	@go install golang.org/x/tools/cmd/goimports@v0.14.0
 	@go mod download
 
-build: generate
+build:
 	@go build -ldflags "-X main.version=manual-build-$(date +%F-%T)" -o ./out/joy ./cmd/joy
 
 vet:
 	@go vet ./...
 
-generate:
-	@go generate ./...
-
-test: generate vet
+test: vet
 	@go test -p 1 -v ./...
 
-test-cov: generate vet
+test-cov: vet
 	@mkdir -p ./reports
 	@go test -p 1 -v ./... -coverprofile ./reports/coverage.out -covermode count
 	@go tool cover -func ./reports/coverage.out
