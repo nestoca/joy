@@ -55,18 +55,16 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) { return list, nil })
-	promptProvider.EXPECT().PrintStartPreview()
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintEndPreview()
-	promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-	promptProvider.EXPECT().PrintCompleted()
+	promptProvider := new(promote.PromptProviderMock)
+	promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+		return list, nil
+	}
+	defer func() {
+		require.Len(t, promptProvider.PrintUpdatingTargetReleaseCalls(), 2)
+		for _, call := range promptProvider.PrintUpdatingTargetReleaseCalls() {
+			require.Equal(t, false, call.IsCreating)
+		}
+	}()
 
 	infoProvider := newMockInfoProvider()
 	linksProvider := new(links.ProviderMock)
@@ -114,18 +112,23 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) { return list, nil })
-	promptProvider.EXPECT().PrintStartPreview()
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintEndPreview()
-	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest(true, false).Return(true, nil)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-	promptProvider.EXPECT().PrintCompleted()
+	promptProvider := &promote.PromptProviderMock{
+		SelectReleasesFunc: func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+			return list, nil
+		},
+		ConfirmCreatingPromotionPullRequestFunc: func(autoMerge, draft bool) (bool, error) {
+			return true, nil
+		},
+	}
+	defer func() {
+		require.Len(t, promptProvider.PrintUpdatingTargetReleaseCalls(), 2)
+		for _, call := range promptProvider.PrintUpdatingTargetReleaseCalls() {
+			require.Equal(t, false, call.IsCreating)
+		}
+		require.Len(t, promptProvider.ConfirmCreatingPromotionPullRequestCalls(), 1)
+		require.Equal(t, true, promptProvider.ConfirmCreatingPromotionPullRequestCalls()[0].AutoMerge)
+		require.Equal(t, false, promptProvider.ConfirmCreatingPromotionPullRequestCalls()[0].Draft)
+	}()
 
 	infoProvider := newMockInfoProvider()
 	linksProvider := new(links.ProviderMock)
@@ -248,18 +251,23 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	promptProvider := promote.NewMockPromptProvider(ctrl)
-	promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) { return list, nil })
-	promptProvider.EXPECT().PrintStartPreview()
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintReleasePreview(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintEndPreview()
-	promptProvider.EXPECT().ConfirmCreatingPromotionPullRequest(false, true).Return(true, nil)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintUpdatingTargetRelease(gomock.Any(), gomock.Any(), gomock.Any(), false)
-	promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-	promptProvider.EXPECT().PrintDraftPullRequestCreated(gomock.Any())
-	promptProvider.EXPECT().PrintCompleted()
+	promptProvider := &promote.PromptProviderMock{
+		SelectReleasesFunc: func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+			return list, nil
+		},
+		ConfirmCreatingPromotionPullRequestFunc: func(autoMerge, draft bool) (bool, error) {
+			return true, nil
+		},
+	}
+	defer func() {
+		require.Len(t, promptProvider.PrintUpdatingTargetReleaseCalls(), 2)
+		for _, call := range promptProvider.PrintUpdatingTargetReleaseCalls() {
+			require.Equal(t, false, call.IsCreating)
+		}
+		require.Len(t, promptProvider.ConfirmCreatingPromotionPullRequestCalls(), 1)
+		require.Equal(t, false, promptProvider.ConfirmCreatingPromotionPullRequestCalls()[0].AutoMerge)
+		require.Equal(t, true, promptProvider.ConfirmCreatingPromotionPullRequestCalls()[0].Draft)
+	}()
 
 	infoProvider := newMockInfoProvider()
 	linksProvider := new(links.ProviderMock)

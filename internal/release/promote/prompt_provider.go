@@ -1,4 +1,3 @@
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package promote
 
 import (
@@ -7,6 +6,7 @@ import (
 	"github.com/nestoca/joy/internal/yml"
 )
 
+//go:generate moq -stub -out ./prompt_provider_mock.go . PromptProvider
 type PromptProvider interface {
 	// SelectSourceEnvironment prompts user to select source environment to promote from.
 	SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error)
