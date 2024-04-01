@@ -1,4 +1,3 @@
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package links
 
 import (
@@ -7,15 +6,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/nestoca/joy/internal/config"
-
-	"github.com/nestoca/joy/internal/info"
-
 	"github.com/Masterminds/sprig/v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/info"
 )
 
+//go:generate moq -stub -out ./provider_mock.go . Provider
 type Provider interface {
 	GetEnvironmentLinks(environment *v1alpha1.Environment) (map[string]string, error)
 	GetProjectLinks(project *v1alpha1.Project) (map[string]string, error)

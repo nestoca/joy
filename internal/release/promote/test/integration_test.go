@@ -51,12 +51,6 @@ func newMockInfoProvider() *info.ProviderMock {
 	}
 }
 
-func newMockLinksProvider(ctrl *gomock.Controller) *links.MockProvider {
-	linksProvider := links.NewMockProvider(ctrl)
-	linksProvider.EXPECT().GetReleaseLinks(gomock.Any()).Return(nil, nil).AnyTimes()
-	return linksProvider
-}
-
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -75,7 +69,7 @@ func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintCompleted()
 
 	infoProvider := newMockInfoProvider()
-	linksProvider := newMockLinksProvider(ctrl)
+	linksProvider := new(links.ProviderMock)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
@@ -134,7 +128,7 @@ func TestPromoteAutoMergeFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintCompleted()
 
 	infoProvider := newMockInfoProvider()
-	linksProvider := newMockLinksProvider(ctrl)
+	linksProvider := new(links.ProviderMock)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
@@ -268,7 +262,7 @@ func TestDraftPromoteFromStagingToProd(t *testing.T) {
 	promptProvider.EXPECT().PrintCompleted()
 
 	infoProvider := newMockInfoProvider()
-	linksProvider := newMockLinksProvider(ctrl)
+	linksProvider := new(links.ProviderMock)
 
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
