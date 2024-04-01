@@ -8,7 +8,7 @@ import (
 	"github.com/nestoca/joy/internal/links"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -33,7 +33,7 @@ type setupArgs struct {
 	opts           *promote.Opts
 	gitProvider    *promote.GitProviderMock
 	prProvider     *pr.PullRequestProviderMock
-	promptProvider *promote.MockPromptProvider
+	promptProvider *promote.PromptProviderMock
 	yamlWriter     *yml.WriterMock
 	infoProvider   *info.ProviderMock
 	linksProvider  *links.ProviderMock
@@ -69,7 +69,7 @@ func TestPromotion(t *testing.T) {
 	cases := []struct {
 		name                    string
 		opts                    promote.Opts
-		setup                   func(args setupArgs)
+		setup                   func(args setupArgs) func(t *testing.T)
 		commitTemplate          string
 		pullRequestTemplate     string
 		pullRequestLinkTemplate string
@@ -79,10 +79,12 @@ func TestPromotion(t *testing.T) {
 		{
 			name: "Environment dev is not promotable to staging",
 			opts: newOpts(),
-			setup: func(args setupArgs) {
+			setup: func(args setupArgs) func(t *testing.T) {
 				opts := args.opts
 				opts.SourceEnv = opts.Catalog.Environments[devEnvIndex]
 				opts.TargetEnv = opts.Catalog.Environments[stagingEnvIndex]
+
+				return func(t *testing.T) {}
 			},
 			expectedErrorMessage: "environment dev is not promotable to staging",
 			expectedPromoted:     false,
@@ -90,16 +92,21 @@ func TestPromotion(t *testing.T) {
 		{
 			name: "Identical releases considered already in sync",
 			opts: newOpts(),
-			setup: func(args setupArgs) {
-				opts := args.opts
-				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
+			setup: func(args setupArgs) func(t *testing.T) {
+				return func(t *testing.T) {
+					require.Len(t, args.promptProvider.PrintNoPromotableReleasesFoundCalls(), 1)
+					call := args.promptProvider.PrintNoPromotableReleasesFoundCalls()[0]
+					require.Equal(t, args.opts.ReleasesFiltered, call.ReleasesFiltered)
+					require.Equal(t, args.opts.SourceEnv, call.SourceEnv)
+					require.Equal(t, args.opts.TargetEnv, call.TargetEnv)
+				}
 			},
 			expectedPromoted: false,
 		},
 		{
 			name: "Equivalent releases with different locked values are considered already in sync",
 			opts: newOpts(),
-			setup: func(args setupArgs) {
+			setup: func(args setupArgs) func(t *testing.T) {
 				opts := args.opts
 				opts.Catalog.Releases.Items[0].Releases[sourceEnvIndex] = newRelease("release1", `spec:
   values:
@@ -107,14 +114,21 @@ func TestPromotion(t *testing.T) {
 				opts.Catalog.Releases.Items[0].Releases[targetEnvIndex] = newRelease("release1", `spec:
   values:
     key: !lock value2`, targetEnvName)
-				args.promptProvider.EXPECT().PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
+
+				return func(t *testing.T) {
+					require.Len(t, args.promptProvider.PrintNoPromotableReleasesFoundCalls(), 1)
+					call := args.promptProvider.PrintNoPromotableReleasesFoundCalls()[0]
+					require.Equal(t, args.opts.ReleasesFiltered, call.ReleasesFiltered)
+					require.Equal(t, args.opts.SourceEnv, call.SourceEnv)
+					require.Equal(t, args.opts.TargetEnv, call.TargetEnv)
+				}
 			},
 			expectedPromoted: false,
 		},
 		{
 			name: "Promote release1 from staging to prod",
 			opts: newOpts(),
-			setup: func(args setupArgs) {
+			setup: func(args setupArgs) func(t *testing.T) {
 				opts := args.opts
 				crossRel0 := opts.Catalog.Releases.Items[0]
 				targetEnv := opts.Catalog.Environments[targetEnvIndex]
@@ -138,25 +152,47 @@ func TestPromotion(t *testing.T) {
 				crossRel0.Releases[sourceEnvIndex] = sourceRelease
 				crossRel0.Releases[targetEnvIndex] = targetRelease
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) { return list, nil })
-				args.promptProvider.EXPECT().PrintStartPreview()
-				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, targetRelease.File, expectedPromotedFile)
-				args.promptProvider.EXPECT().PrintEndPreview()
-				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
-				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), false)
+				args.promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+					return list, nil
+				}
+				args.promptProvider.SelectCreatingPromotionPullRequestFunc = func() (string, error) {
+					return promote.Ready, nil
+				}
 
 				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
 					return nil
 				}
 
-				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
 					return "https://github.com/owner/repo/pull/123", nil
 				}
-				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-				args.promptProvider.EXPECT().PrintCompleted()
 
 				setupDefaultMockInfoProvider(args.infoProvider)
+
+				return func(t *testing.T) {
+					require.Len(t, args.promptProvider.SelectReleasesCalls(), 1)
+					require.Len(t, args.promptProvider.PrintStartPreviewCalls(), 1)
+					require.Len(t, args.promptProvider.PrintReleasePreviewCalls(), 1)
+
+					printReleasePreviewCall := args.promptProvider.PrintReleasePreviewCalls()[0]
+					require.Equal(t, targetEnv.Name, printReleasePreviewCall.TargetEnvName)
+					require.Equal(t, crossRel0.Name, printReleasePreviewCall.ReleaseName)
+					require.Equal(t, targetRelease.File, printReleasePreviewCall.ExistingTargetFile)
+					require.Equal(t, expectedPromotedFile, printReleasePreviewCall.PromotedFile)
+
+					require.Len(t, args.promptProvider.PrintEndPreviewCalls(), 1)
+					require.Len(t, args.promptProvider.SelectCreatingPromotionPullRequestCalls(), 1)
+
+					require.Len(t, args.promptProvider.PrintUpdatingTargetReleaseCalls(), 1)
+					printUpdatingCall := args.promptProvider.PrintUpdatingTargetReleaseCalls()[0]
+					require.Equal(t, targetEnv.Name, printUpdatingCall.TargetEnvName)
+					require.Equal(t, crossRel0.Name, printUpdatingCall.ReleaseName)
+					require.Equal(t, false, printUpdatingCall.IsCreating)
+
+					require.Len(t, args.promptProvider.PrintBranchCreatedCalls(), 1)
+					require.Len(t, args.promptProvider.PrintPullRequestCreatedCalls(), 1)
+					require.Len(t, args.promptProvider.PrintCompletedCalls(), 1)
+				}
 			},
 			commitTemplate:      simpleCommitTemplate,
 			pullRequestTemplate: simplePullRequestTemplate,
@@ -165,7 +201,7 @@ func TestPromotion(t *testing.T) {
 		{
 			name: "Promote release1 from staging to missing release in prod",
 			opts: newOpts(),
-			setup: func(args setupArgs) {
+			setup: func(args setupArgs) func(t *testing.T) {
 				opts := args.opts
 				crossRel0 := opts.Catalog.Releases.Items[0]
 				sourceEnv := opts.Catalog.Environments[sourceEnvIndex]
@@ -189,27 +225,47 @@ func TestPromotion(t *testing.T) {
 
 				expectedPromotedFile.Path = fmt.Sprintf("%s/releases/testing/test.yaml", targetEnv.Dir)
 
-				args.promptProvider.EXPECT().SelectReleases(gomock.Any(), gomock.Any()).DoAndReturn(func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) { return list, nil })
-				args.promptProvider.EXPECT().PrintStartPreview()
-				args.promptProvider.EXPECT().PrintReleasePreview(targetEnv.Name, crossRel0.Name, nil, expectedPromotedFile)
-				args.promptProvider.EXPECT().PrintEndPreview()
-				args.promptProvider.EXPECT().SelectCreatingPromotionPullRequest().Return(promote.Ready, nil)
-				args.promptProvider.EXPECT().PrintUpdatingTargetRelease(targetEnv.Name, crossRel0.Name, gomock.Any(), true)
+				args.promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+					return list, nil
+				}
+				args.promptProvider.SelectCreatingPromotionPullRequestFunc = func() (string, error) {
+					return promote.Ready, nil
+				}
 
 				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
 					return nil
 				}
 
-				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
-
 				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
 					return "https://github.com/owner/repo/pull/123", nil
 				}
 
-				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-				args.promptProvider.EXPECT().PrintCompleted()
-
 				setupDefaultMockInfoProvider(args.infoProvider)
+
+				return func(t *testing.T) {
+					require.Len(t, args.promptProvider.SelectReleasesCalls(), 1)
+					require.Len(t, args.promptProvider.PrintStartPreviewCalls(), 1)
+					require.Len(t, args.promptProvider.PrintReleasePreviewCalls(), 1)
+
+					printReleasePreviewCall := args.promptProvider.PrintReleasePreviewCalls()[0]
+					require.Equal(t, targetEnv.Name, printReleasePreviewCall.TargetEnvName)
+					require.Equal(t, crossRel0.Name, printReleasePreviewCall.ReleaseName)
+					require.Equal(t, (*yml.File)(nil), printReleasePreviewCall.ExistingTargetFile)
+					require.Equal(t, expectedPromotedFile, printReleasePreviewCall.PromotedFile)
+
+					require.Len(t, args.promptProvider.PrintEndPreviewCalls(), 1)
+					require.Len(t, args.promptProvider.SelectCreatingPromotionPullRequestCalls(), 1)
+
+					require.Len(t, args.promptProvider.PrintUpdatingTargetReleaseCalls(), 1)
+					printUpdatingCall := args.promptProvider.PrintUpdatingTargetReleaseCalls()[0]
+					require.Equal(t, targetEnv.Name, printUpdatingCall.TargetEnvName)
+					require.Equal(t, crossRel0.Name, printUpdatingCall.ReleaseName)
+					require.Equal(t, true, printUpdatingCall.IsCreating)
+
+					require.Len(t, args.promptProvider.PrintBranchCreatedCalls(), 1)
+					require.Len(t, args.promptProvider.PrintPullRequestCreatedCalls(), 1)
+					require.Len(t, args.promptProvider.PrintCompletedCalls(), 1)
+				}
 			},
 			commitTemplate:      simpleCommitTemplate,
 			pullRequestTemplate: simplePullRequestTemplate,
@@ -218,18 +274,15 @@ func TestPromotion(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			// Create mocks
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
 			gitProvider := new(promote.GitProviderMock)
 			prProvider := new(pr.PullRequestProviderMock)
-			promptProvider := promote.NewMockPromptProvider(ctrl)
+			promptProvider := new(promote.PromptProviderMock)
 			yamlWriter := new(yml.WriterMock)
 			infoProvider := new(info.ProviderMock)
 			linksProvider := new(links.ProviderMock)
 
 			// Setup case-specific data and expectations
-			c.setup(setupArgs{
+			defer c.setup(setupArgs{
 				t:              t,
 				opts:           &c.opts,
 				gitProvider:    gitProvider,
@@ -238,7 +291,7 @@ func TestPromotion(t *testing.T) {
 				yamlWriter:     yamlWriter,
 				infoProvider:   infoProvider,
 				linksProvider:  linksProvider,
-			})
+			})(t)
 
 			// Perform test
 			promotion := promote.Promotion{
