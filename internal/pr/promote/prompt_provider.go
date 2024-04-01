@@ -1,6 +1,6 @@
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package promote
 
+//go:generate moq -stub -out ./prompt_provider_mock.go . PromptProvider
 type PromptProvider interface {
 	// WhetherToCreateMissingPullRequest prompts user to create a pull request for current branch.
 	WhetherToCreateMissingPullRequest() (bool, error)

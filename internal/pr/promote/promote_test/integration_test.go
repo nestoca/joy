@@ -15,7 +15,6 @@ import (
 	"github.com/go-test/deep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/pr/promote"
@@ -85,11 +84,6 @@ func testPromotePRs(t *testing.T, dir string) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create mocks
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-			prompt := promote.NewMockPromptProvider(ctrl)
-
 			// Preparation and clean-up
 			require.NoError(t, git.Checkout(dir, tc.branch))
 			setExclusivePromotionLabel(t, dir, tc.branch, tc.oldLabel)
@@ -98,18 +92,35 @@ func testPromotePRs(t *testing.T, dir string) {
 			}
 			defer setExclusivePromotionLabel(t, dir, tc.branch, tc.oldLabel)
 
-			// Set expectations
-			prompt.EXPECT().WhichEnvironmentToPromoteTo(promotableEnvs, tc.oldEnv).Return(tc.newEnv, nil)
-			if len(tc.otherBranchesAutoPromotingToNewEnv) > 0 {
-				for _, otherBranch := range tc.otherBranchesAutoPromotingToNewEnv {
-					prompt.EXPECT().ConfirmDisablingPromotionOnOtherPullRequest(otherBranch, tc.newEnv).Return(true, nil)
+			prompt := &promote.PromptProviderMock{
+				WhichEnvironmentToPromoteToFunc: func(environments []string, preSelectedEnv string) (string, error) {
+					return tc.newEnv, nil
+				},
+				ConfirmDisablingPromotionOnOtherPullRequestFunc: func(branch, env string) (bool, error) {
+					return true, nil
+				},
+			}
+			defer func() {
+				require.Len(t, prompt.WhichEnvironmentToPromoteToCalls(), 1)
+				require.Equal(t, prompt.WhichEnvironmentToPromoteToCalls()[0].Environments, promotableEnvs)
+				require.Equal(t, prompt.WhichEnvironmentToPromoteToCalls()[0].PreSelectedEnv, tc.oldEnv)
+
+				require.Len(t, prompt.ConfirmDisablingPromotionOnOtherPullRequestCalls(), len(tc.otherBranchesAutoPromotingToNewEnv))
+				for _, branch := range tc.otherBranchesAutoPromotingToNewEnv {
+					require.Equal(t, branch, prompt.ConfirmDisablingPromotionOnOtherPullRequestCalls()[0].Branch)
+					require.Equal(t, tc.newEnv, prompt.ConfirmDisablingPromotionOnOtherPullRequestCalls()[0].Env, tc.newEnv)
 				}
-			}
-			if tc.newEnv != "" {
-				prompt.EXPECT().PrintPromotionConfigured(tc.branch, tc.newEnv)
-			} else {
-				prompt.EXPECT().PrintPromotionDisabled(tc.branch)
-			}
+
+				if tc.newEnv != "" {
+					require.Len(t, prompt.PrintPromotionConfiguredCalls(), 1)
+					require.Equal(t, tc.branch, prompt.PrintPromotionConfiguredCalls()[0].Branch)
+					require.Equal(t, tc.newEnv, prompt.PrintPromotionConfiguredCalls()[0].Env)
+					require.Len(t, prompt.PrintPromotionDisabledCalls(), 0)
+				} else {
+					require.Len(t, prompt.PrintPromotionDisabledCalls(), 1)
+					require.Equal(t, tc.branch, prompt.PrintPromotionDisabledCalls()[0].Branch)
+				}
+			}()
 
 			// Perform test
 			promotion := promote.NewPromotion(promote.NewGitBranchProvider(dir), github.NewPullRequestProvider(dir), prompt)
