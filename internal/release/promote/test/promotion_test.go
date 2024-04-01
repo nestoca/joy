@@ -31,7 +31,7 @@ const (
 type setupArgs struct {
 	t              *testing.T
 	opts           *promote.Opts
-	gitProvider    *promote.MockGitProvider
+	gitProvider    *promote.GitProviderMock
 	prProvider     *pr.PullRequestProviderMock
 	promptProvider *promote.MockPromptProvider
 	yamlWriter     *yml.WriterMock
@@ -153,13 +153,11 @@ func TestPromotion(t *testing.T) {
 					return nil
 				}
 
-				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
 					return "https://github.com/owner/repo/pull/123", nil
 				}
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 
 				setupDefaultMockInfoProvider(args.infoProvider)
@@ -207,7 +205,6 @@ func TestPromotion(t *testing.T) {
 					return nil
 				}
 
-				args.gitProvider.EXPECT().CreateAndPushBranchWithFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				args.promptProvider.EXPECT().PrintBranchCreated(gomock.Any(), gomock.Any())
 
 				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
@@ -215,7 +212,6 @@ func TestPromotion(t *testing.T) {
 				}
 
 				args.promptProvider.EXPECT().PrintPullRequestCreated(gomock.Any())
-				args.gitProvider.EXPECT().CheckoutMasterBranch().Return(nil)
 				args.promptProvider.EXPECT().PrintCompleted()
 
 				setupDefaultMockInfoProvider(args.infoProvider)
@@ -231,7 +227,7 @@ func TestPromotion(t *testing.T) {
 			// Create mocks
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			gitProvider := promote.NewMockGitProvider(ctrl)
+			gitProvider := new(promote.GitProviderMock)
 			prProvider := new(pr.PullRequestProviderMock)
 			promptProvider := promote.NewMockPromptProvider(ctrl)
 			yamlWriter := new(yml.WriterMock)
