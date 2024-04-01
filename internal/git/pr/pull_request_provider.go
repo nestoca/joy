@@ -1,4 +1,3 @@
-//go:generate mockgen -source=$GOFILE -destination=mock_$GOFILE -package=$GOPACKAGE
 package pr
 
 type CreateParams struct {
