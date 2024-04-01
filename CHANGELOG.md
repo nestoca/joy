@@ -1,3 +1,18 @@
+## [0.45.1](https://github.com/nestoca/joy/compare/v0.45.0...v0.45.1) (2024-04-01)
+
+
+### Bug Fixes
+
+* **PL-2557:** remove unneeded mockgen statement ([a01c2fd](https://github.com/nestoca/joy/commit/a01c2fd9e866d3d3766f8c1ed324a32e0d66e8fd))
+* **PL-2557:** replace branch provider mock ([1a91799](https://github.com/nestoca/joy/commit/1a917994eb7a95eab721d50b2bdba1f0840f4c63))
+* **PL-2557:** replace branch provider with moq ([57b1a22](https://github.com/nestoca/joy/commit/57b1a2293635e17de23685dbd4388c02707153e5))
+* **PL-2557:** use moq for chart rendering tests ([8eec7e0](https://github.com/nestoca/joy/commit/8eec7e0b365140060ebe1de872d55a79daff739a))
+* **PL-2557:** use moq for gitProvider mock ([6d88d8a](https://github.com/nestoca/joy/commit/6d88d8aa0d6c0a3469e95aed6937e685764ee38c))
+* **PL-2557:** use moq for info.Provider ([af05dd8](https://github.com/nestoca/joy/commit/af05dd888ad7a01f9dab75975797cb3258efad2a))
+* **PL-2557:** use moq for links provider mock ([7028097](https://github.com/nestoca/joy/commit/7028097b53980c4a9e018bdf866fbf3e4fff010f))
+* **PL-2557:** use moq for other promptProvider ([8c21b31](https://github.com/nestoca/joy/commit/8c21b319aff224b615e8945896a773364153ee36))
+* **PL-2557:** use moq for promptProviderMock ([afc6ed4](https://github.com/nestoca/joy/commit/afc6ed474bb82784054d4479f2b78209654f7837))
+
 ## [0.45.0](https://github.com/nestoca/joy/compare/v0.44.0...v0.45.0) (2024-03-28)
 
 
