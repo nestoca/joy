@@ -36,7 +36,7 @@ type setupArgs struct {
 	promptProvider *promote.MockPromptProvider
 	yamlWriter     *yml.WriterMock
 	infoProvider   *info.ProviderMock
-	linksProvider  *links.MockProvider
+	linksProvider  *links.ProviderMock
 }
 
 func setupDefaultMockInfoProvider(provider *info.ProviderMock) {
@@ -60,10 +60,6 @@ func setupDefaultMockInfoProvider(provider *info.ProviderMock) {
 			return "v1.0.0", nil
 		},
 	}
-}
-
-func setupDefaultMockLinksProvider(provider *links.MockProvider) {
-	provider.EXPECT().GetReleaseLinks(gomock.Any()).Return(nil, nil).AnyTimes()
 }
 
 func TestPromotion(t *testing.T) {
@@ -161,7 +157,6 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintCompleted()
 
 				setupDefaultMockInfoProvider(args.infoProvider)
-				setupDefaultMockLinksProvider(args.linksProvider)
 			},
 			commitTemplate:      simpleCommitTemplate,
 			pullRequestTemplate: simplePullRequestTemplate,
@@ -215,7 +210,6 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.EXPECT().PrintCompleted()
 
 				setupDefaultMockInfoProvider(args.infoProvider)
-				setupDefaultMockLinksProvider(args.linksProvider)
 			},
 			commitTemplate:      simpleCommitTemplate,
 			pullRequestTemplate: simplePullRequestTemplate,
@@ -232,7 +226,7 @@ func TestPromotion(t *testing.T) {
 			promptProvider := promote.NewMockPromptProvider(ctrl)
 			yamlWriter := new(yml.WriterMock)
 			infoProvider := new(info.ProviderMock)
-			linksProvider := links.NewMockProvider(ctrl)
+			linksProvider := new(links.ProviderMock)
 
 			// Setup case-specific data and expectations
 			c.setup(setupArgs{
