@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/links"
@@ -15,7 +14,7 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func NewProjectCmd() *cobra.Command {
+func NewProjectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "projects",
 		Aliases: []string{"project", "proj"},
@@ -23,14 +22,14 @@ func NewProjectCmd() *cobra.Command {
 		Long:    `Manage projects, such as listing and selecting them.`,
 		GroupID: "core",
 	}
-	cmd.AddCommand(NewProjectListCmd())
-	cmd.AddCommand(NewProjectPeopleCmd())
+	cmd.AddCommand(NewProjectListCmd(preRunConfigs))
+	cmd.AddCommand(NewProjectPeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewProjectOpenCmd())
 	cmd.AddCommand(NewProjectLinksCmd())
 	return cmd
 }
 
-func NewProjectPeopleCmd() *cobra.Command {
+func NewProjectPeopleCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "owners",
 		Short: "List people owning a project via jac cli",
@@ -49,18 +48,18 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
 			return jac.ListProjectPeople(cat, args)
 		},
 	}
+
+	preRunConfigs.PullCatalog(cmd)
+
 	return cmd
 }
 
-func NewProjectListCmd() *cobra.Command {
+func NewProjectListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List projects and their owners",
@@ -68,14 +67,12 @@ func NewProjectListCmd() *cobra.Command {
 			"ls",
 		},
 		Long: `List projects and their owners.`,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
 			return project.List(cat)
 		},
 	}
+	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }
 

@@ -36,7 +36,7 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func NewReleaseCmd() *cobra.Command {
+func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "release",
 		Aliases: []string{"releases", "rel", "r"},
@@ -44,10 +44,10 @@ func NewReleaseCmd() *cobra.Command {
 		Long:    `Manage releases, such as promoting a release in a given environment.`,
 		GroupID: "core",
 	}
-	cmd.AddCommand(NewReleaseListCmd())
-	cmd.AddCommand(NewReleasePromoteCmd())
-	cmd.AddCommand(NewReleaseSelectCmd())
-	cmd.AddCommand(NewReleasePeopleCmd())
+	cmd.AddCommand(NewReleaseListCmd(preRunConfigs))
+	cmd.AddCommand(NewReleasePromoteCmd(preRunConfigs))
+	cmd.AddCommand(NewReleaseSelectCmd(preRunConfigs))
+	cmd.AddCommand(NewReleasePeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewReleaseOpenCmd())
 	cmd.AddCommand(NewReleaseLinksCmd())
@@ -57,7 +57,7 @@ func NewReleaseCmd() *cobra.Command {
 	return cmd
 }
 
-func NewReleaseListCmd() *cobra.Command {
+func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	var releases, envs, owners string
 	var narrow, wide bool
 	var jsonOutput bool
@@ -66,9 +66,6 @@ func NewReleaseListCmd() *cobra.Command {
 		Aliases: []string{"ls", "l"},
 		Args:    cobra.RangeArgs(0, 1),
 		Short:   "List releases across environments",
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 			cat := catalog.FromContext(cmd.Context())
@@ -124,10 +121,12 @@ func NewReleaseListCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&jsonOutput, "json", "j", false, "Output as JSON")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
+	preRunConfigs.PullCatalog(cmd)
+
 	return cmd
 }
 
-func NewReleasePromoteCmd() *cobra.Command {
+func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	var sourceEnv, targetEnv string
 	var autoMerge, draft, dryRun, localOnly, noPrompt, narrow, wide bool
 	var templateVars []string
@@ -153,7 +152,7 @@ func NewReleasePromoteCmd() *cobra.Command {
 				}
 			}
 
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
@@ -225,6 +224,8 @@ func NewReleasePromoteCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
+	preRunConfigs.PullCatalog(cmd)
+
 	return cmd
 }
 
@@ -240,15 +241,12 @@ func parseTemplateVars(templateVars []string) (map[string]string, error) {
 	return vars, nil
 }
 
-func NewReleaseSelectCmd() *cobra.Command {
+func NewReleaseSelectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
 		Aliases: []string{"sel"},
 		Short:   "Select releases to include in listings and promotions",
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 			cat := catalog.FromContext(cmd.Context())
@@ -256,10 +254,13 @@ func NewReleaseSelectCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all releases (non-interactive)")
+
+	preRunConfigs.PullCatalog(cmd)
+
 	return cmd
 }
 
-func NewReleasePeopleCmd() *cobra.Command {
+func NewReleasePeopleCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "owners",
 		Short: "List people owning a release's project via jac cli",
@@ -278,14 +279,14 @@ This command requires the jac cli: https://github.com/nestoca/jac
 		},
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
 			return jac.ListReleasePeople(cat, args)
 		},
 	}
+
+	preRunConfigs.PullCatalog(cmd)
+
 	return cmd
 }
 
