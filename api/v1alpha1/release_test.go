@@ -47,9 +47,20 @@ func TestReleaseChartValidation(t *testing.T) {
 		{
 			Name: "only name",
 			Chart: v1alpha1.ReleaseChart{
+				Ref:  "r",
 				Name: "test",
 			},
 			Error: "repoUrl and name must be defined together",
+		},
+		{
+			Name: "both ref and repo at once",
+			Chart: v1alpha1.ReleaseChart{
+				Ref:     "ref",
+				RepoUrl: "repo",
+				Name:    "test",
+				Version: "v1",
+			},
+			Error: "ref and repoUrl cannot both be present",
 		},
 		{
 			Name: "repoUrl and name without version",
@@ -58,6 +69,13 @@ func TestReleaseChartValidation(t *testing.T) {
 				Name:    "test",
 			},
 			Error: "version is required when chart is not a reference",
+		},
+		{
+			Name: "version not required with file uris",
+			Chart: v1alpha1.ReleaseChart{
+				RepoUrl: "file:///test",
+				Name:    "chart",
+			},
 		},
 		{
 			Name: "invalid ref",

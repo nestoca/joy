@@ -1,0 +1,20 @@
+minVersion: v0.32.1
+
+charts:
+  generic:
+    repoUrl: northamerica-northeast1-docker.pkg.dev
+    name: nesto-ci-78a3f2e6/charts/generic
+    version: 1.16.0
+
+defaultChartRef: generic
+
+referenceEnvironment: testing
+
+valueMapping:
+  mappings:
+    image.tag: '{{ .Release.Spec.Version }}'
+    common.annotations.nesto\.ca/deployed-by: joy
+
+gitHubOrganization: nestoca
+
+defaultGitTagTemplate: api/v{{ .Release.Spec.Version }}

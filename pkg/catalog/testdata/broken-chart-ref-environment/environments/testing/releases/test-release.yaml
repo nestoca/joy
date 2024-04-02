@@ -1,0 +1,10 @@
+apiVersion: joy.nesto.ca/v1alpha1
+kind: Release
+metadata:
+  name: test-release
+spec:
+  project: testing
+  version: 0.0.1
+  chart:
+    ref: missing-ref
+  values: {}
