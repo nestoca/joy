@@ -40,9 +40,8 @@ func TestReleaseRender(t *testing.T) {
 			CatalogDir: testCatalogPath,
 			Charts: map[string]helm.Chart{
 				"generic": {
-					RepoURL: "northamerica-northeast1-docker.pkg.dev",
-					Name:    "nesto-ci-78a3f2e6/charts/generic",
-					Version: "1.16.0",
+					RepoURL: "file://./testdata/charts",
+					Name:    "base",
 				},
 			},
 			DefaultChartRef: "generic",
@@ -78,6 +77,8 @@ func TestReleaseRender(t *testing.T) {
 		err = cmd.ExecuteContext(ctx)
 		require.NoError(t, err, buffer.String())
 
+		t.Log(buffer.String())
+
 		var removals, additions []string
 		for _, line := range strings.Split(buffer.String(), "\n") {
 			if strings.HasPrefix(line, "-  ") {
@@ -88,26 +89,7 @@ func TestReleaseRender(t *testing.T) {
 			}
 		}
 
-		require.Equal(
-			t,
-			[]string{
-				"tags.datadoghq.com/version: 0.0.1",
-				"tags.datadoghq.com/version: 0.0.1",
-				`image: "gcr.io/nesto-ci-78a3f2e6/test-release/api:0.0.1"`,
-				`value: "0.0.1"`,
-			},
-			removals,
-		)
-
-		require.Equal(
-			t,
-			[]string{
-				"tags.datadoghq.com/version: 0.0.1-test-diff",
-				"tags.datadoghq.com/version: 0.0.1-test-diff",
-				`image: "gcr.io/nesto-ci-78a3f2e6/test-release/api:0.0.1-test-diff"`,
-				`value: "0.0.1-test-diff"`,
-			},
-			additions,
-		)
+		require.Equal(t, []string{`image: "fake/image:0.0.1"`}, removals)
+		require.Equal(t, []string{`image: "fake/image:0.0.1-test-diff"`}, additions)
 	})
 }

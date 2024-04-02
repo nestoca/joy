@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -30,10 +31,13 @@ type ReleaseChart struct {
 }
 
 func (chart ReleaseChart) Validate(validRefs []string) error {
+	if (chart.RepoUrl != "") && (chart.Ref != "") {
+		return fmt.Errorf("ref and repoUrl cannot both be present")
+	}
 	if (chart.RepoUrl == "") != (chart.Name == "") {
 		return fmt.Errorf("repoUrl and name must be defined together")
 	}
-	if chart.RepoUrl != "" && chart.Version == "" {
+	if chart.RepoUrl != "" && !strings.HasPrefix(chart.RepoUrl, "file://") && chart.Version == "" {
 		return fmt.Errorf("version is required when chart is not a reference")
 	}
 	if ref := chart.Ref; ref != "" && !slices.Contains(validRefs, ref) {

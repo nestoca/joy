@@ -83,6 +83,13 @@ func (cache ChartCache) GetReleaseChartFS(ctx context.Context, release *v1alpha1
 		return nil, fmt.Errorf("computing chart URL: %w", err)
 	}
 
+	if uri.Scheme == "file" {
+		return &ChartFS{
+			Chart: chart,
+			FS:    xfs.Dir(chart.RepoURL + "/" + chart.Name),
+		}, nil
+	}
+
 	versionDir := filepath.Join(cache.Root, uri.Host, uri.Path, chart.Version)
 	if err := os.MkdirAll(versionDir, 0o755); err != nil {
 		return nil, err

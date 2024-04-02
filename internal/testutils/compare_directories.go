@@ -114,7 +114,6 @@ func CompareDirectories(expectedDir, actualDir string) (FileDiffs, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
