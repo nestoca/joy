@@ -9,13 +9,12 @@ import (
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func NewEnvironmentCmd() *cobra.Command {
+func NewEnvironmentCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "environments",
 		Aliases: []string{"environment", "env"},
@@ -23,13 +22,13 @@ func NewEnvironmentCmd() *cobra.Command {
 		Long:    `Manage environments, such as listing and selecting them.`,
 		GroupID: "core",
 	}
-	cmd.AddCommand(NewEnvironmentSelectCmd())
+	cmd.AddCommand(NewEnvironmentSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewEnvironmentLinksCmd())
 	cmd.AddCommand(NewEnvironmentOpenCmd())
 	return cmd
 }
 
-func NewEnvironmentSelectCmd() *cobra.Command {
+func NewEnvironmentSelectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	allFlag := false
 	cmd := &cobra.Command{
 		Use:     "select",
@@ -38,15 +37,15 @@ func NewEnvironmentSelectCmd() *cobra.Command {
 		Long: `Choose environments to work with and to promote from and to.
 
 Only selected environments will be included in releases table columns.`,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return git.EnsureCleanAndUpToDateWorkingCopy(cmd.Context())
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 			cat := catalog.FromContext(cmd.Context())
 			return environment.ConfigureSelection(cat, cfg.FilePath, allFlag)
 		},
 	}
+
+	preRunConfigs.PullCatalog(cmd)
+
 	cmd.Flags().BoolVarP(&allFlag, "all", "a", false, "Select all environments")
 	return cmd
 }

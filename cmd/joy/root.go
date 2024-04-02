@@ -5,14 +5,28 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nestoca/survey/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 
+	"github.com/nestoca/survey/v2"
+
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/pkg/catalog"
 )
+
+type PreRunConfig struct {
+	PullCatalog bool
+}
+
+type PreRunConfigs map[*cobra.Command]PreRunConfig
+
+func (cfgs PreRunConfigs) PullCatalog(cmd *cobra.Command) {
+	cfg := cfgs[cmd]
+	cfg.PullCatalog = true
+	cfgs[cmd] = cfg
+}
 
 func NewRootCmd(version string) *cobra.Command {
 	var (
@@ -25,6 +39,8 @@ func NewRootCmd(version string) *cobra.Command {
 		versionCmd       = NewVersionCmd(version)
 	)
 
+	preRunConfigs := make(PreRunConfigs)
+
 	cmd := &cobra.Command{
 		Use:          "joy",
 		Short:        "Manages project, environment and release resources as code",
@@ -34,11 +50,25 @@ func NewRootCmd(version string) *cobra.Command {
 				return nil
 			}
 
+			if !semver.IsValid(version) {
+				var ok bool
+				prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
+				if err := survey.AskOne(prompt, &ok); err != nil {
+					return err
+				}
+				if !ok {
+					return errors.New("aborting run")
+				}
+				fmt.Println()
+			}
+
 			if cmd != diagnoseCmd && cmd != setupCmd {
 				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
 					return err
 				}
 			}
+
+			preRunConfig := preRunConfigs[cmd]
 
 			cfg, err := func() (*config.Config, error) {
 				if cfg := config.FromContext(cmd.Context()); cfg != nil {
@@ -49,6 +79,19 @@ func NewRootCmd(version string) *cobra.Command {
 				if err != nil {
 					return nil, err
 				}
+				if preRunConfig.PullCatalog {
+					if flags.SkipCatalogUpdate {
+						fmt.Println("ℹ️ Skipping catalog update.")
+					} else {
+						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
+							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
+						}
+						cfg, err = config.Load(configDir, cfg.CatalogDir)
+						if err != nil {
+							return nil, err
+						}
+					}
+				}
 
 				cmd.SetContext(config.ToContext(cmd.Context(), cfg))
 				return cfg, err
@@ -57,24 +100,10 @@ func NewRootCmd(version string) *cobra.Command {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			if !skipVersionCheck && os.Getenv("JOY_DEV_SKIP_VERSION_CHECK") != "1" {
-				if version != "(devel)" && semver.Compare(version, cfg.MinVersion) < 0 {
-					err := fmt.Errorf("current version %q is less than required minimum version %q", version, cfg.MinVersion)
-					fmt.Println("Please update joy! >> brew update && brew upgrade joy")
-					return err
-				}
-
-				if !semver.IsValid(version) {
-					var ok bool
-					prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
-					if err := survey.AskOne(prompt, &ok); err != nil {
-						return err
-					}
-					if !ok {
-						return errors.New("aborting run")
-					}
-					fmt.Println()
-				}
+			if !skipVersionCheck && os.Getenv("JOY_DEV_SKIP_VERSION_CHECK") != "1" && version != "(devel)" && semver.Compare(version, cfg.MinVersion) < 0 {
+				format := "Current version %q is less than required minimum version %q\n\n"
+				format += "Please update joy! >> brew update && brew upgrade joy"
+				return fmt.Errorf(format, version, cfg.MinVersion)
 			}
 
 			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
@@ -94,7 +123,7 @@ func NewRootCmd(version string) *cobra.Command {
 	}
 
 	cmd.PersistentFlags().BoolVar(&skipVersionCheck, "skip-version-check", false, "")
-	cmd.PersistentFlags().MarkHidden("skip-version-check")
+	_ = cmd.PersistentFlags().MarkHidden("skip-version-check")
 
 	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
 	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
@@ -103,9 +132,9 @@ func NewRootCmd(version string) *cobra.Command {
 
 	// Core commands
 	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})
-	cmd.AddCommand(NewEnvironmentCmd())
-	cmd.AddCommand(NewReleaseCmd())
-	cmd.AddCommand(NewProjectCmd())
+	cmd.AddCommand(NewEnvironmentCmd(preRunConfigs))
+	cmd.AddCommand(NewReleaseCmd(preRunConfigs))
+	cmd.AddCommand(NewProjectCmd(preRunConfigs))
 	cmd.AddCommand(NewPRCmd())
 	cmd.AddCommand(NewBuildCmd())
 

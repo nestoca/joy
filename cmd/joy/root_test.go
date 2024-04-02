@@ -27,16 +27,20 @@ func TestRootVersions(t *testing.T) {
 		ExpectedError string
 	}{
 		{
-			Name:          "less than min",
-			MinVersion:    "v1.0.0",
-			Version:       "v0.0.7",
-			ExpectedError: `current version "v0.0.7" is less than required minimum version "v1.0.0"`,
+			Name:       "less than min",
+			MinVersion: "v1.0.0",
+			Version:    "v0.0.7",
+			ExpectedError: `Current version "v0.0.7" is less than required minimum version "v1.0.0"
+
+Please update joy! >> brew update && brew upgrade joy`,
 		},
 		{
-			Name:          "prerelease",
-			MinVersion:    "v1.0.0",
-			Version:       "v1.0.0-alpha",
-			ExpectedError: `current version "v1.0.0-alpha" is less than required minimum version "v1.0.0"`,
+			Name:       "prerelease",
+			MinVersion: "v1.0.0",
+			Version:    "v1.0.0-alpha",
+			ExpectedError: `Current version "v1.0.0-alpha" is less than required minimum version "v1.0.0"
+
+Please update joy! >> brew update && brew upgrade joy`,
 		},
 		{
 			Name:       "equal to min",
