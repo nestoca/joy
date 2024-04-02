@@ -1,3 +1,10 @@
+## [0.46.0](https://github.com/nestoca/joy/compare/v0.45.1...v0.46.0) (2024-04-02)
+
+
+### Features
+
+* **PL-2563:** add e2e links tests ([#145](https://github.com/nestoca/joy/issues/145)) ([24a02bb](https://github.com/nestoca/joy/commit/24a02bb63681c561311efd7858eb91d2f9cbe615))
+
 ## [0.45.1](https://github.com/nestoca/joy/compare/v0.45.0...v0.45.1) (2024-04-01)
 
 
