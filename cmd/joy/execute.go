@@ -62,7 +62,7 @@ func NewExecuteCmd() *cobra.Command {
 				args = args[1:]
 			}
 
-			return execute(cfg.CatalogDir, script.Path, args)
+			return executeScript(cfg.CatalogDir, script.Path, args)
 		},
 	}
 
@@ -173,7 +173,7 @@ func getScript(scripts []Script, scriptName string) (Script, error) {
 	return Script{}, fmt.Errorf("script %q not found", scriptName)
 }
 
-func execute(catalogDir, scriptPath string, args []string) error {
+func executeScript(catalogDir, scriptPath string, args []string) error {
 	cmd := exec.Command(scriptPath, args...)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("JOY_CATALOG_DIR=%s", catalogDir))
 	cmd.Stdout = os.Stdout

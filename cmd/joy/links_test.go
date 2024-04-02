@@ -29,7 +29,7 @@ func newContextWithCatalogAndConfig(t *testing.T) (context.Context, error) {
 	return config.ToContext(catalog.ToContext(context.Background(), cat), cfg), nil
 }
 
-func execute(t *testing.T, cmd *cobra.Command, args ...string) string {
+func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) string {
 	ctx, err := newContextWithCatalogAndConfig(t)
 	require.NoError(t, err)
 
@@ -44,7 +44,7 @@ func execute(t *testing.T, cmd *cobra.Command, args ...string) string {
 }
 
 func TestReleaseLinks(t *testing.T) {
-	actual := execute(t, NewReleaseLinksCmd(), "--env", "staging", "my-release")
+	actual := executeLinksCommand(t, NewReleaseLinksCmd(), "--env", "staging", "my-release")
 	expected := `╭──────────────────────────────────┬───────────────────────────────────────────────────────────────────╮
 │ NAME                             │ URL                                                               │
 ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────┤
@@ -62,13 +62,13 @@ func TestReleaseLinks(t *testing.T) {
 }
 
 func TestReleaseSpecificLink(t *testing.T) {
-	actual := execute(t, NewReleaseLinksCmd(), "--env", "staging", "my-release", "actions")
+	actual := executeLinksCommand(t, NewReleaseLinksCmd(), "--env", "staging", "my-release", "actions")
 	expected := "https://github.com/acme/my-project/actions"
 	require.Equal(t, expected, actual)
 }
 
 func TestProjectLinks(t *testing.T) {
-	actual := execute(t, NewProjectLinksCmd(), "my-project")
+	actual := executeLinksCommand(t, NewProjectLinksCmd(), "my-project")
 	expected := `╭──────────────┬─────────────────────────────────────────────────────╮
 │ NAME         │ URL                                                 │
 ├──────────────┼─────────────────────────────────────────────────────┤
@@ -82,13 +82,13 @@ func TestProjectLinks(t *testing.T) {
 }
 
 func TestProjectSpecificLink(t *testing.T) {
-	actual := execute(t, NewProjectLinksCmd(), "my-project", "actions")
+	actual := executeLinksCommand(t, NewProjectLinksCmd(), "my-project", "actions")
 	expected := "https://github.com/acme/my-project/actions"
 	require.Equal(t, expected, actual)
 }
 
 func TestEnvironmentLinks(t *testing.T) {
-	actual := execute(t, NewEnvironmentLinksCmd(), "staging")
+	actual := executeLinksCommand(t, NewEnvironmentLinksCmd(), "staging")
 	expected := `╭──────┬───────────────────────────────────────────────╮
 │ NAME │ URL                                           │
 ├──────┼───────────────────────────────────────────────┤
@@ -99,7 +99,7 @@ func TestEnvironmentLinks(t *testing.T) {
 }
 
 func TestEnvironmentSpecificLink(t *testing.T) {
-	actual := execute(t, NewEnvironmentLinksCmd(), "staging", "cd")
+	actual := executeLinksCommand(t, NewEnvironmentLinksCmd(), "staging", "cd")
 	expected := "https://argo-cd.acme.com/applications/staging"
 	require.Equal(t, expected, actual)
 }
