@@ -78,6 +78,18 @@ func NewFileFromTree(filePath string, indent int, node *yaml.Node) (*File, error
 	}, nil
 }
 
+func NewFileFromObject(filePath string, indent int, obj interface{}) (*File, error) {
+	buf := &bytes.Buffer{}
+	encoder := yaml.NewEncoder(buf)
+	encoder.SetIndent(indent)
+	err := encoder.Encode(obj)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling object to yaml: %w", err)
+	}
+
+	return NewFile(filePath, buf.Bytes())
+}
+
 func cleanUpFilePath(filePath string) (string, error) {
 	absFilePath, err := filepath.Abs(filePath)
 	if err != nil {
