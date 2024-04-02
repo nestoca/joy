@@ -1,3 +1,10 @@
+## [0.46.1](https://github.com/nestoca/joy/compare/v0.46.0...v0.46.1) (2024-04-02)
+
+
+### Bug Fixes
+
+* **PL2614:** update catalog and config on catalog pull ([#147](https://github.com/nestoca/joy/issues/147)) ([e4df01a](https://github.com/nestoca/joy/commit/e4df01a6f6ad6972596d9b1bcdea9b2be6bdaa7d))
+
 ## [0.46.0](https://github.com/nestoca/joy/compare/v0.45.1...v0.46.0) (2024-04-02)
 
 
