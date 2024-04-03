@@ -62,7 +62,7 @@ func TestBuildPromote(t *testing.T) {
 			cat := tc.catalog
 			if cat == nil {
 				catalogDir = t.TempDir()
-				err := cp.Copy("test_data/build_promote/"+tc.name+"/original", catalogDir)
+				err := cp.Copy("testdata/build_promote/"+tc.name+"/original", catalogDir)
 				require.NoError(t, err)
 
 				cat, err = catalog.Load(catalogDir, nil)
@@ -99,7 +99,7 @@ func TestBuildPromote(t *testing.T) {
 
 			require.NoError(t, err, buffer.String())
 
-			diffs, err := testutils.CompareDirectories("test_data/build_promote/"+tc.name+"/expected", catalogDir)
+			diffs, err := testutils.CompareDirectories("testdata/build_promote/"+tc.name+"/expected", catalogDir)
 			require.NoError(t, err)
 			if len(diffs) > 0 {
 				t.Errorf("unexpected differences:\n%s", diffs)
