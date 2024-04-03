@@ -51,7 +51,6 @@ func Promote(opts Opts) error {
 		promotionCount++
 	}
 
-	// Print summary
 	if promotionCount == 0 {
 		return fmt.Errorf("no releases found for project %s", opts.Project)
 	}
