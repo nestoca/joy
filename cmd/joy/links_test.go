@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"path/filepath"
 	"testing"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 
 	"github.com/spf13/cobra"
 
@@ -16,21 +17,53 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func newContextWithCatalogAndConfig(t *testing.T) (context.Context, error) {
-	catalogDir, err := filepath.Abs("test_data/links_catalog")
-	require.NoError(t, err)
-
-	cfg, err := config.Load(catalogDir, catalogDir)
-	require.NoError(t, err)
-
-	cat, err := catalog.Load(catalogDir, nil)
-	require.NoError(t, err)
-
-	return config.ToContext(catalog.ToContext(context.Background(), cat), cfg), nil
-}
-
 func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) string {
-	ctx, err := newContextWithCatalogAndConfig(t)
+	cfg := config.Config{
+		GitHubOrganization: "acme",
+		Templates: config.Templates{
+			Environment: config.EnvironmentTemplates{
+				Links: map[string]string{
+					"cd": "https://argo-cd.acme.com/applications/{{ .Environment.Name }}",
+				},
+			},
+			Project: config.ProjectTemplates{
+				Links: map[string]string{
+					"repo":    "https://github.com/{{ .Repository }}",
+					"actions": "https://github.com/{{ .Repository }}/actions",
+					"pulls":   "https://github.com/{{ .Repository }}/pulls",
+				},
+			},
+			Release: config.ReleaseTemplates{
+				Links: map[string]string{
+					"tag": "https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}",
+				},
+			},
+		},
+	}
+
+	cat := newTestCatalog(t, newTestCatalogParams{
+		getProject: func(project *v1alpha1.Project) *v1alpha1.Project {
+			project.Spec.Links = map[string]string{
+				"repo":         "https://github.com/{{ .Repository }}-project-override",
+				"project-link": "acme.com/projects/{{ .Project.Name }}",
+			}
+			project.Spec.ReleaseLinks = map[string]string{
+				"project-release-link":             "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
+				"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
+			}
+			return project
+		},
+		getRelease: func(release *v1alpha1.Release) *v1alpha1.Release {
+			release.Spec.Links = map[string]string{
+				"release-link":                     "acme.com/releases/{{ .Release.Name }}",
+				"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}-release-override",
+			}
+			return release
+		},
+	})
+
+	var r error = nil
+	ctx, err := config.ToContext(catalog.ToContext(context.Background(), cat), &cfg), r
 	require.NoError(t, err)
 
 	var buffer bytes.Buffer
@@ -55,7 +88,7 @@ func TestReleaseLinks(t *testing.T) {
 │ pulls                            │ https://github.com/acme/my-project/pulls                          │
 │ release-link                     │ acme.com/releases/my-release                                      │
 │ repo                             │ https://github.com/acme/my-project-project-override               │
-│ tag                              │ https://github.com/acme/my-project/releases/tag/                  │
+│ tag                              │ https://github.com/acme/my-project/releases/tag/1.2.3             │
 ╰──────────────────────────────────┴───────────────────────────────────────────────────────────────────╯
 `
 	require.Equal(t, expected, actual)

@@ -1,9 +1,0 @@
-apiVersion: joy.nesto.ca/v1alpha1
-kind: Release
-metadata:
-  name: my-release
-spec:
-  project: my-project
-  links:
-    release-link: acme.com/releases/{{ .Release.Name }}
-    project-release-link-to-override: acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}-release-override
