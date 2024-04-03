@@ -1,3 +1,10 @@
+## [0.46.5](https://github.com/nestoca/joy/compare/v0.46.4...v0.46.5) (2024-04-03)
+
+
+### Bug Fixes
+
+* **PL-2577:** improve testing ([199d23d](https://github.com/nestoca/joy/commit/199d23d9728980b4d02a04e6424e617b5ca6b0e8))
+
 ## [0.46.4](https://github.com/nestoca/joy/compare/v0.46.3...v0.46.4) (2024-04-03)
 
 ## [0.46.3](https://github.com/nestoca/joy/compare/v0.46.2...v0.46.3) (2024-04-03)
