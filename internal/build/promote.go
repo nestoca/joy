@@ -22,7 +22,7 @@ func Promote(opts Opts) error {
 	if !opts.Catalog.Environments[0].Spec.Promotion.FromPullRequests {
 		version := "v" + opts.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
-			return fmt.Errorf("cannot promote pre-release version to %s environment", opts.Environment)
+			return fmt.Errorf("cannot promote prerelease version to %s environment", opts.Environment)
 		}
 	}
 

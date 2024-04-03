@@ -20,6 +20,7 @@ import (
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/info"
@@ -45,7 +46,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 		GroupID: "core",
 	}
 	cmd.AddCommand(NewReleaseListCmd(preRunConfigs))
-	cmd.AddCommand(NewReleasePromoteCmd(preRunConfigs))
+	cmd.AddCommand(NewReleasePromoteCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
 	cmd.AddCommand(NewReleaseSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewReleasePeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewReleaseRenderCmd())
@@ -126,23 +127,34 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	return cmd
 }
 
-func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
+type PromoteParams struct {
+	Links         links.Provider
+	Info          info.Provider
+	Git           promote.GitProvider
+	PullRequest   pr.PullRequestProvider
+	Prompt        promote.PromptProvider
+	Writer        yml.Writer
+	PreRunConfigs PreRunConfigs
+}
+
+func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	var sourceEnv, targetEnv string
 	var autoMerge, draft, dryRun, localOnly, noPrompt, narrow, wide bool
+	var all, keepPrerelease bool
+	var omit []string
 	var templateVars []string
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
 		Aliases: []string{"prom", "p"},
 		Short:   "Promote releases across environments",
-		Args:    cobra.RangeArgs(0, 1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if autoMerge && draft {
 				return fmt.Errorf("flags --auto-merge and --draft cannot be used together")
 			}
 			if noPrompt {
-				if len(args) == 0 {
-					return fmt.Errorf("releases are required when no-prompt is set")
+				if len(args) == 0 && !all {
+					return fmt.Errorf("one of releases or --all are required when no-prompt is set")
 				}
 				if sourceEnv == "" {
 					return fmt.Errorf("source environment is required when no-prompt is set")
@@ -156,13 +168,14 @@ func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
 			var filter filtering.Filter
-			if len(releases) == 0 && len(cfg.Releases.Selected) > 0 {
-				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
+			if len(releases) == 0 && !all && len(cfg.Releases.Selected) > 0 {
+				// if there is no pre-selection, ie: user did not explicity pass releases nor use the --all flag
+				// we want to limit the catalog releases to the user config defined release selection.
+				cat = cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
-
-			cat := catalog.FromContext(cmd.Context()).WithReleaseFilter(filter)
 
 			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
 			if err != nil {
@@ -181,6 +194,20 @@ func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 
 			selectedEnvironments := v1alpha1.GetEnvironmentsByNames(cat.Environments, cfg.Environments.Selected)
 
+			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+
+			promoter := promote.Promotion{
+				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
+				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
+				TemplateVariables:   templateVariables,
+				PromptProvider:      cmp.Or[promote.PromptProvider](params.Prompt, &promote.InteractivePromptProvider{}),
+				GitProvider:         cmp.Or[promote.GitProvider](params.Git, promote.NewShellGitProvider(cfg.CatalogDir)),
+				PullRequestProvider: cmp.Or[pr.PullRequestProvider](params.PullRequest, github.NewPullRequestProvider(cfg.CatalogDir)),
+				YamlWriter:          cmp.Or[yml.Writer](params.Writer, yml.DiskWriter),
+				InfoProvider:        cmp.Or(params.Info, infoProvider),
+				LinksProvider:       cmp.Or(params.Links, links.NewProvider(infoProvider, cfg.Templates)),
+			}
+
 			opts := promote.Opts{
 				Catalog:              cat,
 				SourceEnv:            sourceEnv,
@@ -189,25 +216,17 @@ func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				ReleasesFiltered:     len(releases) > 0 || filter != nil,
 				NoPrompt:             noPrompt,
 				AutoMerge:            autoMerge,
+				All:                  all,
+				Omit:                 omit,
+				KeepPrerelease:       keepPrerelease,
 				Draft:                draft,
+				SelectedEnvironments: selectedEnvironments,
 				DryRun:               dryRun,
 				LocalOnly:            localOnly,
-				SelectedEnvironments: selectedEnvironments,
 				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 			}
 
-			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
-			_, err = (&promote.Promotion{
-				PromptProvider:      &promote.InteractivePromptProvider{},
-				GitProvider:         promote.NewShellGitProvider(cfg.CatalogDir),
-				PullRequestProvider: github.NewPullRequestProvider(cfg.CatalogDir),
-				YamlWriter:          yml.DiskWriter,
-				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
-				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
-				TemplateVariables:   templateVariables,
-				InfoProvider:        infoProvider,
-				LinksProvider:       links.NewProvider(infoProvider, cfg.Templates),
-			}).Promote(opts)
+			_, err = promoter.Promote(opts)
 			return err
 		},
 	}
@@ -222,9 +241,12 @@ func NewReleasePromoteCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.Flags().StringSliceVar(&templateVars, "template-var", nil, "Variable to pass to PR/commit templates, in the form of key=value (flag can be specified multiple times)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
+	cmd.Flags().BoolVar(&all, "all", false, "Select all releases")
+	cmd.Flags().BoolVar(&keepPrerelease, "keep-prerelease", false, "Do not promote releases that are prereleases in target env")
+	cmd.Flags().StringSliceVar(&omit, "omit", nil, "Releases to omit from promotion")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
-	preRunConfigs.PullCatalog(cmd)
+	params.PreRunConfigs.PullCatalog(cmd)
 
 	return cmd
 }

@@ -47,6 +47,15 @@ type Opts struct {
 	// AutoMerge indicates if PR created needs the auto-merge label
 	AutoMerge bool
 
+	// All tells the promotion to select all available releases
+	All bool
+
+	// Omit is the list of releases to be omitted from selection, useful for combining with all
+	Omit []string
+
+	// KeepPrerelease indicates that prereleases in target environments must not be promoted to
+	KeepPrerelease bool
+
 	// Draft indicates if PR created needs to be draft
 	Draft bool
 
@@ -111,19 +120,33 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return "", fmt.Errorf("getting releases for promotion: %w", err)
 	}
 
-	if !list.HasAnyPromotableReleases() {
-		p.PromptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
-		return "", nil
-	}
-
 	selectedList, err := func() (cross.ReleaseList, error) {
+		if opts.All {
+			return list, nil
+		}
 		if len(opts.Releases) > 0 {
-			return list.OnlySpecificReleases(opts.Releases), nil
+			return list.OnlySpecificReleases(opts.Releases)
 		}
 		return p.PromptProvider.SelectReleases(list, opts.MaxColumnWidth)
 	}()
 	if err != nil {
 		return "", fmt.Errorf("selecting releases to promote: %w", err)
+	}
+
+	selectedList, err = selectedList.RemoveReleasesByName(opts.Omit)
+	if err != nil {
+		return "", fmt.Errorf("omitting releases: %w", err)
+	}
+
+	if opts.KeepPrerelease {
+		selectedList = selectedList.Filter(func(release *cross.Release) bool {
+			return len(release.Releases) != 2 || release.Releases[1] == nil || !IsPrerelease(release.Releases[1])
+		})
+	}
+
+	if !list.HasAnyPromotableReleases() {
+		p.PromptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
+		return "", nil
 	}
 
 	invalidList := selectedList.GetNonPromotableReleases(opts.SourceEnv, opts.TargetEnv)

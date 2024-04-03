@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davidmdm/x/xerr"
 	"github.com/nestoca/joy/internal/references"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -141,15 +142,49 @@ func (r *ReleaseList) SortedCrossReleases() []*Release {
 	return releases
 }
 
-// OnlySpecificReleases returns a subset of the releases in this list that match the given names.
-func (r *ReleaseList) OnlySpecificReleases(releases []string) ReleaseList {
+func (r *ReleaseList) Filter(fn func(release *Release) bool) ReleaseList {
 	subset := MakeReleaseList(r.Environments)
 	for _, item := range r.Items {
-		if slices.Contains(releases, item.Name) {
+		if fn(item) {
 			subset.Items = append(subset.Items, item)
 		}
 	}
 	return subset
+}
+
+func (r *ReleaseList) expectReleases(releases []string) error {
+	var errs []error
+	for _, release := range releases {
+		if r.getReleaseIndex(release) == -1 {
+			errs = append(errs, errors.New(release))
+		}
+	}
+	return xerr.MultiErrOrderedFrom("release(s) not found", errs...)
+}
+
+// OnlySpecificReleases returns a subset of the releases in this list that match the given names.
+func (r *ReleaseList) OnlySpecificReleases(releases []string) (ReleaseList, error) {
+	if err := r.expectReleases(releases); err != nil {
+		return ReleaseList{}, err
+	}
+
+	cond := func(release *Release) bool {
+		return slices.Contains(releases, release.Name)
+	}
+
+	return r.Filter(cond), nil
+}
+
+func (r *ReleaseList) RemoveReleasesByName(releases []string) (ReleaseList, error) {
+	if err := r.expectReleases(releases); err != nil {
+		return ReleaseList{}, err
+	}
+
+	cond := func(release *Release) bool {
+		return !slices.Contains(releases, release.Name)
+	}
+
+	return r.Filter(cond), nil
 }
 
 // GetReleasesForPromotion returns a subset of the releases in this list that are promotable,
