@@ -30,13 +30,13 @@ func TestBuildPromote(t *testing.T) {
 		{
 			name:          "disallowed_pre_release",
 			version:       "2.3.4-rc1",
-			catalog:       createCatalog(t, createParams{}),
+			catalog:       newTestCatalog(t, newTestCatalogParams{}),
 			expectedError: "cannot promote pre-release version to staging environment",
 		},
 		{
 			name:    "project_without_release",
 			version: "2.3.4",
-			catalog: createCatalog(t, createParams{
+			catalog: newTestCatalog(t, newTestCatalogParams{
 				getRelease: func(_ *v1alpha1.Release) *v1alpha1.Release {
 					return nil
 				},
@@ -46,7 +46,7 @@ func TestBuildPromote(t *testing.T) {
 		{
 			name:    "release_without_version",
 			version: "2.3.4",
-			catalog: createCatalog(t, createParams{
+			catalog: newTestCatalog(t, newTestCatalogParams{
 				getRelease: func(release *v1alpha1.Release) *v1alpha1.Release {
 					release.Spec.Version = ""
 					return release
@@ -108,17 +108,21 @@ func TestBuildPromote(t *testing.T) {
 	}
 }
 
-type createParams struct {
+type newTestCatalogParams struct {
 	getEnvironment func(*v1alpha1.Environment) *v1alpha1.Environment
+	getProject     func(*v1alpha1.Project) *v1alpha1.Project
 	getRelease     func(*v1alpha1.Release) *v1alpha1.Release
 }
 
-func createCatalog(t *testing.T, params createParams) *catalog.Catalog {
+func newTestCatalog(t *testing.T, params newTestCatalogParams) *catalog.Catalog {
 	var cat catalog.Catalog
 	project := &v1alpha1.Project{
 		ProjectMetadata: v1alpha1.ProjectMetadata{
 			Name: "my-project",
 		},
+	}
+	if params.getProject != nil {
+		project = params.getProject(project)
 	}
 	cat.Projects = []*v1alpha1.Project{project}
 
@@ -156,6 +160,7 @@ func createCatalog(t *testing.T, params createParams) *catalog.Catalog {
 			Environments: cat.Environments,
 			Items: []*cross.Release{
 				{
+					Name: release.Name,
 					Releases: []*v1alpha1.Release{
 						release,
 					},
