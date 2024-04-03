@@ -64,7 +64,7 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	if !params.Release.Environment.Spec.Promotion.FromPullRequests {
 		version := "v" + params.Release.Spec.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
-			return fmt.Errorf("invalid version: pre-release branches not allowed: %s", params.Release.Spec.Version)
+			return fmt.Errorf("invalid version: prerelease branches not allowed: %s", params.Release.Spec.Version)
 		}
 	}
 

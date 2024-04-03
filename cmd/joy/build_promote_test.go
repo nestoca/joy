@@ -31,7 +31,7 @@ func TestBuildPromote(t *testing.T) {
 			name:          "disallowed_pre_release",
 			version:       "2.3.4-rc1",
 			catalog:       newTestCatalog(t, newTestCatalogParams{}),
-			expectedError: "cannot promote pre-release version to staging environment",
+			expectedError: "cannot promote prerelease version to staging environment",
 		},
 		{
 			name:    "project_without_release",

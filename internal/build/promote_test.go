@@ -55,7 +55,7 @@ func TestPromoteWithPrereleaseVersion(t *testing.T) {
 		Project:     "promote-build",
 		Version:     "1.1.2-updated",
 	}
-	require.EqualError(t, Promote(opts), "cannot promote pre-release version to testing environment")
+	require.EqualError(t, Promote(opts), "cannot promote prerelease version to testing environment")
 }
 
 func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {

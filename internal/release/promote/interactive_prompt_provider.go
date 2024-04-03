@@ -121,7 +121,7 @@ func (i *InteractivePromptProvider) SelectReleases(list cross.ReleaseList, maxCo
 	for _, index := range selectedIndices {
 		selectedReleaseNames = append(selectedReleaseNames, list.Items[index].Name)
 	}
-	return list.OnlySpecificReleases(selectedReleaseNames), nil
+	return list.OnlySpecificReleases(selectedReleaseNames)
 }
 
 func inSyncDisplayReleaseVersion(crossRel *cross.Release, maxColumnWidth int) string {

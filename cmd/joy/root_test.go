@@ -62,7 +62,7 @@ Please update joy! >> brew update && brew upgrade joy`,
 			})
 
 			cmd := NewRootCmd(tc.Version)
-			cmd.SetArgs([]string{"version"})
+			cmd.SetArgs([]string{"version", "--skip-dev-check"})
 
 			var buffer bytes.Buffer
 			cmd.SetOut(&buffer)

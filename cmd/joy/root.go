@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/TwiN/go-color"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 
@@ -33,6 +34,7 @@ func NewRootCmd(version string) *cobra.Command {
 		configDir        string
 		catalogDir       string
 		skipVersionCheck bool
+		skipDevCheck     bool
 		flags            config.GlobalFlags
 		setupCmd         = NewSetupCmd(version, &configDir, &catalogDir)
 		diagnoseCmd      = NewDiagnoseCmd(version)
@@ -50,9 +52,9 @@ func NewRootCmd(version string) *cobra.Command {
 				return nil
 			}
 
-			if !semver.IsValid(version) {
+			if !skipDevCheck && (!semver.IsValid(version) || semver.Prerelease(version) != "") {
 				var ok bool
-				prompt := &survey.Confirm{Message: "You are running joy on a development build. Do you wish to continue?"}
+				prompt := &survey.Confirm{Message: fmt.Sprintf("You are running joy on a development build: %s\n\nDo you wish to continue?", color.InYellow(version))}
 				if err := survey.AskOne(prompt, &ok); err != nil {
 					return err
 				}
@@ -124,6 +126,9 @@ func NewRootCmd(version string) *cobra.Command {
 
 	cmd.PersistentFlags().BoolVar(&skipVersionCheck, "skip-version-check", false, "")
 	_ = cmd.PersistentFlags().MarkHidden("skip-version-check")
+
+	cmd.PersistentFlags().BoolVar(&skipDevCheck, "skip-dev-check", false, "")
+	_ = cmd.PersistentFlags().MarkHidden("skip-dev-check")
 
 	cmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "Directory containing .joyrc config file (defaults to $HOME)")
 	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")

@@ -107,7 +107,7 @@ func TestValidateRelease(t *testing.T) {
 			Name:          "non-standard version with disallow promotion from pull requests",
 			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "1.0.0-rc.1+build.1"}, Environment: &disallowPullRequest},
 			SkipReadCalls: true,
-			ExpectedErr:   "invalid version: pre-release branches not allowed: 1.0.0-rc.1+build.1",
+			ExpectedErr:   "invalid version: prerelease branches not allowed: 1.0.0-rc.1+build.1",
 		},
 	}
 

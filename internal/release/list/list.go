@@ -23,7 +23,7 @@ type Params struct {
 
 const (
 	UnknownStatus    = "unknown"
-	PreReleaseStatus = "pre-release"
+	PrereleaseStatus = "prerelease"
 	BehindStatus     = "behind"
 	AheadStatus      = "ahead"
 	InSyncStatus     = "in-sync"
@@ -158,7 +158,7 @@ func getVersionStatus(version, referenceVersion string) string {
 	switch semver.Compare(version, referenceVersion) {
 	case -1:
 		if semver.Prerelease(version)+semver.Build(version) != "" {
-			return PreReleaseStatus
+			return PrereleaseStatus
 		} else {
 			return BehindStatus
 		}
@@ -171,7 +171,7 @@ func getVersionStatus(version, referenceVersion string) string {
 
 func colorizeVersion(version, status string) string {
 	switch status {
-	case PreReleaseStatus:
+	case PrereleaseStatus:
 		return style.DirtyVersion(version)
 	case BehindStatus:
 		return style.BehindVersion(version)
