@@ -26,10 +26,8 @@ type ProjectSpec struct {
 	// It can be any string that uniquely identifies the owners, such as email addresses or Jac group identifiers.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 
-	// CodeOwners is the list of GitHub Code Owners of the project.
-	// This gets added to the CODEOWNERS file from the repository.
-	// Unlike Owners above which are based on Jac, they are GitHub usernames or teams.
-	CodeOwners []string `yaml:"codeOwners,omitempty" json:"codeOwners,omitempty"`
+	// Reviewers is the list of GitHub users who should always added a reviewer for the project.
+	Reviewers []string `yaml:"reviewers,omitempty" json:"reviewers,omitempty"`
 
 	// Git repository of the project.
 	Repository string `yaml:"repository,omitempty" json:"repository,omitempty"`

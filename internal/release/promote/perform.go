@@ -185,14 +185,14 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 func getReviewers(info *PromotionInfo) []string {
 	uniqueAuthors := make(map[string]bool)
 	for _, release := range info.Releases {
-		for _, owner := range release.CodeOwners {
+		for _, owner := range release.Reviewers {
 			uniqueAuthors[owner] = true
 		}
 
 		// releaseInfo.Project may be nil if an error was encountered.
 		// therefore we need to check if the project exists before dereferencing it
 		if release.Project != nil {
-			for _, owner := range release.Project.Spec.CodeOwners {
+			for _, owner := range release.Project.Spec.Reviewers {
 				uniqueAuthors[owner] = true
 			}
 		}

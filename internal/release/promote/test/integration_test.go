@@ -45,9 +45,6 @@ func newMockInfoProvider() *info.ProviderMock {
 		GetCommitsGitHubAuthorsFunc: func(project *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
 			return nil, nil
 		},
-		GetCodeOwnersFunc: func(projectDir string) ([]string, error) {
-			return []string{"john-doe"}, nil
-		},
 	}
 }
 

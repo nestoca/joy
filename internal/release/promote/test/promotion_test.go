@@ -41,9 +41,6 @@ type setupArgs struct {
 
 func setupDefaultMockInfoProvider(provider *info.ProviderMock) {
 	*provider = info.ProviderMock{
-		GetCodeOwnersFunc: func(projectDir string) ([]string, error) {
-			return []string{"john-doe"}, nil
-		},
 		GetCommitsGitHubAuthorsFunc: func(project *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error) {
 			return nil, nil
 		},

@@ -18,9 +18,6 @@ var _ Provider = &ProviderMock{}
 //
 //		// make and configure a mocked Provider
 //		mockedProvider := &ProviderMock{
-//			GetCodeOwnersFunc: func(projectDir string) ([]string, error) {
-//				panic("mock out the GetCodeOwners method")
-//			},
 //			GetCommitsGitHubAuthorsFunc: func(project *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error) {
 //				panic("mock out the GetCommitsGitHubAuthors method")
 //			},
@@ -43,9 +40,6 @@ var _ Provider = &ProviderMock{}
 //
 //	}
 type ProviderMock struct {
-	// GetCodeOwnersFunc mocks the GetCodeOwners method.
-	GetCodeOwnersFunc func(projectDir string) ([]string, error)
-
 	// GetCommitsGitHubAuthorsFunc mocks the GetCommitsGitHubAuthors method.
 	GetCommitsGitHubAuthorsFunc func(project *v1alpha1.Project, fromTag string, toTag string) (map[string]string, error)
 
@@ -63,11 +57,6 @@ type ProviderMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// GetCodeOwners holds details about calls to the GetCodeOwners method.
-		GetCodeOwners []struct {
-			// ProjectDir is the projectDir argument value.
-			ProjectDir string
-		}
 		// GetCommitsGitHubAuthors holds details about calls to the GetCommitsGitHubAuthors method.
 		GetCommitsGitHubAuthors []struct {
 			// Project is the project argument value.
@@ -102,48 +91,11 @@ type ProviderMock struct {
 			Release *v1alpha1.Release
 		}
 	}
-	lockGetCodeOwners           sync.RWMutex
 	lockGetCommitsGitHubAuthors sync.RWMutex
 	lockGetCommitsMetadata      sync.RWMutex
 	lockGetProjectRepository    sync.RWMutex
 	lockGetProjectSourceDir     sync.RWMutex
 	lockGetReleaseGitTag        sync.RWMutex
-}
-
-// GetCodeOwners calls GetCodeOwnersFunc.
-func (mock *ProviderMock) GetCodeOwners(projectDir string) ([]string, error) {
-	callInfo := struct {
-		ProjectDir string
-	}{
-		ProjectDir: projectDir,
-	}
-	mock.lockGetCodeOwners.Lock()
-	mock.calls.GetCodeOwners = append(mock.calls.GetCodeOwners, callInfo)
-	mock.lockGetCodeOwners.Unlock()
-	if mock.GetCodeOwnersFunc == nil {
-		var (
-			stringsOut []string
-			errOut     error
-		)
-		return stringsOut, errOut
-	}
-	return mock.GetCodeOwnersFunc(projectDir)
-}
-
-// GetCodeOwnersCalls gets all the calls that were made to GetCodeOwners.
-// Check the length with:
-//
-//	len(mockedProvider.GetCodeOwnersCalls())
-func (mock *ProviderMock) GetCodeOwnersCalls() []struct {
-	ProjectDir string
-} {
-	var calls []struct {
-		ProjectDir string
-	}
-	mock.lockGetCodeOwners.RLock()
-	calls = mock.calls.GetCodeOwners
-	mock.lockGetCodeOwners.RUnlock()
-	return calls
 }
 
 // GetCommitsGitHubAuthors calls GetCommitsGitHubAuthorsFunc.
