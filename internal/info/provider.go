@@ -26,7 +26,6 @@ type Provider interface {
 	GetProjectSourceDir(project *v1alpha1.Project) (string, error)
 	GetCommitsMetadata(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
 	GetCommitsGitHubAuthors(project *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
-	GetCodeOwners(projectDir string) ([]string, error)
 	GetReleaseGitTag(release *v1alpha1.Release) (string, error)
 }
 
@@ -176,48 +175,6 @@ func (p *defaultProvider) GetCommitsGitHubAuthors(project *v1alpha1.Project, fro
 		authors[commit.Sha] = commit.Login
 	}
 	return authors, nil
-}
-
-func (p *defaultProvider) GetCodeOwners(dir string) ([]string, error) {
-	var owners []string
-	for _, relativeFilepath := range []string{".github/CODEOWNERS", "CODEOWNERS"} {
-		fullPath := dir + "/" + relativeFilepath
-		_, err := os.Stat(fullPath)
-		if err != nil {
-			continue
-		}
-		content, err := os.ReadFile(fullPath)
-		if err != nil {
-			return nil, err
-		}
-		owners = append(owners, parseCodeOwners(string(content))...)
-	}
-	return owners, nil
-}
-
-func parseCodeOwners(content string) []string {
-	var owners []string
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.Split(line, " ")
-		if len(parts) < 2 {
-			continue
-		}
-
-		for _, owner := range parts[1:] {
-			if owner == "" {
-				continue
-			}
-			owners = append(owners, strings.TrimLeft(owner, "@"))
-		}
-	}
-
-	return owners
 }
 
 func (p *defaultProvider) GetGitTag(release *v1alpha1.Release, defaultGitTagTemplate string) (string, error) {

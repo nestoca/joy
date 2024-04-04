@@ -7,6 +7,7 @@ run:
 setup:
 	@go install mvdan.cc/gofumpt@v0.5.0
 	@go install golang.org/x/tools/cmd/goimports@v0.14.0
+	@go install github.com/matryer/moq@v0.3.4
 	@go mod download
 
 build:

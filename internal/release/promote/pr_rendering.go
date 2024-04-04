@@ -23,7 +23,7 @@ const (
 type ReleaseInfo struct {
 	Name         string
 	Project      *v1alpha1.Project
-	CodeOwners   []string
+	Reviewers    []string
 	Repository   string
 	Source       EnvironmentReleaseInfo
 	Target       EnvironmentReleaseInfo
@@ -139,11 +139,7 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 		return nil, fmt.Errorf("getting GitHub authors: %w", err)
 	}
 
-	codeOwners, err := opts.infoProvider.GetCodeOwners(projectDir)
-	if err != nil {
-		return nil, fmt.Errorf("getting GitHub authors: %w", err)
-	}
-	releaseInfo.CodeOwners = codeOwners
+	releaseInfo.Reviewers = project.Spec.Reviewers
 
 	for _, metadata := range commitsMetadata {
 		metadata.Message, err = injectPullRequestLinks(repository, metadata.Message)

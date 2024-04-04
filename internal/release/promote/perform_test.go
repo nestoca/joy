@@ -164,7 +164,7 @@ func TestGetReviewers(t *testing.T) {
 		[]string{"john"},
 		getReviewers(&PromotionInfo{
 			Releases: []*ReleaseInfo{
-				{CodeOwners: []string{"john"}},
+				{Reviewers: []string{"john"}},
 				{Error: errors.New("error")},
 			},
 		}),
