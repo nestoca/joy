@@ -222,6 +222,9 @@ func (r *ReleaseList) GetNonPromotableReleases(sourceEnv, targetEnv *v1alpha1.En
 
 	for _, item := range r.Items {
 		sourceRelease := item.Releases[sourceEnvIndex]
+		if sourceRelease == nil {
+			continue
+		}
 		// Check the version format in source Release
 		version := "v" + sourceRelease.Spec.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
