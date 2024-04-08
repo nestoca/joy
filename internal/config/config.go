@@ -9,10 +9,9 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/davidmdm/x/xerr"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
-
-	"github.com/davidmdm/x/xerr"
 
 	"github.com/nestoca/joy/internal/helm"
 )

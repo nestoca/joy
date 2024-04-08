@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/browser"
-
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"

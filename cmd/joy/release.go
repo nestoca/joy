@@ -9,10 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/browser"
-
 	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
+	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 

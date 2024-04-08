@@ -7,16 +7,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/nestoca/joy/internal/links"
-
-	"github.com/nestoca/joy/internal/info"
-
-	"github.com/nestoca/joy/internal/style"
-
 	"github.com/google/uuid"
 
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/style"
 )
 
 const (

@@ -5,14 +5,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/nestoca/joy/api/v1alpha1"
-
-	"github.com/spf13/cobra"
-
 	"github.com/acarl005/stripansi"
-
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/pkg/catalog"
 )

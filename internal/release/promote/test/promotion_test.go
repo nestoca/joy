@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nestoca/joy/internal/info"
-	"github.com/nestoca/joy/internal/links"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/yml"
