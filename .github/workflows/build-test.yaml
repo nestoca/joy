@@ -43,13 +43,6 @@ jobs:
           chmod 700 get_helm.sh
           ./get_helm.sh
 
-      - name: Login to GAR
-        uses: docker/login-action@v3
-        with:
-          registry: northamerica-northeast1-docker.pkg.dev
-          username: _json_key
-          password: ${{ secrets.JOY_GCP_DOCKER_SA_KEY }}
-
       - name: Setup dependencies
         run: make setup
 
