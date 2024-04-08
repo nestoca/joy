@@ -1,3 +1,10 @@
+## [0.47.0](https://github.com/nestoca/joy/compare/v0.46.6...v0.47.0) (2024-04-08)
+
+
+### Features
+
+* **PL-2615:** add support for bulk promotions ([4638230](https://github.com/nestoca/joy/commit/4638230647146f528ea23eecc6f93576d68068f6))
+
 ## [0.46.6](https://github.com/nestoca/joy/compare/v0.46.5...v0.46.6) (2024-04-05)
 
 ## [0.46.5](https://github.com/nestoca/joy/compare/v0.46.4...v0.46.5) (2024-04-03)
