@@ -144,7 +144,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		})
 	}
 
-	if !list.HasAnyPromotableReleases() {
+	if !selectedList.HasAnyPromotableReleases() {
 		p.PromptProvider.PrintNoPromotableReleasesFound(opts.ReleasesFiltered, opts.SourceEnv, opts.TargetEnv)
 		return "", nil
 	}
