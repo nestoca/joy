@@ -59,6 +59,10 @@ func (r *provider) GetProjectLinks(project *v1alpha1.Project) (map[string]string
 }
 
 func (r *provider) GetReleaseLinks(release *v1alpha1.Release) (map[string]string, error) {
+	if release == nil {
+		return nil, nil
+	}
+
 	templates := resolveReleaseTemplates(release, r.templates.Project.Links, r.templates.Release.Links)
 	links := make(map[string]string, len(templates))
 	for name, tmpl := range templates {
@@ -90,6 +94,10 @@ func (r *provider) renderProjectLink(linkTemplate string, project *v1alpha1.Proj
 }
 
 func (r *provider) renderReleaseLink(linkTemplate string, release *v1alpha1.Release) (string, error) {
+	if release == nil {
+		return "", nil
+	}
+
 	gitTag, err := r.infoProvider.GetReleaseGitTag(release)
 	if err != nil {
 		return "", fmt.Errorf("getting release git tag: %w", err)
@@ -134,8 +142,10 @@ func resolveReleaseTemplates(release *v1alpha1.Release, catalogProjectLinks map[
 	links := make(map[string]string)
 	maps.Copy(links, catalogProjectLinks)
 	maps.Copy(links, catalogReleaseLinks)
-	maps.Copy(links, release.Project.Spec.Links)
-	maps.Copy(links, release.Project.Spec.ReleaseLinks)
-	maps.Copy(links, release.Spec.Links)
+	if release != nil {
+		maps.Copy(links, release.Project.Spec.Links)
+		maps.Copy(links, release.Project.Spec.ReleaseLinks)
+		maps.Copy(links, release.Spec.Links)
+	}
 	return links
 }

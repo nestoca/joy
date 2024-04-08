@@ -94,6 +94,10 @@ func (p *defaultProvider) GetProjectSourceDir(proj *v1alpha1.Project) (string, e
 }
 
 func (p *defaultProvider) GetReleaseGitTag(release *v1alpha1.Release) (string, error) {
+	if release == nil {
+		return "", nil
+	}
+
 	gitTagTemplate := cmp.Or(release.Project.Spec.GitTagTemplate, p.defaultGitTagTemplate)
 	if gitTagTemplate == "" {
 		return release.Spec.Version, nil
