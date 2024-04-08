@@ -1,3 +1,10 @@
+## [0.47.4](https://github.com/nestoca/joy/compare/v0.47.3...v0.47.4) (2024-04-08)
+
+
+### Bug Fixes
+
+* **PL-2615:** fix link provider nil dereferences ([fe71960](https://github.com/nestoca/joy/commit/fe7196001b640d2334467d457c9b63292c1f333f))
+
 ## [0.47.3](https://github.com/nestoca/joy/compare/v0.47.2...v0.47.3) (2024-04-08)
 
 
