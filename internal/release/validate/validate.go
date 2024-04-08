@@ -13,7 +13,6 @@ import (
 	cueerrors "cuelang.org/go/cue/errors"
 
 	"github.com/davidmdm/x/xerr"
-
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"

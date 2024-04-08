@@ -5,21 +5,18 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/nestoca/joy/internal/links"
-	"github.com/nestoca/joy/internal/yml"
-
-	"github.com/nestoca/joy/internal/info"
-
-	"github.com/nestoca/joy/internal/github"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/github"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/testutils"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 

@@ -6,12 +6,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-
-	"github.com/jedib0t/go-pretty/v6/table"
-
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )

@@ -6,10 +6,9 @@ import (
 	"os"
 
 	"github.com/TwiN/go-color"
+	"github.com/nestoca/survey/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
-
-	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"

@@ -10,10 +10,9 @@ import (
 	"strings"
 
 	"github.com/nestoca/survey/v2"
+	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
-
-	"github.com/spf13/cobra"
 )
 
 func NewExecuteCmd() *cobra.Command {

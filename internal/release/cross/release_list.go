@@ -8,13 +8,12 @@ import (
 	"strings"
 
 	"github.com/davidmdm/x/xerr"
-	"github.com/nestoca/joy/internal/references"
+	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/references"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
-
-	"golang.org/x/mod/semver"
 )
 
 // ReleaseList describes multiple releases across multiple environments

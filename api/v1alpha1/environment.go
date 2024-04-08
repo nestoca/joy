@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 	"slices"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/davidmdm/x/xerr"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/internal/yml"
 )
