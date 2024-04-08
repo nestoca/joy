@@ -1,3 +1,10 @@
+## [0.47.3](https://github.com/nestoca/joy/compare/v0.47.2...v0.47.3) (2024-04-08)
+
+
+### Bug Fixes
+
+* **PL-2615:** fix non promotable release dereference ([12129cf](https://github.com/nestoca/joy/commit/12129cf3e53f0814deecc3ea690774207a55cb15))
+
 ## [0.47.2](https://github.com/nestoca/joy/compare/v0.47.1...v0.47.2) (2024-04-08)
 
 ## [0.47.1](https://github.com/nestoca/joy/compare/v0.47.0...v0.47.1) (2024-04-08)
