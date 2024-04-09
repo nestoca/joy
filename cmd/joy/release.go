@@ -205,6 +205,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 				YamlWriter:          cmp.Or[yml.Writer](params.Writer, yml.DiskWriter),
 				InfoProvider:        cmp.Or(params.Info, infoProvider),
 				LinksProvider:       cmp.Or(params.Links, links.NewProvider(infoProvider, cfg.Templates)),
+				Out:                 cmd.OutOrStdout(),
 			}
 
 			opts := promote.Opts{

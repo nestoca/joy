@@ -63,18 +63,18 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		p.PromptProvider.PrintUpdatingTargetRelease(targetEnv.Name, crossRelease.Name, promotedFile.Path, isCreatingTargetRelease)
 
 		if opts.dryRun {
-			fmt.Printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
+			p.printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
 		} else {
 			if err := p.YamlWriter.WriteFile(promotedFile); err != nil {
 				return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 			}
 		}
 
-		fmt.Printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
+		p.printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
 		releaseInfo, err := getReleaseInfo(sourceRelease, targetRelease, opts)
 		if err != nil {
 			err = fmt.Errorf("collecting release %q info: %w", sourceRelease.Name, err)
-			fmt.Printf("⚠️ %v\n", err)
+			p.printf("⚠️ %v\n", err)
 			releaseInfo = &ReleaseInfo{
 				Name:  sourceRelease.Name,
 				Error: err,
@@ -86,7 +86,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	}
 
 	if len(promotedFiles) == 0 {
-		fmt.Println("🤷 Nothing to promote!")
+		p.println("🤷 Nothing to promote!")
 		return "", nil
 	}
 
@@ -106,7 +106,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	branchName := getBranchName(info)
 	if opts.dryRun || opts.localOnly {
-		fmt.Printf("ℹ️ %s: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
+		p.printf("ℹ️ %s: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
 			modeName,
 			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
 			style.SecondaryInfo(commitMessage))
@@ -143,7 +143,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	reviewers := getReviewers(info)
 
 	if opts.dryRun || opts.localOnly {
-		fmt.Printf("ℹ️ %s: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
+		p.printf("ℹ️ %s: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
 			modeName,
 			style.SecondaryInfo(prTitle), style.SecondaryInfo(prBody),
 			style.SecondaryInfo("- "+strings.Join(reviewers, "\n- ")),

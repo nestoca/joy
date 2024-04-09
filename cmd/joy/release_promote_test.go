@@ -21,26 +21,6 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func executeReleasePromoteCommand(t *testing.T, cmd *cobra.Command, args ...string) (string, string, error) {
-	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
-
-	cat, err := catalog.Load(dir, nil)
-	require.NoError(t, err)
-
-	cfg, err := config.Load(dir, dir)
-	require.NoError(t, err)
-
-	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), cfg)
-
-	var buffer bytes.Buffer
-	cmd.SetOut(&buffer)
-	cmd.SetArgs(args)
-	cmd.SetContext(ctx)
-
-	err = cmd.Execute()
-	return dir, stripansi.Strip(buffer.String()), err
-}
-
 func TestPromoteAllReleasesFromStagingToProd(t *testing.T) {
 	dir, output, err := executeReleasePromoteCommand(t, NewReleasePromoteCmd(PromoteParams{PreRunConfigs: make(PreRunConfigs)}),
 		"--source", "staging",
@@ -97,6 +77,8 @@ spec:
 |:---|:---|:---|
 | Dummy change made by nestobot | @nestobot | [bedd22e](https://github.com/nestoca/joy-release-promote-test/commit/bedd22e73a04141c121bc70ac138e064b01b8fb2) |`
 	require.Equal(t, expectedBody, actualBody)
+
+	require.Equal(t, []string{"environment:prod", "release:foo"}, getPullRequestLabels(t, dir, prURL))
 }
 
 func TestAutoMerge(t *testing.T) {
@@ -126,6 +108,26 @@ func TestDisallowedAutoMerge(t *testing.T) {
 		"foo")
 	require.NotNil(t, err)
 	require.Equal(t, "auto-merge is not allowed for target environment prod", err.Error())
+}
+
+func executeReleasePromoteCommand(t *testing.T, cmd *cobra.Command, args ...string) (string, string, error) {
+	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
+
+	cat, err := catalog.Load(dir, nil)
+	require.NoError(t, err)
+
+	cfg, err := config.Load(dir, dir)
+	require.NoError(t, err)
+
+	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), cfg)
+
+	var buffer bytes.Buffer
+	cmd.SetOut(&buffer)
+	cmd.SetArgs(args)
+	cmd.SetContext(ctx)
+
+	err = cmd.Execute()
+	return dir, stripansi.Strip(buffer.String()), err
 }
 
 func closePR(t *testing.T, dir, prURL string) {
