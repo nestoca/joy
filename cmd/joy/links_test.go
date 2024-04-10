@@ -59,9 +59,7 @@ func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) strin
 		},
 	})
 
-	var r error = nil
-	ctx, err := config.ToContext(catalog.ToContext(context.Background(), cat), &cfg), r
-	require.NoError(t, err)
+	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), &cfg)
 
 	var buffer bytes.Buffer
 	cmd.SetOut(&buffer)

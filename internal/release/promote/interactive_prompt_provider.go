@@ -3,6 +3,7 @@ package promote
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -20,6 +21,13 @@ import (
 
 type InteractivePromptProvider struct {
 	anyReleaseDiffPrinted bool
+	out                   io.Writer
+}
+
+func NewInteractivePromptProvider(out io.Writer) *InteractivePromptProvider {
+	return &InteractivePromptProvider{
+		out: out,
+	}
 }
 
 var Separator = strings.Repeat("—", 80)
@@ -216,7 +224,7 @@ func (i *InteractivePromptProvider) PrintNoPromotableReleasesFound(releasesFilte
 	if releasesFiltered {
 		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No releases found %sfor promoting from %s to %s.\n", matchingSelection, style.Resource(sourceEnv.Name), style.Resource(targetEnv.Name))
+	i.printf("🤷 No releases found %sfor promoting from %s to %s.\n", matchingSelection, style.Resource(sourceEnv.Name), style.Resource(targetEnv.Name))
 }
 
 func (i *InteractivePromptProvider) PrintNoPromotableEnvironmentFound(environmentsFiltered bool) {
@@ -224,7 +232,7 @@ func (i *InteractivePromptProvider) PrintNoPromotableEnvironmentFound(environmen
 	if environmentsFiltered {
 		matchingSelection = "in current selection "
 	}
-	fmt.Printf("🤷 No environments found %sfor promoting.\n", matchingSelection)
+	i.printf("🤷 No environments found %sfor promoting.\n", matchingSelection)
 }
 
 func (i *InteractivePromptProvider) PrintStartPreview() {
@@ -241,20 +249,20 @@ func (i *InteractivePromptProvider) PrintReleasePreview(targetEnvName string, re
 	}
 
 	// Print release diff
-	fmt.Println(Separator)
-	fmt.Printf("🚀 %s %s/%s %s\n",
+	i.println(Separator)
+	i.printf("🚀 %s %s/%s %s\n",
 		operation,
 		style.ResourceEnvPrefix(targetEnvName),
 		style.Resource(releaseName),
 		style.SecondaryInfo("("+promotedFile.Path+")"))
-	err := printDiff(existingTargetFile, promotedFile)
+	err := i.printDiff(existingTargetFile, promotedFile)
 	if err != nil {
 		return fmt.Errorf("printing release diff: %w", err)
 	}
 	return nil
 }
 
-func printDiff(before, after *yml.File) error {
+func (i *InteractivePromptProvider) printDiff(before, after *yml.File) error {
 	beforeYaml := ""
 	if before != nil {
 		beforeYaml = string(before.Yaml)
@@ -264,7 +272,7 @@ func printDiff(before, after *yml.File) error {
 	unified = strings.ReplaceAll(unified, "\\ No newline at end of file\n", "")
 	unified = formatDiff(unified)
 
-	fmt.Println(unified)
+	i.println(unified)
 	return nil
 }
 
@@ -291,9 +299,9 @@ func formatDiff(diff string) string {
 
 func (i *InteractivePromptProvider) PrintEndPreview() {
 	if !i.anyReleaseDiffPrinted {
-		fmt.Println("🍺 All releases are in sync!")
+		i.println("🍺 All releases are in sync!")
 	}
-	fmt.Println(Separator)
+	i.println(Separator)
 }
 
 func (i *InteractivePromptProvider) PrintUpdatingTargetRelease(targetEnvName, releaseName, releaseFilePath string, isCreating bool) {
@@ -302,7 +310,7 @@ func (i *InteractivePromptProvider) PrintUpdatingTargetRelease(targetEnvName, re
 		operation = "Creating new release"
 	}
 
-	fmt.Printf("🚀 %s %s/%s %s\n",
+	i.printf("🚀 %s %s/%s %s\n",
 		operation,
 		style.ResourceEnvPrefix(targetEnvName),
 		style.Resource(releaseName),
@@ -310,34 +318,41 @@ func (i *InteractivePromptProvider) PrintUpdatingTargetRelease(targetEnvName, re
 }
 
 func (i *InteractivePromptProvider) PrintBranchCreated(branchName, message string) {
-	fmt.Printf(
-		"✅ Committed and pushed new branch %s with message:\n%s\n",
+	i.printf("✅ Committed and pushed new branch %s with message:\n%s\n",
 		style.Resource(branchName),
 		style.SecondaryInfo(message))
 }
 
 func (i *InteractivePromptProvider) PrintDraftPullRequestCreated(url string) {
-	fmt.Printf("✅ Created draft pull request: %s\n", style.Link(url))
+	i.printf("✅ Created draft pull request: %s\n", style.Link(url))
 }
 
 func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {
-	fmt.Printf("✅ Created pull request: %s\n", style.Link(url))
+	i.printf("✅ Created pull request: %s\n", style.Link(url))
 }
 
 func (i *InteractivePromptProvider) PrintCanceled() {
-	fmt.Println("🛑 Operation cancelled, no harm done! 😅")
+	i.println("🛑 Operation cancelled, no harm done! 😅")
 }
 
 func (i *InteractivePromptProvider) PrintSelectedReleasesAlreadyInSync() {
-	fmt.Println("🍺 Nothing to do, selected releases already in sync!")
+	i.println("🍺 Nothing to do, selected releases already in sync!")
 }
 
 func (i *InteractivePromptProvider) PrintCompleted() {
-	fmt.Println("🍺 Promotion complete!")
+	i.println("🍺 Promotion complete!")
 }
 
 func (i *InteractivePromptProvider) PrintSelectedNonPromotableReleases(invalidReleases, targetEnvName string) {
-	fmt.Printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow non-standard versions.\n",
+	i.printf("🚫 Cannot promote release(s): %s. Target environment %s does not allow non-standard versions.\n",
 		style.Resource(invalidReleases),
 		style.Resource(targetEnvName))
+}
+
+func (i *InteractivePromptProvider) printf(format string, args ...any) {
+	_, _ = fmt.Fprintf(i.out, format, args...)
+}
+
+func (i *InteractivePromptProvider) println(a ...any) {
+	_, _ = fmt.Fprintln(i.out, a...)
 }

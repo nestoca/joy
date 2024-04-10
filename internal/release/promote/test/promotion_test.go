@@ -2,6 +2,7 @@ package promote_test
 
 import (
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -299,6 +300,7 @@ func TestPromotion(t *testing.T) {
 				PullRequestTemplate: simplePullRequestTemplate,
 				InfoProvider:        infoProvider,
 				LinksProvider:       linksProvider,
+				Out:                 io.Discard,
 			}
 			prURL, err := promotion.Promote(c.opts)
 

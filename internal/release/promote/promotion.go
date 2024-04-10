@@ -2,6 +2,7 @@ package promote
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -23,6 +24,7 @@ type Promotion struct {
 	TemplateVariables   map[string]string
 	InfoProvider        info.Provider
 	LinksProvider       links.Provider
+	Out                 io.Writer
 }
 
 type Opts struct {
@@ -75,11 +77,11 @@ type Opts struct {
 // returning its URL if any.
 func (p *Promotion) Promote(opts Opts) (string, error) {
 	if opts.DryRun {
-		fmt.Println("ℹ️ Dry-run mode enabled: No changes will be made.")
+		p.println("ℹ️ Dry-run mode enabled: No changes will be made.")
 	}
 
 	if opts.LocalOnly {
-		fmt.Println("ℹ️ Local-only mode enabled: The local repo will be modified, but not committed. No pull request will be created.")
+		p.println("ℹ️ Local-only mode enabled: The local repo will be modified, but not committed. No pull request will be created.")
 	}
 
 	// Prompt user to select source environment
@@ -233,6 +235,14 @@ func (p *Promotion) preview(list cross.ReleaseList) error {
 
 	p.PromptProvider.PrintEndPreview()
 	return nil
+}
+
+func (p *Promotion) printf(format string, args ...any) {
+	_, _ = fmt.Fprintf(p.Out, format, args...)
+}
+
+func (p *Promotion) println(a ...any) {
+	_, _ = fmt.Fprintln(p.Out, a...)
 }
 
 func getSourceEnvironments(environments []*v1alpha1.Environment) ([]*v1alpha1.Environment, error) {
