@@ -1,3 +1,10 @@
+## [0.47.5](https://github.com/nestoca/joy/compare/v0.47.4...v0.47.5) (2024-04-10)
+
+
+### Bug Fixes
+
+* **PL-2627:** support rendering diff against refs where release is not found ([bc4d109](https://github.com/nestoca/joy/commit/bc4d109b75c8163fdef85586763ca299edd0c458))
+
 ## [0.47.4](https://github.com/nestoca/joy/compare/v0.47.3...v0.47.4) (2024-04-08)
 
 
