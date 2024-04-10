@@ -11,15 +11,12 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/nestoca/joy/internal/git"
-
 	"github.com/acarl005/stripansi"
 	"github.com/spf13/cobra"
-
-	"github.com/nestoca/joy/internal/config"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/testutils"
 	"github.com/nestoca/joy/pkg/catalog"
 )
