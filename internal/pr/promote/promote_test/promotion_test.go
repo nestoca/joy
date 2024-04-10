@@ -3,6 +3,8 @@ package promote_test
 import (
 	"testing"
 
+	"github.com/nestoca/joy/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -11,26 +13,20 @@ import (
 	"github.com/nestoca/joy/internal/pr/promote"
 )
 
-func newEnvironment(name string, promotable bool) *v1alpha1.Environment {
-	return &v1alpha1.Environment{
-		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-			Name: name,
-		},
-		Spec: v1alpha1.EnvironmentSpec{
-			Promotion: v1alpha1.Promotion{
-				FromPullRequests: promotable,
-			},
-		},
+func newEnvironments(t *testing.T) []*v1alpha1.Environment {
+	promotable := func(e *v1alpha1.Environment) {
+		e.Spec.Promotion.FromPullRequests = true
 	}
-}
+	notPromotable := func(e *v1alpha1.Environment) {
+		e.Spec.Promotion.FromPullRequests = false
+	}
 
-func newEnvironments() []*v1alpha1.Environment {
-	return []*v1alpha1.Environment{
-		newEnvironment("staging", true),
-		newEnvironment("qa", false),
-		newEnvironment("production", false),
-		newEnvironment("demo", true),
-	}
+	builder := testutils.NewCatalogBuilder(t)
+	builder.AddEnvironment("staging", promotable)
+	builder.AddEnvironment("qa", notPromotable)
+	builder.AddEnvironment("production", notPromotable)
+	builder.AddEnvironment("demo", promotable)
+	return builder.Build().Environments
 }
 
 func TestPromotion(t *testing.T) {
@@ -482,8 +478,10 @@ func TestPromotion(t *testing.T) {
 
 			// Perform test
 			promotion := promote.NewPromotion(branchProvider, prProvider, prompt)
-			environments := newEnvironments()
-			err := promotion.Promote(environments)
+			environments := newEnvironments(t)
+			err := promotion.Promote(promote.Params{
+				Environments: environments,
+			})
 			assert.NoError(t, err)
 		})
 	}

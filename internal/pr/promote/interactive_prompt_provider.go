@@ -2,13 +2,16 @@ package promote
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal/style"
 )
 
-type InteractivePromptProvider struct{}
+type InteractivePromptProvider struct {
+	out io.Writer
+}
 
 func (s *InteractivePromptProvider) WhetherToCreateMissingPullRequest() (bool, error) {
 	prompt := &survey.Confirm{
@@ -59,25 +62,33 @@ func (s *InteractivePromptProvider) ConfirmDisablingPromotionOnOtherPullRequest(
 }
 
 func (s *InteractivePromptProvider) PrintBranchDoesNotSupportAutoPromotion(branch string) {
-	fmt.Printf("🚫 Cannot auto-promote builds of %s branch, please checkout another branch and try again.\n", style.Resource(branch))
+	s.printf("🚫 Cannot auto-promote builds of %s branch, please checkout another branch and try again.\n", style.Resource(branch))
 }
 
 func (s *InteractivePromptProvider) PrintNotCreatingPullRequest() {
-	fmt.Println("👋 Alright, so long my friend!")
+	s.println("👋 Alright, so long my friend!")
 }
 
 func (s *InteractivePromptProvider) PrintPromotionAlreadyConfigured(branch, env string) {
-	fmt.Printf("🤷 Branch %s pull request is already configured to auto-promote to %s environment.\n", style.Resource(branch), style.Resource(env))
+	s.printf("🤷 Branch %s pull request is already configured to auto-promote to %s environment.\n", style.Resource(branch), style.Resource(env))
 }
 
 func (s *InteractivePromptProvider) PrintPromotionConfigured(branch string, env string) {
-	fmt.Printf("✅ Configured auto-promotion of branch %s pull request to %s environment.\n", style.Resource(branch), style.Resource(env))
+	s.printf("✅ Configured auto-promotion of branch %s pull request to %s environment.\n", style.Resource(branch), style.Resource(env))
 }
 
 func (s *InteractivePromptProvider) PrintPromotionNotConfigured(branch string, env string) {
-	fmt.Printf("🤷 Branch %s pull request was %s configured to auto-promote to %s environment.\n", style.Resource(branch), style.Warning("not"), style.Resource(env))
+	s.printf("🤷 Branch %s pull request was %s configured to auto-promote to %s environment.\n", style.Resource(branch), style.Warning("not"), style.Resource(env))
 }
 
 func (s *InteractivePromptProvider) PrintPromotionDisabled(branch string) {
-	fmt.Printf("🛑 Disabled auto-promotion of branch %s pull request.\n", style.Resource(branch))
+	s.printf("🛑 Disabled auto-promotion of branch %s pull request.\n", style.Resource(branch))
+}
+
+func (s *InteractivePromptProvider) printf(format string, args ...any) {
+	_, _ = fmt.Fprintf(s.out, format, args...)
+}
+
+func (s *InteractivePromptProvider) println(a ...any) {
+	_, _ = fmt.Fprintln(s.out, a...)
 }
