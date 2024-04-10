@@ -418,9 +418,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return buf.String(), nil
 			}
 
-			gitRefResult, err := renderRef(gitRef)
-			if err != nil {
-				return err
+			gitRefResult, baseErr := renderRef(gitRef)
+			if baseErr != nil && (!render.IsNotFoundError(baseErr) || diffRef == "") {
+				return baseErr
 			}
 
 			if diffRef == "" {
@@ -428,9 +428,13 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return err
 			}
 
-			diffRefResult, err := renderRef(diffRef)
-			if err != nil {
-				return err
+			diffRefResult, diffErr := renderRef(diffRef)
+			if diffErr != nil && !render.IsNotFoundError(diffErr) {
+				return diffErr
+			}
+
+			if render.IsNotFoundError(baseErr) && render.IsNotFoundError(diffErr) {
+				return baseErr
 			}
 
 			diffFunc := func() text.DiffFunc {
