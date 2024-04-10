@@ -3,6 +3,7 @@ package render
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -101,7 +102,7 @@ func getEnvironment(environments []*v1alpha1.Environment, name string) (*v1alpha
 
 	selectedEnv := environment.FindByName(environments, name)
 	if selectedEnv == nil {
-		return nil, fmt.Errorf("not found: %s", name)
+		return nil, NotFoundError(fmt.Sprintf("not found: %s", name))
 	}
 
 	return selectedEnv, nil
@@ -124,10 +125,10 @@ func getRelease(releases []*cross.Release, name, env string) (*v1alpha1.Release,
 				return release, nil
 			}
 		}
-		return nil, fmt.Errorf("not found within environment %s: %s", env, name)
+		return nil, NotFoundError(fmt.Sprintf("not found within environment %s: %s", env, name))
 	}
 
-	return nil, fmt.Errorf("not found: %s", name)
+	return nil, NotFoundError(fmt.Sprintf("not found: %s", name))
 }
 
 func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Release, error) {
@@ -278,4 +279,18 @@ func splitIntoPathSegments(input string) (result []string) {
 	result = append(result, sanitize(input[start:]))
 
 	return
+}
+
+type NotFoundError string
+
+func (err NotFoundError) Error() string { return string(err) }
+
+func (NotFoundError) Is(err error) bool {
+	_, ok := err.(NotFoundError)
+	return ok
+}
+
+func IsNotFoundError(err error) bool {
+	var notfound NotFoundError
+	return errors.Is(err, notfound)
 }
