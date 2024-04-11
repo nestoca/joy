@@ -22,7 +22,6 @@ require (
 	github.com/sergi/go-diff v1.3.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
-	go.uber.org/mock v0.4.0
 	golang.org/x/mod v0.16.0
 	golang.org/x/term v0.18.0
 	gopkg.in/godo.v2 v2.0.9

@@ -117,8 +117,15 @@ func executePRPromoteCommand(t *testing.T, projectDir string, cmd *cobra.Command
 	cmd.SetArgs(args)
 	cmd.SetContext(ctx)
 
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+
 	require.NoError(t, os.Chdir(projectDir))
-	err := cmd.Execute()
+	defer func() {
+		require.NoError(t, os.Chdir(wd))
+	}()
+
+	err = cmd.Execute()
 	return stripansi.Strip(buffer.String()), err
 }
 
