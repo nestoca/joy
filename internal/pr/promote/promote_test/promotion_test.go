@@ -3,7 +3,7 @@ package promote_test
 import (
 	"testing"
 
-	"github.com/nestoca/joy/internal/testutils"
+	"github.com/nestoca/joy/pkg/catalog"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ func newEnvironments(t *testing.T) []*v1alpha1.Environment {
 		e.Spec.Promotion.FromPullRequests = false
 	}
 
-	builder := testutils.NewCatalogBuilder(t)
+	builder := catalog.NewBuilder(t)
 	builder.AddEnvironment("staging", promotable)
 	builder.AddEnvironment("qa", notPromotable)
 	builder.AddEnvironment("production", notPromotable)

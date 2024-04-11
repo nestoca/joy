@@ -41,9 +41,9 @@ func NewPRPromoteCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt user for anything")
-	cmd.Flags().StringVarP(&targetEnv, "target-env", "t", "", "Environment to auto-promote builds of pull request to")
+	cmd.Flags().StringVarP(&targetEnv, "target", "t", "", "Environment to auto-promote builds of pull request to")
 	cmd.Flags().BoolVar(&disable, "disable", false, "Disable auto-promotion")
-	cmd.MarkFlagsMutuallyExclusive("target-env", "disable")
+	cmd.MarkFlagsMutuallyExclusive("target", "disable")
 
 	return &cmd
 }

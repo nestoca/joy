@@ -5,8 +5,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/nestoca/joy/internal/testutils"
-
 	"github.com/acarl005/stripansi"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -101,7 +99,7 @@ func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) strin
 		},
 	}
 
-	builder := testutils.NewCatalogBuilder(t)
+	builder := catalog.NewBuilder(t)
 	staging := builder.AddEnvironment("staging", nil)
 	project := builder.AddProject("my-project", func(project *v1alpha1.Project) {
 		project.Spec.Links = map[string]string{

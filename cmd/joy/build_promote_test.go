@@ -110,7 +110,7 @@ type newTestCatalogParams struct {
 }
 
 func newBuildPromoteTestCatalog(t *testing.T, params newTestCatalogParams) *catalog.Catalog {
-	builder := testutils.NewCatalogBuilder(t)
+	builder := catalog.NewBuilder(t)
 	staging := builder.AddEnvironment("staging", nil)
 	project := builder.AddProject("my-project", params.projectFunc)
 	if !params.noReleases {

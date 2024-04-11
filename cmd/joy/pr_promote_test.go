@@ -81,7 +81,7 @@ func TestPromotePRs(t *testing.T) {
 			if tc.newEnv == "" {
 				args = append(args, "--disable")
 			} else {
-				args = append(args, "--target-env", tc.newEnv)
+				args = append(args, "--target", tc.newEnv)
 			}
 
 			_, err := executePRPromoteCommand(t, projectDir, NewPRPromoteCmd(), args...)
@@ -102,7 +102,7 @@ func executePRPromoteCommand(t *testing.T, projectDir string, cmd *cobra.Command
 		e.Spec.Promotion.FromPullRequests = false
 	}
 
-	builder := testutils.NewCatalogBuilder(t)
+	builder := catalog.NewBuilder(t)
 	builder.AddEnvironment("staging", promotable)
 	builder.AddEnvironment("qa", notPromotable)
 	builder.AddEnvironment("production", notPromotable)
