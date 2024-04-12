@@ -113,8 +113,6 @@ func TestReleaseRender(t *testing.T) {
 		err = cmd.ExecuteContext(ctx)
 		require.NoError(t, err, buffer.String())
 
-		t.Log(buffer.String())
-
 		var removals, additions []string
 		for _, line := range strings.Split(buffer.String(), "\n") {
 			if strings.HasPrefix(line, "-  ") {
@@ -171,8 +169,6 @@ func TestReleaseRender(t *testing.T) {
 		err = cmd.ExecuteContext(ctx)
 		require.NoError(t, err, buffer.String())
 
-		t.Log(buffer.String())
-
 		var removals, additions []string
 		for _, line := range strings.Split(buffer.String(), "\n") {
 			if strings.HasPrefix(line, "-  ") {
@@ -228,8 +224,6 @@ func TestReleaseRender(t *testing.T) {
 
 		err = cmd.ExecuteContext(ctx)
 		require.NoError(t, err, buffer.String())
-
-		t.Log(buffer.String())
 
 		var removals, additions []string
 		for _, line := range strings.Split(buffer.String(), "\n") {

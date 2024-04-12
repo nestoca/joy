@@ -76,9 +76,9 @@ type Environment struct {
 	Dir string `yaml:"-" json:"-"`
 }
 
-func (env Environment) Validate(validChartRefs []string) error {
+func (e Environment) Validate(validChartRefs []string) error {
 	var errs []error
-	for ref := range env.Spec.ChartVersions {
+	for ref := range e.Spec.ChartVersions {
 		if !slices.Contains(validChartRefs, ref) {
 			errs = append(errs, fmt.Errorf("unknown ref: %s", ref))
 		}
@@ -136,7 +136,7 @@ func GetEnvironmentsByNames(environments []*Environment, names []string) []*Envi
 	return envs
 }
 
-func (e *Environment) IsPromotableTo(targetEnv *Environment) bool {
+func (e Environment) IsPromotableTo(targetEnv *Environment) bool {
 	for _, source := range targetEnv.Spec.Promotion.FromEnvironments {
 		if source == e.Name {
 			return true

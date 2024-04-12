@@ -14,63 +14,6 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) string {
-	cfg := config.Config{
-		GitHubOrganization: "acme",
-		Templates: config.Templates{
-			Environment: config.EnvironmentTemplates{
-				Links: map[string]string{
-					"cd": "https://argo-cd.acme.com/applications/{{ .Environment.Name }}",
-				},
-			},
-			Project: config.ProjectTemplates{
-				Links: map[string]string{
-					"repo":    "https://github.com/{{ .Repository }}",
-					"actions": "https://github.com/{{ .Repository }}/actions",
-					"pulls":   "https://github.com/{{ .Repository }}/pulls",
-				},
-			},
-			Release: config.ReleaseTemplates{
-				Links: map[string]string{
-					"tag": "https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}",
-				},
-			},
-		},
-	}
-
-	cat := newTestCatalog(t, newTestCatalogParams{
-		getProject: func(project *v1alpha1.Project) *v1alpha1.Project {
-			project.Spec.Links = map[string]string{
-				"repo":         "https://github.com/{{ .Repository }}-project-override",
-				"project-link": "acme.com/projects/{{ .Project.Name }}",
-			}
-			project.Spec.ReleaseLinks = map[string]string{
-				"project-release-link":             "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
-				"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
-			}
-			return project
-		},
-		getRelease: func(release *v1alpha1.Release) *v1alpha1.Release {
-			release.Spec.Links = map[string]string{
-				"release-link":                     "acme.com/releases/{{ .Release.Name }}",
-				"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}-release-override",
-			}
-			return release
-		},
-	})
-
-	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), &cfg)
-
-	var buffer bytes.Buffer
-	cmd.SetOut(&buffer)
-	cmd.SetArgs(args)
-	cmd.SetContext(ctx)
-
-	require.NoError(t, cmd.Execute())
-	actual := stripansi.Strip(buffer.String())
-	return actual
-}
-
 func TestReleaseLinks(t *testing.T) {
 	actual := executeLinksCommand(t, NewReleaseLinksCmd(), "--env", "staging", "my-release")
 	expected := `╭──────────────────────────────────┬───────────────────────────────────────────────────────────────────╮
@@ -130,4 +73,61 @@ func TestEnvironmentSpecificLink(t *testing.T) {
 	actual := executeLinksCommand(t, NewEnvironmentLinksCmd(), "staging", "cd")
 	expected := "https://argo-cd.acme.com/applications/staging"
 	require.Equal(t, expected, actual)
+}
+
+func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) string {
+	cfg := config.Config{
+		GitHubOrganization: "acme",
+		Templates: config.Templates{
+			Environment: config.EnvironmentTemplates{
+				Links: map[string]string{
+					"cd": "https://argo-cd.acme.com/applications/{{ .Environment.Name }}",
+				},
+			},
+			Project: config.ProjectTemplates{
+				Links: map[string]string{
+					"repo":    "https://github.com/{{ .Repository }}",
+					"actions": "https://github.com/{{ .Repository }}/actions",
+					"pulls":   "https://github.com/{{ .Repository }}/pulls",
+				},
+			},
+			Release: config.ReleaseTemplates{
+				Links: map[string]string{
+					"tag": "https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}",
+				},
+			},
+		},
+	}
+
+	builder := catalog.NewBuilder(t)
+	staging := builder.AddEnvironment("staging", nil)
+	project := builder.AddProject("my-project", func(project *v1alpha1.Project) {
+		project.Spec.Links = map[string]string{
+			"repo":         "https://github.com/{{ .Repository }}-project-override",
+			"project-link": "acme.com/projects/{{ .Project.Name }}",
+		}
+		project.Spec.ReleaseLinks = map[string]string{
+			"project-release-link":             "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
+			"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}",
+		}
+	})
+	builder.AddRelease(staging, project, "1.2.3", func(release *v1alpha1.Release) {
+		release.Name = "my-release"
+		release.Spec.Links = map[string]string{
+			"release-link":                     "acme.com/releases/{{ .Release.Name }}",
+			"project-release-link-to-override": "acme.com/projects/{{ .Project.Name }}/releases/{{ .Release.Name }}-release-override",
+		}
+	})
+	cat := builder.Build()
+
+	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), &cfg)
+
+	var buffer bytes.Buffer
+	cmd.SetOut(&buffer)
+	cmd.SetArgs(args)
+	cmd.SetContext(ctx)
+
+	require.NoError(t, cmd.Execute())
+	actual := stripansi.Strip(buffer.String())
+	return actual
 }

@@ -10,9 +10,7 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/testutils"
-	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -30,29 +28,26 @@ func TestBuildPromote(t *testing.T) {
 		{
 			name:          "disallowed_pre_release",
 			version:       "2.3.4-rc1",
-			catalog:       newTestCatalog(t, newTestCatalogParams{}),
+			catalog:       newBuildPromoteTestCatalog(t, newTestCatalogParams{}),
 			expectedError: "cannot promote prerelease version to staging environment",
 		},
 		{
 			name:    "project_without_release",
 			version: "2.3.4",
-			catalog: newTestCatalog(t, newTestCatalogParams{
-				getRelease: func(_ *v1alpha1.Release) *v1alpha1.Release {
-					return nil
-				},
+			catalog: newBuildPromoteTestCatalog(t, newTestCatalogParams{
+				noReleases: true,
 			}),
 			expectedError: "no releases found for project my-project",
 		},
 		{
 			name:    "release_without_version",
 			version: "2.3.4",
-			catalog: newTestCatalog(t, newTestCatalogParams{
-				getRelease: func(release *v1alpha1.Release) *v1alpha1.Release {
+			catalog: newBuildPromoteTestCatalog(t, newTestCatalogParams{
+				releaseFunc: func(release *v1alpha1.Release) {
 					release.Spec.Version = ""
-					return release
 				},
 			}),
-			expectedError: "release my-release has no version property: node not found for path 'spec.version': key 'version' does not exist",
+			expectedError: "release my-project has no version property: node not found for path 'spec.version': key 'version' does not exist",
 		},
 	}
 
@@ -109,65 +104,17 @@ func TestBuildPromote(t *testing.T) {
 }
 
 type newTestCatalogParams struct {
-	getEnvironment func(*v1alpha1.Environment) *v1alpha1.Environment
-	getProject     func(*v1alpha1.Project) *v1alpha1.Project
-	getRelease     func(*v1alpha1.Release) *v1alpha1.Release
+	projectFunc func(*v1alpha1.Project)
+	releaseFunc func(*v1alpha1.Release)
+	noReleases  bool
 }
 
-func newTestCatalog(t *testing.T, params newTestCatalogParams) *catalog.Catalog {
-	var cat catalog.Catalog
-	project := &v1alpha1.Project{
-		ProjectMetadata: v1alpha1.ProjectMetadata{
-			Name: "my-project",
-		},
+func newBuildPromoteTestCatalog(t *testing.T, params newTestCatalogParams) *catalog.Catalog {
+	builder := catalog.NewBuilder(t)
+	staging := builder.AddEnvironment("staging", nil)
+	project := builder.AddProject("my-project", params.projectFunc)
+	if !params.noReleases {
+		builder.AddRelease(staging, project, "1.2.3", params.releaseFunc)
 	}
-	if params.getProject != nil {
-		project = params.getProject(project)
-	}
-	cat.Projects = []*v1alpha1.Project{project}
-
-	env := &v1alpha1.Environment{
-		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-			Name: "staging",
-		},
-	}
-	if params.getEnvironment != nil {
-		env = params.getEnvironment(env)
-	}
-	cat.Environments = []*v1alpha1.Environment{env}
-
-	release := &v1alpha1.Release{
-		ReleaseMetadata: v1alpha1.ReleaseMetadata{
-			Name: "my-release",
-		},
-		Spec: v1alpha1.ReleaseSpec{
-			Project: "my-project",
-			Version: "1.2.3",
-		},
-	}
-	if params.getRelease != nil {
-		release = params.getRelease(release)
-	}
-	if release != nil {
-		file, err := yml.NewFileFromObject("environments/staging/releases/my-release.yaml", 2, &release)
-		require.NoError(t, err)
-		release.File = file
-
-		release.Project = project
-		release.Environment = env
-
-		cat.Releases = cross.ReleaseList{
-			Environments: cat.Environments,
-			Items: []*cross.Release{
-				{
-					Name: release.Name,
-					Releases: []*v1alpha1.Release{
-						release,
-					},
-				},
-			},
-		}
-	}
-
-	return &cat
+	return builder.Build()
 }

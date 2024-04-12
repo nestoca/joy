@@ -2,6 +2,8 @@ package promote
 
 import (
 	"fmt"
+	"io"
+	"slices"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -27,17 +29,26 @@ func NewPromotion(branchProvider BranchProvider, pullRequestProvider pr.PullRequ
 	}
 }
 
-func NewDefaultPromotion(dir string) *Promotion {
+func NewDefaultPromotion(dir string, out io.Writer) *Promotion {
 	return NewPromotion(
 		NewGitBranchProvider(dir),
 		github.NewPullRequestProvider(dir),
-		&InteractivePromptProvider{},
+		&InteractivePromptProvider{
+			out: out,
+		},
 	)
+}
+
+type Params struct {
+	Environments []*v1alpha1.Environment
+	TargetEnv    string
+	Disable      bool
+	NoPrompt     bool
 }
 
 // Promote prompts user to create a pull request for current branch and to select environment to auto-promote builds
 // of pull request to, and then configures the pull request accordingly.
-func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
+func (p *Promotion) Promote(params Params) error {
 	if err := p.pullRequestProvider.EnsureInstalledAndAuthenticated(); err != nil {
 		return nil
 	}
@@ -58,6 +69,10 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 	}
 
 	if !exists {
+		if params.NoPrompt {
+			return fmt.Errorf("pull request for branch %s does not exist", branch)
+		}
+
 		shouldCreate, err := p.promptProvider.WhetherToCreateMissingPullRequest()
 		if err != nil {
 			return fmt.Errorf("prompting user to create pull request: %w", err)
@@ -73,15 +88,32 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 		}
 	}
 
-	env, err := p.pullRequestProvider.GetPromotionEnvironment(branch)
-	if err != nil {
-		return fmt.Errorf("getting promotion environment for branch %s pull request: %w", branch, err)
-	}
+	env, err := func() (string, error) {
+		if params.Disable {
+			return "", nil
+		}
 
-	promotableEnvironmentNames := getPromotableEnvironmentNames(environments)
-	env, err = p.promptProvider.WhichEnvironmentToPromoteTo(promotableEnvironmentNames, env)
+		promotableEnvironmentNames := getPromotableEnvironmentNames(params.Environments)
+		if params.TargetEnv != "" {
+			if !slices.Contains(promotableEnvironmentNames, params.TargetEnv) {
+				return "", fmt.Errorf("environment %q does not support auto-promotion", params.TargetEnv)
+			}
+			return params.TargetEnv, nil
+		}
+
+		env, err := p.pullRequestProvider.GetPromotionEnvironment(branch)
+		if err != nil {
+			return "", fmt.Errorf("getting promotion environment for branch %s pull request: %w", branch, err)
+		}
+
+		env, err = p.promptProvider.WhichEnvironmentToPromoteTo(promotableEnvironmentNames, env)
+		if err != nil {
+			return "", fmt.Errorf("prompting user to select promotion environment: %w", err)
+		}
+		return env, nil
+	}()
 	if err != nil {
-		return fmt.Errorf("prompting user to select promotion environment: %w", err)
+		return err
 	}
 
 	// Disable auto-promotion on other pull requests promoting to same environment
@@ -94,9 +126,13 @@ func (p *Promotion) Promote(environments []*v1alpha1.Environment) error {
 			p.promptProvider.PrintPromotionAlreadyConfigured(branch, env)
 			return nil
 		}
-		shouldDisable, err := p.promptProvider.ConfirmDisablingPromotionOnOtherPullRequest(branchPromotingToEnv, env)
-		if err != nil {
-			return fmt.Errorf("prompting user to confirm disabling promotion on other pull request: %w", err)
+		shouldDisable := true
+		if !params.NoPrompt {
+			var err error
+			shouldDisable, err = p.promptProvider.ConfirmDisablingPromotionOnOtherPullRequest(branchPromotingToEnv, env)
+			if err != nil {
+				return fmt.Errorf("prompting user to confirm disabling promotion on other pull request: %w", err)
+			}
 		}
 		if shouldDisable {
 			if err := p.pullRequestProvider.SetPromotionEnvironment(branchPromotingToEnv, ""); err != nil {
