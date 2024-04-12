@@ -119,3 +119,7 @@ func AheadVersion(s any) string {
 func DirtyVersion(s any) string {
 	return color.InRed(s)
 }
+
+func Notice(s any) string {
+	return color.InBold(color.InPurple(s))
+}
