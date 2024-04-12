@@ -72,6 +72,8 @@ func (i *InteractivePromptProvider) SelectTargetEnvironment(environments []*v1al
 }
 
 func (i *InteractivePromptProvider) SelectReleases(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+	i.printf(style.Notice("\n* indicates changes beyond just the version number\n\n"))
+
 	sourceEnv := list.Environments[sourceEnvIndex]
 	targetEnv := list.Environments[targetEnvIndex]
 
@@ -114,6 +116,7 @@ func (i *InteractivePromptProvider) SelectReleases(list cross.ReleaseList, maxCo
 		Prompt:    prompt,
 		Transform: transform,
 	}}
+
 	var selectedIndices []int
 	err := survey.Ask(questions,
 		&selectedIndices,
