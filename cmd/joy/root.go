@@ -43,9 +43,10 @@ func NewRootCmd(version string) *cobra.Command {
 	preRunConfigs := make(PreRunConfigs)
 
 	cmd := &cobra.Command{
-		Use:          "joy",
-		Short:        "Manages project, environment and release resources as code",
-		SilenceUsage: true,
+		Use:           "joy",
+		Short:         "Manages project, environment and release resources as code",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.CalledAs() == "help" {
 				return nil
