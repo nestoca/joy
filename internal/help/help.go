@@ -10,12 +10,14 @@ import (
 	"github.com/nestoca/joy/internal/config"
 )
 
+const allCommandsKey = "_all"
+
 func WrapError(cmd *cobra.Command, cmdError error) error {
 	if cmdError == nil {
 		return nil
 	}
 
-	message, err := getMessage(cmd, cmdError)
+	message, err := getMessageFromCommand(cmd, cmdError)
 	if err != nil {
 		return err
 	}
@@ -31,7 +33,7 @@ func AugmentCommandHelp(cmd *cobra.Command) {
 	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		baseHelpFunc(cmd, args)
 
-		message, err := getMessage(cmd, nil)
+		message, err := getMessageFromCommand(cmd, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -41,47 +43,35 @@ func AugmentCommandHelp(cmd *cobra.Command) {
 	})
 }
 
-func getMessage(cmd *cobra.Command, cmdError error) (string, error) {
+func getMessageFromCommand(cmd *cobra.Command, cmdError error) (string, error) {
 	cfg := config.FromContext(cmd.Context())
 	fullCommandName := getFullCommandName(cmd)
+
 	errStr := ""
 	if cmdError != nil {
 		errStr = cmdError.Error()
 	}
-	bestScore := 0
-	bestMessage := ""
-	for _, h := range cfg.Helps {
-		score, err := getHelpMatchingScore(h, fullCommandName, errStr)
-		if err != nil {
-			return "", err
-		}
-		if score > bestScore {
-			bestScore = score
-			bestMessage = strings.TrimSpace(h.Message)
-		}
-	}
-	return bestMessage, nil
+
+	return getMessage(cfg.Helps, fullCommandName, errStr)
 }
 
-func getHelpMatchingScore(h config.Help, fullCommandName, errStr string) (int, error) {
-	score := 1
-	if h.Command != "" {
-		if h.Command != fullCommandName {
-			return 0, nil
+func getMessage(helps map[string][]config.Help, fullCommandName string, errStr string) (string, error) {
+	var messages []string
+	cmdAndAllHelps := append(helps[fullCommandName], helps[allCommandsKey]...)
+	for _, help := range cmdAndAllHelps {
+		if help.ErrorPattern != "" {
+			isMatched, err := regexp.MatchString(help.ErrorPattern, errStr)
+			if err != nil {
+				return "", fmt.Errorf("matching error pattern %q: %w", help.ErrorPattern, err)
+			}
+			if !isMatched {
+				continue
+			}
 		}
-		score += 5
+		messages = append(messages, strings.TrimSpace(help.Message))
 	}
-	if h.ErrorPattern != "" {
-		isMatched, err := regexp.MatchString(h.ErrorPattern, errStr)
-		if err != nil {
-			return 0, err
-		}
-		if !isMatched {
-			return 0, nil
-		}
-		score += 5
-	}
-	return score, nil
+
+	return strings.Join(messages, "\n\n"), nil
 }
 
 func getFullCommandName(cmd *cobra.Command) string {

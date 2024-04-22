@@ -34,6 +34,7 @@ func run() error {
 	flags.ParseErrorsWhitelist.UnknownFlags = true
 	flags.StringVar(&configDir, "config-dir", "", "")
 	flags.StringVar(&catalogDir, "catalog-dir", "", "")
+	flags.Usage = func() {}
 	_ = flags.Parse(os.Args[1:])
 
 	rootCmd := NewRootCmd(version)

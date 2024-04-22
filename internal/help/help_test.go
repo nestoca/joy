@@ -17,7 +17,7 @@ func TestWrapError(t *testing.T) {
 	nestedCmdFullName := "sub cmd"
 	testCases := []struct {
 		name          string
-		helps         []config.Help
+		helps         map[string][]config.Help
 		originalError error
 		expectedError string
 	}{
@@ -28,45 +28,81 @@ func TestWrapError(t *testing.T) {
 		},
 		{
 			name:          "no help",
-			helps:         []config.Help{},
+			helps:         map[string][]config.Help{},
 			originalError: originalError,
 			expectedError: originalStr,
 		},
 		{
 			name: "non-matching command",
-			helps: []config.Help{
-				{Command: "some command", ErrorPattern: ".*", Message: "some message"},
-				{Command: "some other command", ErrorPattern: ".*", Message: "some other message"},
+			helps: map[string][]config.Help{
+				"some command": {
+					{ErrorPattern: ".*", Message: "some message"},
+				},
+				"some other command": {
+					{ErrorPattern: ".*", Message: "some other message"},
+				},
 			},
 			originalError: originalError,
 			expectedError: originalStr,
 		},
 		{
 			name: "non-matching error pattern",
-			helps: []config.Help{
-				{Command: nestedCmdFullName, ErrorPattern: "some error .* pattern", Message: "some message"},
-				{Command: nestedCmdFullName, ErrorPattern: "some other error .* pattern", Message: "some other message"},
+			helps: map[string][]config.Help{
+				nestedCmdFullName: {
+					{ErrorPattern: "some error .* pattern", Message: "some message"},
+					{ErrorPattern: "some other error .* pattern", Message: "some other message"},
+				},
 			},
 			originalError: originalError,
 			expectedError: originalStr,
 		},
 		{
 			name: "matching command",
-			helps: []config.Help{
-				{Command: nestedCmdFullName, Message: "some message"},
-				{Message: "default message"},
+			helps: map[string][]config.Help{
+				allCommandsKey: {
+					{Message: "all commands message"},
+				},
+				nestedCmdFullName: {
+					{Message: "some message"},
+				},
 			},
 			originalError: originalError,
-			expectedError: originalStr + "\n\nsome message",
+			expectedError: originalStr + "\n\nsome message\n\nall commands message",
 		},
 		{
 			name: "matching error pattern",
-			helps: []config.Help{
-				{ErrorPattern: "orig.* error", Message: "some message"},
-				{Message: "default message"},
+			helps: map[string][]config.Help{
+				allCommandsKey: {
+					{Message: "all commands message"},
+					{ErrorPattern: "orig.* error", Message: "some message"},
+				},
 			},
 			originalError: originalError,
-			expectedError: originalStr + "\n\nsome message",
+			expectedError: originalStr + "\n\nall commands message\n\nsome message",
+		},
+		{
+			name: "non-matching error pattern",
+			helps: map[string][]config.Help{
+				allCommandsKey: {
+					{Message: "all commands message"},
+					{ErrorPattern: "some error .* pattern", Message: "some message"},
+				},
+			},
+			originalError: originalError,
+			expectedError: originalStr + "\n\nall commands message",
+		},
+		{
+			name: "trimming leading and trailing whitespace",
+			helps: map[string][]config.Help{
+				allCommandsKey: {
+					{Message: "\n\n\tall commands message\n\n\t"},
+				},
+				nestedCmdFullName: {
+					{Message: "\nsome message\n"},
+				},
+			},
+			originalError: originalError,
+			expectedError: originalStr + "\n\nsome message\n\nall commands message",
 		},
 	}
 
@@ -129,71 +165,88 @@ func TestGetFullCommandName(t *testing.T) {
 	}
 }
 
-func TestGetHelpMatchingScore(t *testing.T) {
+func TestGetHelpMessage(t *testing.T) {
 	testCases := []struct {
-		name          string
-		help          config.Help
-		cmdName       string
-		errStr        string
-		expectedScore int
-		expectedError string
+		name            string
+		help            map[string][]config.Help
+		cmdName         string
+		errStr          string
+		expectedMessage string
+		expectedError   string
 	}{
 		{
-			name:          "default help",
-			help:          config.Help{},
-			cmdName:       "cmd",
-			errStr:        "error",
-			expectedScore: 1,
+			name:            "default help",
+			help:            map[string][]config.Help{},
+			cmdName:         "cmd",
+			errStr:          "error",
+			expectedMessage: "",
 		},
 		{
-			name:          "help for matching command",
-			help:          config.Help{Command: "cmd"},
-			cmdName:       "cmd",
-			errStr:        "error",
-			expectedScore: 6,
+			name:            "help for matching command",
+			help:            map[string][]config.Help{"cmd": {{Message: "message"}}},
+			cmdName:         "cmd",
+			errStr:          "error",
+			expectedMessage: "message",
 		},
 		{
-			name:          "help for matching error pattern",
-			help:          config.Help{ErrorPattern: "err.*"},
-			cmdName:       "cmd",
-			errStr:        "error",
-			expectedScore: 6,
+			name:            "help for matching error pattern",
+			help:            map[string][]config.Help{allCommandsKey: {{ErrorPattern: "err.*", Message: "message"}}},
+			cmdName:         "cmd",
+			errStr:          "error",
+			expectedMessage: "message",
 		},
 		{
-			name:          "help for matching command and error pattern",
-			help:          config.Help{Command: "cmd", ErrorPattern: "err.*"},
-			cmdName:       "cmd",
-			errStr:        "error",
-			expectedScore: 11,
+			name:            "help for matching command and error pattern",
+			help:            map[string][]config.Help{"cmd": {{ErrorPattern: "err.*", Message: "message"}}},
+			cmdName:         "cmd",
+			errStr:          "error",
+			expectedMessage: "message",
 		},
 		{
-			name:          "help for non-matching command, but matching error pattern",
-			help:          config.Help{Command: "some specific cmd", ErrorPattern: "err.*"},
-			cmdName:       "some other cmd",
-			errStr:        "error",
-			expectedScore: 0,
+			name:            "help for non-matching command, but matching error pattern",
+			help:            map[string][]config.Help{"some specific cmd": {{ErrorPattern: "err.*", Message: "message"}}},
+			cmdName:         "some other cmd",
+			errStr:          "error",
+			expectedMessage: "",
 		},
 		{
-			name:          "help for matching command, but non-matching error pattern",
-			help:          config.Help{Command: "cmd", ErrorPattern: "specific err.* message"},
-			cmdName:       "cmd",
-			errStr:        "some other error message",
-			expectedScore: 0,
+			name:            "help for matching command, but non-matching error pattern",
+			help:            map[string][]config.Help{"cmd": {{ErrorPattern: "specific err.* pattern", Message: "message"}}},
+			cmdName:         "cmd",
+			errStr:          "some other error message",
+			expectedMessage: "",
+		},
+		{
+			name: "help for all commands and matching command and error pattern",
+			help: map[string][]config.Help{
+				allCommandsKey: {
+					{Message: "all commands message"},
+					{ErrorPattern: "err.*", Message: "all commands error message"},
+				},
+				"cmd": {
+					{Message: "message"},
+					{ErrorPattern: "err.*", Message: "error message"},
+				},
+			},
+			cmdName:         "cmd",
+			errStr:          "error",
+			expectedMessage: "message\n\nerror message\n\nall commands message\n\nall commands error message",
 		},
 		{
 			name:          "help with invalid error pattern",
-			help:          config.Help{ErrorPattern: "["},
-			expectedError: "error parsing regexp: missing closing ]: `[`",
+			help:          map[string][]config.Help{"cmd": {{ErrorPattern: "["}}},
+			cmdName:       "cmd",
+			expectedError: "matching error pattern \"[\": error parsing regexp: missing closing ]: `[`",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := getHelpMatchingScore(tc.help, tc.cmdName, tc.errStr)
+			actual, err := getMessage(tc.help, tc.cmdName, tc.errStr)
 			if tc.expectedError != "" {
 				require.EqualError(t, err, tc.expectedError)
 			}
-			require.Equal(t, tc.expectedScore, actual)
+			require.Equal(t, tc.expectedMessage, actual)
 		})
 	}
 }
