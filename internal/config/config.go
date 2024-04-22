@@ -71,7 +71,7 @@ type Config struct {
 
 	ColumnWidths ColumnWidths `yaml:"columnWidths,omitempty"`
 
-	Helps []Help `yaml:"help,omitempty"`
+	Helps map[string][]Help `yaml:"help,omitempty"`
 }
 
 const (
@@ -122,11 +122,8 @@ type ReleasePromoteTemplates struct {
 }
 
 type Help struct {
-	// Command is an optional name of the command (in the form "parentcmd childcmd") to display this help message for.
-	Command string `yaml:"command,omitempty"`
-
 	// ErrorPattern is an optional regex pattern to match against the error message to determine if this help message should be displayed.
-	ErrorPattern string `yaml:"errorPattern,omitempty"`
+	ErrorPattern string `yaml:"error,omitempty"`
 
 	// Message is the help message to display.
 	Message string `yaml:"message,omitempty"`

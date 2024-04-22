@@ -73,14 +73,11 @@ func NewRootCmd(version string) *cobra.Command {
 			preRunConfig := preRunConfigs[cmd]
 
 			cfg, err := func() (*config.Config, error) {
-				if cfg := config.FromContext(cmd.Context()); cfg != nil {
-					return cfg, nil
+				cfg := config.FromContext(cmd.Context())
+				if cfg == nil {
+					return nil, fmt.Errorf("config not found in context")
 				}
 
-				cfg, err := config.Load(configDir, catalogDir)
-				if err != nil {
-					return nil, err
-				}
 				if preRunConfig.PullCatalog {
 					if flags.SkipCatalogUpdate {
 						fmt.Println("ℹ️ Skipping catalog update.")
@@ -88,6 +85,7 @@ func NewRootCmd(version string) *cobra.Command {
 						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
+						var err error
 						cfg, err = config.Load(configDir, cfg.CatalogDir)
 						if err != nil {
 							return nil, err
@@ -96,7 +94,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 
 				cmd.SetContext(config.ToContext(cmd.Context(), cfg))
-				return cfg, err
+				return cfg, nil
 			}()
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
