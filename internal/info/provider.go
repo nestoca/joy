@@ -74,8 +74,8 @@ func (p *defaultProvider) GetProjectSourceDir(proj *v1alpha1.Project) (string, e
 		}
 
 		cloneOptions := github.CloneOptions{
-			RepoURL: repository,
-			OutDir:  repoDir,
+			Repo:   repository,
+			OutDir: repoDir,
 		}
 		if err := github.Clone(cacheDir, cloneOptions); err != nil {
 			return "", fmt.Errorf("cloning project %s from repo %q: %w", proj.Name, repository, err)
