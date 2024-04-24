@@ -4,9 +4,9 @@
 package promote
 
 import (
-	v1alpha1 "github.com/nestoca/joy/api/v1alpha1"
-	cross "github.com/nestoca/joy/internal/release/cross"
-	yml "github.com/nestoca/joy/internal/yml"
+	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/yml"
 	"sync"
 )
 
@@ -62,8 +62,8 @@ var _ PromptProvider = &PromptProviderMock{}
 //			PrintUpdatingTargetReleaseFunc: func(targetEnvName string, releaseName string, releaseFilePath string, isCreating bool)  {
 //				panic("mock out the PrintUpdatingTargetRelease method")
 //			},
-//			SelectCreatingPromotionPullRequestFunc: func() (string, error) {
-//				panic("mock out the SelectCreatingPromotionPullRequest method")
+//			SelectPromotionActionFunc: func() (string, error) {
+//				panic("mock out the SelectPromotionAction method")
 //			},
 //			SelectReleasesFunc: func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
 //				panic("mock out the SelectReleases method")
@@ -123,8 +123,8 @@ type PromptProviderMock struct {
 	// PrintUpdatingTargetReleaseFunc mocks the PrintUpdatingTargetRelease method.
 	PrintUpdatingTargetReleaseFunc func(targetEnvName string, releaseName string, releaseFilePath string, isCreating bool)
 
-	// SelectCreatingPromotionPullRequestFunc mocks the SelectCreatingPromotionPullRequest method.
-	SelectCreatingPromotionPullRequestFunc func() (string, error)
+	// SelectPromotionActionFunc mocks the SelectPromotionAction method.
+	SelectPromotionActionFunc func() (string, error)
 
 	// SelectReleasesFunc mocks the SelectReleases method.
 	SelectReleasesFunc func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error)
@@ -219,8 +219,8 @@ type PromptProviderMock struct {
 			// IsCreating is the isCreating argument value.
 			IsCreating bool
 		}
-		// SelectCreatingPromotionPullRequest holds details about calls to the SelectCreatingPromotionPullRequest method.
-		SelectCreatingPromotionPullRequest []struct {
+		// SelectPromotionAction holds details about calls to the SelectPromotionAction method.
+		SelectPromotionAction []struct {
 		}
 		// SelectReleases holds details about calls to the SelectReleases method.
 		SelectReleases []struct {
@@ -254,7 +254,7 @@ type PromptProviderMock struct {
 	lockPrintSelectedNonPromotableReleases  sync.RWMutex
 	lockPrintStartPreview                   sync.RWMutex
 	lockPrintUpdatingTargetRelease          sync.RWMutex
-	lockSelectCreatingPromotionPullRequest  sync.RWMutex
+	lockSelectPromotionAction               sync.RWMutex
 	lockSelectReleases                      sync.RWMutex
 	lockSelectSourceEnvironment             sync.RWMutex
 	lockSelectTargetEnvironment             sync.RWMutex
@@ -738,34 +738,34 @@ func (mock *PromptProviderMock) PrintUpdatingTargetReleaseCalls() []struct {
 	return calls
 }
 
-// SelectCreatingPromotionPullRequest calls SelectCreatingPromotionPullRequestFunc.
-func (mock *PromptProviderMock) SelectCreatingPromotionPullRequest() (string, error) {
+// SelectPromotionAction calls SelectPromotionActionFunc.
+func (mock *PromptProviderMock) SelectPromotionAction() (string, error) {
 	callInfo := struct {
 	}{}
-	mock.lockSelectCreatingPromotionPullRequest.Lock()
-	mock.calls.SelectCreatingPromotionPullRequest = append(mock.calls.SelectCreatingPromotionPullRequest, callInfo)
-	mock.lockSelectCreatingPromotionPullRequest.Unlock()
-	if mock.SelectCreatingPromotionPullRequestFunc == nil {
+	mock.lockSelectPromotionAction.Lock()
+	mock.calls.SelectPromotionAction = append(mock.calls.SelectPromotionAction, callInfo)
+	mock.lockSelectPromotionAction.Unlock()
+	if mock.SelectPromotionActionFunc == nil {
 		var (
 			sOut   string
 			errOut error
 		)
 		return sOut, errOut
 	}
-	return mock.SelectCreatingPromotionPullRequestFunc()
+	return mock.SelectPromotionActionFunc()
 }
 
-// SelectCreatingPromotionPullRequestCalls gets all the calls that were made to SelectCreatingPromotionPullRequest.
+// SelectPromotionActionCalls gets all the calls that were made to SelectPromotionAction.
 // Check the length with:
 //
-//	len(mockedPromptProvider.SelectCreatingPromotionPullRequestCalls())
-func (mock *PromptProviderMock) SelectCreatingPromotionPullRequestCalls() []struct {
+//	len(mockedPromptProvider.SelectPromotionActionCalls())
+func (mock *PromptProviderMock) SelectPromotionActionCalls() []struct {
 } {
 	var calls []struct {
 	}
-	mock.lockSelectCreatingPromotionPullRequest.RLock()
-	calls = mock.calls.SelectCreatingPromotionPullRequest
-	mock.lockSelectCreatingPromotionPullRequest.RUnlock()
+	mock.lockSelectPromotionAction.RLock()
+	calls = mock.calls.SelectPromotionAction
+	mock.lockSelectPromotionAction.RUnlock()
 	return calls
 }
 

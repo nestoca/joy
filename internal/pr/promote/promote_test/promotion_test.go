@@ -3,14 +3,13 @@ package promote_test
 import (
 	"testing"
 
-	"github.com/nestoca/joy/pkg/catalog"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/pr/promote"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 func newEnvironments(t *testing.T) []*v1alpha1.Environment {

@@ -17,6 +17,10 @@ func Resource(s any) string {
 	return color.InBold(color.InYellow(s))
 }
 
+func Author(s any) string {
+	return color.InBold(color.InCyan(s))
+}
+
 func OutOfSyncRelease(s any) string {
 	return color.InYellow(s)
 }
