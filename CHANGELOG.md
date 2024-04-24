@@ -1,3 +1,10 @@
+## [0.48.1](https://github.com/nestoca/joy/compare/v0.48.0...v0.48.1) (2024-04-24)
+
+
+### Bug Fixes
+
+* **PL-2415:** use gh repo clone for setup command ([9cce2dd](https://github.com/nestoca/joy/commit/9cce2dd8eec574023e5ad12fb0aa062c823d64b7))
+
 ## [0.48.0](https://github.com/nestoca/joy/compare/v0.47.8...v0.48.0) (2024-04-24)
 
 
