@@ -10,6 +10,7 @@ import (
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -195,18 +196,46 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		return p.perform(performParams)
 	}
 
-	// Prompt user to select creating a pull request
-	answer, err := p.PromptProvider.SelectCreatingPromotionPullRequest()
-	if err != nil {
-		return "", fmt.Errorf("selecting create promotion pull request: %w", err)
-	}
+loop:
+	for {
+		// Prompt user to select creating a pull request
+		action, err := p.PromptProvider.SelectPromotionAction()
+		if err != nil {
+			return "", fmt.Errorf("selecting create promotion pull request: %w", err)
+		}
 
-	switch answer {
-	case Draft:
-		performParams.draft = true
-	case Cancel:
-		p.PromptProvider.PrintCanceled()
-		return "", nil
+		switch action {
+		case CreatePR:
+			break loop
+		case CreateDraft:
+			performParams.draft = true
+			break loop
+		case ViewGitLog:
+			for _, item := range selectedList.Items {
+				p.println(style.SecondaryInfo("--- " + item.Name))
+				source, target := at(item.Releases, sourceEnvIndex), at(item.Releases, targetEnvIndex)
+
+				info, err := getReleaseInfo(source, target, performParams)
+				if err != nil {
+					p.printf("error getting release information %s: %v\n", item.Name, err)
+					continue
+				}
+
+				for _, commit := range info.Commits {
+					p.printf("%s %s %s\n", style.Resource(commit.ShortSha), style.Author(commit.GitHubAuthor), style.SecondaryInfo(commit.ShortMessage))
+				}
+
+				if len(info.Commits) == 0 {
+					p.println("no commits found in repo")
+				}
+
+				p.println()
+			}
+
+		case Cancel:
+			p.PromptProvider.PrintCanceled()
+			return "", nil
+		}
 	}
 
 	return p.perform(performParams)
@@ -279,4 +308,12 @@ func getTargetEnvironments(environments []*v1alpha1.Environment, sourceEnvironme
 		return nil, fmt.Errorf("no target environments found to promote from %s", sourceEnvironment.Name)
 	}
 	return envs, nil
+}
+
+func at[S ~[]E, E any](value S, index int) E {
+	if index >= len(value) {
+		var zero E
+		return zero
+	}
+	return value[index]
 }

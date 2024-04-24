@@ -9,15 +9,22 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/acarl005/stripansi"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/testutils"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -108,6 +115,137 @@ func TestDisallowedAutoMerge(t *testing.T) {
 		"foo")
 	require.NotNil(t, err)
 	require.Equal(t, "auto-merge is not allowed for target environment prod", err.Error())
+}
+
+func TestViewGitLog(t *testing.T) {
+	cases := []struct {
+		Name              string
+		Expected          string
+		InfoProviderSetup func(*info.ProviderMock) func(*testing.T)
+	}{
+		{
+			Name:     "no commits for service",
+			Expected: "--- test\nno commits found in repo",
+			InfoProviderSetup: func(mock *info.ProviderMock) func(*testing.T) {
+				return func(t *testing.T) {}
+			},
+		},
+		{
+			Name: "with git log information",
+			Expected: "" +
+				"--- test\n" +
+				"sha-1 gh-author-1 msg-1\n" +
+				"sha-2 gh-author-2 msg-2",
+			InfoProviderSetup: func(mock *info.ProviderMock) func(*testing.T) {
+				mock.GetCommitsMetadataFunc = func(projectDir, fromTag, toTag string) ([]*info.CommitMetadata, error) {
+					return []*info.CommitMetadata{
+						{Sha: "sha-1", Message: "msg-1"},
+						{Sha: "sha-2", Message: "msg-2"},
+					}, nil
+				}
+
+				mock.GetCommitsGitHubAuthorsFunc = func(project *v1alpha1.Project, fromTag, toTag string) (map[string]string, error) {
+					return map[string]string{
+						"sha-1": "gh-author-1",
+						"sha-2": "gh-author-2",
+					}, nil
+				}
+
+				return func(t *testing.T) {
+					require.Len(t, mock.GetCommitsMetadataCalls(), 1)
+					require.Len(t, mock.GetCommitsGitHubAuthorsCalls(), 1)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			info := new(info.ProviderMock)
+
+			if tc.InfoProviderSetup != nil {
+				defer tc.InfoProviderSetup(info)(t)
+			}
+
+			cmd := NewReleasePromoteCmd(PromoteParams{
+				Info:        info,
+				Links:       &links.ProviderMock{},
+				Git:         &promote.GitProviderMock{},
+				PullRequest: nil,
+				Prompt: &promote.PromptProviderMock{
+					SelectPromotionActionFunc: func() func() (string, error) {
+						first := true
+						return func() (string, error) {
+							if first {
+								first = false
+								return promote.ViewGitLog, nil
+							}
+							return promote.Cancel, nil
+						}
+					}(),
+				},
+				Writer:        nil,
+				PreRunConfigs: map[*cobra.Command]PreRunConfig{},
+			})
+
+			var buffer bytes.Buffer
+
+			cmd.SetOut(&buffer)
+			cmd.SetArgs([]string{"--source=source", "--target=target", "test"})
+
+			environments := []*v1alpha1.Environment{
+				{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "source"}},
+				{
+					EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "target"},
+					Spec: v1alpha1.EnvironmentSpec{
+						Promotion: v1alpha1.Promotion{
+							FromEnvironments: []string{"source"},
+						},
+					},
+				},
+			}
+
+			ctx := catalog.ToContext(context.Background(), &catalog.Catalog{
+				Environments: environments,
+				Releases: cross.ReleaseList{
+					Environments: environments,
+					Items: []*cross.Release{
+						{
+							Name: "test",
+							Releases: []*v1alpha1.Release{
+								{
+									ReleaseMetadata: v1alpha1.ReleaseMetadata{},
+									Spec:            v1alpha1.ReleaseSpec{},
+									File:            &yml.File{},
+									Project:         &v1alpha1.Project{},
+									Environment:     environments[0],
+								},
+								{
+									ReleaseMetadata: v1alpha1.ReleaseMetadata{},
+									Spec:            v1alpha1.ReleaseSpec{},
+									File:            &yml.File{},
+									Project:         &v1alpha1.Project{},
+									Environment:     environments[1],
+								},
+							},
+						},
+					},
+				},
+			})
+
+			ctx = config.ToContext(ctx, &config.Config{})
+
+			cmd.SetContext(ctx)
+
+			require.NoError(t, cmd.Execute())
+
+			actual := buffer.String()
+			actual = stripansi.Strip(actual)
+			actual = strings.TrimSpace(actual)
+
+			require.Equal(t, tc.Expected, actual)
+		})
+	}
 }
 
 func executeReleasePromoteCommand(t *testing.T, cmd *cobra.Command, args ...string) (string, string, error) {

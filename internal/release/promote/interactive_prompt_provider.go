@@ -35,10 +35,6 @@ var Separator = strings.Repeat("—", 80)
 const (
 	sourceEnvIndex = 0
 	targetEnvIndex = 1
-
-	Ready  = "Ready"
-	Draft  = "Draft"
-	Cancel = "Cancel"
 )
 
 func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
@@ -200,12 +196,19 @@ func (i *InteractivePromptProvider) ConfirmCreatingPromotionPullRequest(autoMerg
 	return ok, nil
 }
 
-func (i *InteractivePromptProvider) SelectCreatingPromotionPullRequest() (string, error) {
+const (
+	CreatePR    = "Create PR"
+	CreateDraft = "Create Draft PR"
+	ViewGitLog  = "View Git Log"
+	Cancel      = "Cancel"
+)
+
+func (i *InteractivePromptProvider) SelectPromotionAction() (string, error) {
 	var selectedAction string
 
-	actions := []string{Ready, Draft, Cancel}
+	actions := []string{CreatePR, CreateDraft, ViewGitLog, Cancel}
 	prompt := &survey.Select{
-		Message: "Select state of promotion PR?",
+		Message: "What would you like to do?",
 		Options: actions,
 	}
 

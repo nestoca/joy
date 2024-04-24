@@ -152,8 +152,8 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
 					return list, nil
 				}
-				args.promptProvider.SelectCreatingPromotionPullRequestFunc = func() (string, error) {
-					return promote.Ready, nil
+				args.promptProvider.SelectPromotionActionFunc = func() (string, error) {
+					return promote.CreatePR, nil
 				}
 
 				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
@@ -178,7 +178,7 @@ func TestPromotion(t *testing.T) {
 					require.Equal(t, expectedPromotedFile, printReleasePreviewCall.PromotedFile)
 
 					require.Len(t, args.promptProvider.PrintEndPreviewCalls(), 1)
-					require.Len(t, args.promptProvider.SelectCreatingPromotionPullRequestCalls(), 1)
+					require.Len(t, args.promptProvider.SelectPromotionActionCalls(), 1)
 
 					require.Len(t, args.promptProvider.PrintUpdatingTargetReleaseCalls(), 1)
 					printUpdatingCall := args.promptProvider.PrintUpdatingTargetReleaseCalls()[0]
@@ -225,8 +225,8 @@ func TestPromotion(t *testing.T) {
 				args.promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
 					return list, nil
 				}
-				args.promptProvider.SelectCreatingPromotionPullRequestFunc = func() (string, error) {
-					return promote.Ready, nil
+				args.promptProvider.SelectPromotionActionFunc = func() (string, error) {
+					return promote.CreatePR, nil
 				}
 
 				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
@@ -251,7 +251,7 @@ func TestPromotion(t *testing.T) {
 					require.Equal(t, expectedPromotedFile, printReleasePreviewCall.PromotedFile)
 
 					require.Len(t, args.promptProvider.PrintEndPreviewCalls(), 1)
-					require.Len(t, args.promptProvider.SelectCreatingPromotionPullRequestCalls(), 1)
+					require.Len(t, args.promptProvider.SelectPromotionActionCalls(), 1)
 
 					require.Len(t, args.promptProvider.PrintUpdatingTargetReleaseCalls(), 1)
 					printUpdatingCall := args.promptProvider.PrintUpdatingTargetReleaseCalls()[0]
