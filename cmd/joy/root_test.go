@@ -16,8 +16,7 @@ import (
 func TestRootVersions(t *testing.T) {
 	// For the version command to work that we use for testing versions,
 	// we need to trick joy into thinking there is a catalog setup somewhere.
-	catalogDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
+	catalogDir := t.TempDir()
 	require.NoError(t, os.Mkdir(filepath.Join(catalogDir, "environments"), 0o755))
 
 	cases := []struct {
@@ -61,7 +60,7 @@ Please update joy! >> brew update && brew upgrade joy`,
 				CatalogDir: catalogDir,
 			})
 
-			cmd := NewRootCmd(tc.Version)
+			cmd := NewRootCmd(tc.Version, make(PreRunConfigs))
 			cmd.SetArgs([]string{"version", "--skip-dev-check"})
 
 			var buffer bytes.Buffer

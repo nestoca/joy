@@ -5,12 +5,16 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/nestoca/joy/internal/style"
+
+	"github.com/nestoca/joy/internal"
+
 	"github.com/spf13/cobra"
 
 	"github.com/nestoca/joy/internal/config"
 )
 
-const allCommandsKey = "_all"
+const allCommandsKey = "~all"
 
 func WrapError(cmd *cobra.Command, cmdError error) error {
 	if cmdError == nil {
@@ -28,17 +32,17 @@ func WrapError(cmd *cobra.Command, cmdError error) error {
 	return fmt.Errorf("%w\n\n%s", cmdError, message)
 }
 
-func AugmentCommandHelp(cmd *cobra.Command) {
+func AugmentCommandHelp(cmd *cobra.Command, io internal.IO) {
 	baseHelpFunc := cmd.HelpFunc()
 	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		baseHelpFunc(cmd, args)
 
 		message, err := getMessageFromCommand(cmd, nil)
 		if err != nil {
-			panic(err)
+			_, _ = fmt.Fprintln(io.Err, err)
 		}
 		if message != "" {
-			fmt.Println("\n" + message)
+			_, _ = fmt.Fprintln(io.Out, "\n"+style.Notice(message))
 		}
 	})
 }
@@ -75,11 +79,6 @@ func getMessage(helps map[string][]config.Help, fullCommandName string, errStr s
 }
 
 func getFullCommandName(cmd *cobra.Command) string {
-	if !cmd.HasParent() {
-		return ""
-	}
-	if !cmd.Parent().HasParent() {
-		return cmd.Name()
-	}
-	return getFullCommandName(cmd.Parent()) + " " + cmd.Name()
+	_, subPath, _ := strings.Cut(cmd.CommandPath(), " ")
+	return subPath
 }

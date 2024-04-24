@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nestoca/joy/internal"
+
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/survey/v2"
 	"github.com/spf13/cobra"
@@ -28,7 +30,7 @@ func (cfgs PreRunConfigs) PullCatalog(cmd *cobra.Command) {
 	cfgs[cmd] = cfg
 }
 
-func NewRootCmd(version string) *cobra.Command {
+func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	var (
 		configDir        string
 		catalogDir       string
@@ -39,8 +41,6 @@ func NewRootCmd(version string) *cobra.Command {
 		diagnoseCmd      = NewDiagnoseCmd(version)
 		versionCmd       = NewVersionCmd(version)
 	)
-
-	preRunConfigs := make(PreRunConfigs)
 
 	cmd := &cobra.Command{
 		Use:           "joy",
@@ -64,8 +64,9 @@ func NewRootCmd(version string) *cobra.Command {
 				fmt.Println()
 			}
 
+			io := internal.IoFromCommand(cmd)
 			if cmd != diagnoseCmd && cmd != setupCmd {
-				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+				if err := dependencies.AllRequiredMustBeInstalled(io.Out); err != nil {
 					return err
 				}
 			}
@@ -80,9 +81,9 @@ func NewRootCmd(version string) *cobra.Command {
 
 				if preRunConfig.PullCatalog {
 					if flags.SkipCatalogUpdate {
-						fmt.Println("ℹ️ Skipping catalog update.")
+						_, _ = fmt.Fprintln(io.Err, "ℹ️ Skipping catalog update.")
 					} else {
-						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
+						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, io.Err); err != nil {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
 						var err error
