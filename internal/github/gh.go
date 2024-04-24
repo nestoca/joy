@@ -82,15 +82,23 @@ func EnsureInstalledAndAuthenticated() error {
 }
 
 type CloneOptions struct {
-	RepoURL string
-	OutDir  string
+	Repo   string
+	OutDir string
 }
 
 func Clone(dir string, opts CloneOptions) error {
-	args := []string{"repo", "clone", opts.RepoURL}
+	args := []string{"repo", "clone", opts.Repo}
 	if opts.OutDir != "" {
 		args = append(args, opts.OutDir)
 	}
 	_, err := ExecuteAndGetOutput(dir, args...)
 	return err
+}
+
+func CloneInteractive(dir string, opts CloneOptions) error {
+	args := []string{"repo", "clone", opts.Repo}
+	if opts.OutDir != "" {
+		args = append(args, opts.OutDir)
+	}
+	return executeInteractively(dir, args...)
 }

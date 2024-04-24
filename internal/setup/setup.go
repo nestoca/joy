@@ -3,7 +3,6 @@ package setup
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/diagnostics"
+	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/style"
 )
 
@@ -122,39 +122,42 @@ func getCatalogDir(configDir string, catalogDir string) (string, error) {
 func cloneCatalog(catalogRepo, catalogDir string) error {
 	shouldClone := true
 	if catalogRepo == "" {
-		// Prompt user whether to clone it
-		err := survey.AskOne(&survey.Confirm{
-			Message: "🤷 No trace of catalog at given location, clone it?",
-			Default: true,
-		},
+		if err := survey.AskOne(
+			&survey.Confirm{
+				Message: "🤷 No trace of catalog at given location, clone it?",
+				Default: true,
+			},
 			&shouldClone,
-		)
-		if err != nil {
+		); err != nil {
 			return fmt.Errorf("prompting for catalog cloning: %w", err)
 		}
 
-		// Prompt user for catalog repo
-		err = survey.AskOne(&survey.Input{
-			Message: "📦 What's your catalog repo URL?",
-		},
+		if !shouldClone {
+			return fmt.Errorf("😬 Sorry, cannot continue without catalog!")
+		}
+
+		if err := survey.AskOne(
+			&survey.Input{Message: "📦 What's your catalog repo URL (format: org/repo)?"},
 			&catalogRepo,
 			survey.WithValidator(survey.Required),
-		)
-		if err != nil {
+		); err != nil {
 			return fmt.Errorf("prompting for catalog repo: %w", err)
 		}
 	}
 
-	// Clone catalog
-	if shouldClone {
-		cmd := exec.Command("git", "clone", catalogRepo, catalogDir)
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("cloning catalog: %s", output)
-		}
-		fmt.Printf("✅ Cloned catalog from %s to %s\n", style.Link(catalogRepo), style.Code(catalogDir))
-	} else {
-		return fmt.Errorf("😬 Sorry, cannot continue without catalog!")
+	fmt.Println()
+
+	opts := github.CloneOptions{
+		Repo:   catalogRepo,
+		OutDir: catalogDir,
 	}
+
+	if err := github.CloneInteractive(".", opts); err != nil {
+		return fmt.Errorf("cloning catalog: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Printf("✅ Cloned catalog from %s to %s\n", style.Link(catalogRepo), style.Code(catalogDir))
+
 	return nil
 }
