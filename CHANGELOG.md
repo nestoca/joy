@@ -1,3 +1,10 @@
+## [0.48.0](https://github.com/nestoca/joy/compare/v0.47.8...v0.48.0) (2024-04-24)
+
+
+### Features
+
+* **PL-2420:** add view git log to release promote options ([66e28f9](https://github.com/nestoca/joy/commit/66e28f95c7c0aca089d8a95aa8bad7b7e8ad74f0))
+
 ## [0.47.8](https://github.com/nestoca/joy/compare/v0.47.7...v0.47.8) (2024-04-12)
 
 ## [0.47.7](https://github.com/nestoca/joy/compare/v0.47.6...v0.47.7) (2024-04-12)
