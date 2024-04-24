@@ -21,9 +21,9 @@ type PromptProvider interface {
 	// or abort.
 	ConfirmCreatingPromotionPullRequest(autoMerge, draft bool) (bool, error)
 
-	// SelectCreatingPromotionPullRequest prompts user to select state of promotion PR
+	// SelectPromotionAction prompts user to select state of promotion PR
 	// or abort.
-	SelectCreatingPromotionPullRequest() (string, error)
+	SelectPromotionAction() (string, error)
 
 	// ConfirmAutoMergePullRequest prompts user to confirm whether to auto-merge promotion PR or not
 	ConfirmAutoMergePullRequest() (bool, error)
