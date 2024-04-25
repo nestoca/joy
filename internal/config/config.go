@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 
 	"github.com/davidmdm/x/xerr"
 	"golang.org/x/mod/semver"
@@ -22,7 +21,7 @@ const (
 	JoyDefaultDir     = ".joy"
 )
 
-type Config struct {
+type User struct {
 	// CatalogDir is the directory containing catalog of environments, projects and releases.
 	// Optional, defaults to ~/.joy
 	CatalogDir string `yaml:"catalogDir,omitempty"`
@@ -33,6 +32,13 @@ type Config struct {
 	// Releases user has selected to work with.
 	Releases Releases `yaml:"releases,omitempty"`
 
+	ColumnWidths ColumnWidths `yaml:"columnWidths,omitempty"`
+
+	// FilePath is the path to the config file that was loaded, used to write back to the same file.
+	FilePath string `yaml:"-"`
+}
+
+type Catalog struct {
 	// MinVersion is the minimum version of the joy CLI required
 	MinVersion string `yaml:"minVersion,omitempty"`
 
@@ -57,11 +63,6 @@ type Config struct {
 	//
 	ValueMapping *ValueMapping `yaml:"valueMapping,omitempty"`
 
-	// FilePath is the path to the config file that was loaded, used to write back to the same file.
-	FilePath string `yaml:"-"`
-
-	JoyCache string `yaml:"-"`
-
 	RepositoriesDir string `yaml:"repositoriesDir,omitempty"`
 
 	// Default GitHub organization to infer the repository from the project name.
@@ -69,9 +70,14 @@ type Config struct {
 
 	Templates Templates `yaml:"templates,omitempty"`
 
-	ColumnWidths ColumnWidths `yaml:"columnWidths,omitempty"`
-
 	Helps map[string][]Help `yaml:"help,omitempty"`
+}
+
+type Config struct {
+	User
+	Catalog
+
+	JoyCache string
 }
 
 const (
@@ -181,31 +187,9 @@ type Releases struct {
 // optionally overrides loaded config's catalog directory with given catalogDir,
 // defaulting to ~/.joy if not specified.
 func Load(configDir, catalogDir string) (*Config, error) {
-	// Default configDir to user home
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting home directory: %w", err)
-	}
-	if configDir == "" {
-		configDir = homeDir
-	}
-
-	// Load config from .joyrc in configDir
-	joyrcPath := filepath.Join(configDir, JoyrcFile)
-
-	cfg, err := LoadFile(joyrcPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", joyrcPath, err)
-	}
-
-	var errs []error
-	for ref, chart := range cfg.Charts {
-		if chart.RepoURL == "" || chart.Name == "" || chart.Version == "" {
-			errs = append(errs, fmt.Errorf("%s: %s", ref, "chart must be fully qualified: repoUrl, name, and version are required"))
-		}
-	}
-	if err := xerr.MultiErrOrderedFrom("validating charts", errs...); err != nil {
-		return nil, err
 	}
 
 	rootCache := os.Getenv("XDG_CACHE_HOME")
@@ -213,69 +197,57 @@ func Load(configDir, catalogDir string) (*Config, error) {
 		rootCache = filepath.Join(homeDir, ".cache")
 	}
 
-	cfg.JoyCache = filepath.Join(rootCache, "joy")
-
-	if catalogDir != "" {
-		cfg.CatalogDir = catalogDir
+	if configDir == "" {
+		configDir = homeDir
 	}
 
-	if cfg.CatalogDir == "" {
-		cfg.CatalogDir = filepath.Join(homeDir, JoyDefaultDir)
+	joyrcPath := filepath.Join(configDir, JoyrcFile)
+
+	cfg := Config{
+		JoyCache: filepath.Join(rootCache, "joy"),
+		User: User{
+			FilePath: joyrcPath,
+		},
 	}
 
-	catalogConfigPath := filepath.Join(cfg.CatalogDir, CatalogConfigFile)
+	if err := LoadFile(joyrcPath, &cfg.User); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("loading user config %s: %w", joyrcPath, err)
+	}
 
-	catalogCfg, err := LoadFile(catalogConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load catalog configuration: %w", err)
+	cfg.User.CatalogDir = cmp.Or(catalogDir, cfg.User.CatalogDir, filepath.Join(homeDir, JoyDefaultDir))
+
+	catalogConfigPath := filepath.Join(cfg.User.CatalogDir, CatalogConfigFile)
+
+	if err := LoadFile(catalogConfigPath, &cfg.Catalog); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("loading catalog config %s: %w", catalogConfigPath, err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validating config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+func (cfg Config) Validate() error {
+	var errs []error
+	for ref, chart := range cfg.Charts {
+		if chart.RepoURL == "" || chart.Name == "" || chart.Version == "" {
+			errs = append(errs, fmt.Errorf("%s: %s", ref, "chart must be fully qualified: repoUrl, name, and version are required"))
+		}
+	}
+	if err := xerr.MultiErrOrderedFrom("validating charts", errs...); err != nil {
+		return err
 	}
 
 	if cfg.MinVersion != "" && !semver.IsValid(cfg.MinVersion) {
-		return nil, fmt.Errorf("invalid minimum version: %s", cfg.MinVersion)
+		return fmt.Errorf("invalid minimum version: %s", cfg.MinVersion)
 	}
 
-	deepCopyConfigNonZeroValues(catalogCfg, cfg)
-
-	return cfg, nil
+	return nil
 }
 
-func deepCopyConfigNonZeroValues(source, target *Config) {
-	deepCopyNonZeroValues(reflect.ValueOf(source).Elem(), reflect.ValueOf(target).Elem())
-}
-
-func deepCopyNonZeroValues(src, tgt reflect.Value) {
-	for i := 0; i < src.NumField(); i++ {
-		srcField := src.Field(i)
-		tgtField := tgt.Field(i)
-
-		switch srcField.Kind() {
-		case reflect.Struct:
-			deepCopyNonZeroValues(srcField, tgtField)
-		case reflect.Map:
-			if srcField.Len() > 0 {
-				if tgtField.IsNil() {
-					tgtField.Set(reflect.MakeMap(tgtField.Type()))
-				}
-				for _, key := range srcField.MapKeys() {
-					srcValue := srcField.MapIndex(key)
-					tgtField.SetMapIndex(key, srcValue)
-				}
-			}
-		default:
-			if src.Type().Field(i).Tag.Get("yaml") == "-" {
-				continue
-			}
-			if !isZeroValue(srcField.Interface()) {
-				tgtField.Set(srcField)
-			}
-		}
-	}
-}
-
-func isZeroValue(x interface{}) bool {
-	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
-}
-
+// TODO: maybe this function belongs in package catalog?
 func CheckCatalogDir(catalogDir string) error {
 	// Ensure that catalog's environments directory exists
 	environmentsDir := filepath.Join(catalogDir, "environments")
@@ -288,37 +260,25 @@ func CheckCatalogDir(catalogDir string) error {
 	return nil
 }
 
-func LoadFile(file string) (*Config, error) {
-	cfg := &Config{FilePath: file}
-
-	// Load config from file if it exists
+func LoadFile[T any](file string, value *T) error {
 	content, err := os.ReadFile(file)
 	if err != nil {
-		// It's ok if config file does not exist, but not any other errors.
-		if errors.Is(err, os.ErrNotExist) {
-			return cfg, nil
-		}
-		return nil, fmt.Errorf("loading config %s: %w", file, err)
+		return err
 	}
-
-	if err := yaml.Unmarshal(content, &cfg); err != nil {
-		return nil, fmt.Errorf("unmarshalling %s: %w", file, err)
-	}
-
-	return cfg, nil
+	return yaml.Unmarshal(content, &value)
 }
 
 // Save saves config back to its original file.
-func (c *Config) Save() error {
+func (user User) Save() error {
 	// Marshal config to YAML
-	content, err := yaml.Marshal(c)
+	content, err := yaml.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
 
 	// Write to file
-	if err := os.WriteFile(c.FilePath, content, 0o644); err != nil {
-		return fmt.Errorf("writing config to %s: %w", c.FilePath, err)
+	if err := os.WriteFile(user.FilePath, content, 0o644); err != nil {
+		return fmt.Errorf("writing config to %s: %w", user.FilePath, err)
 	}
 
 	return nil

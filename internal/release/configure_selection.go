@@ -12,16 +12,15 @@ import (
 
 func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) error {
 	// Load fresh copy of config file, without any alterations/defaults applied
-	cfg, err := config.LoadFile(configFilePath)
-	if err != nil {
+	userCfg := config.User{FilePath: configFilePath}
+	if err := config.LoadFile(userCfg.FilePath, &userCfg); err != nil {
 		return fmt.Errorf("loading config file %s: %w", configFilePath, err)
 	}
 
 	// Select all releases without prompting user?
 	if all {
-		cfg.Releases.Selected = nil
-		err = cfg.Save()
-		if err != nil {
+		userCfg.Releases.Selected = nil
+		if err := userCfg.Save(); err != nil {
 			return fmt.Errorf("saving config file %s: %w", configFilePath, err)
 		}
 		fmt.Println("✅ Selected all releases.")
@@ -36,22 +35,22 @@ func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) e
 	sort.Strings(releaseNames)
 
 	// Prompt user to select releases
-	defaultSelected := cfg.Releases.Selected
+	defaultSelected := userCfg.Releases.Selected
 	if len(defaultSelected) == 0 {
 		defaultSelected = releaseNames
 	}
 	var selected []string
-	err = survey.AskOne(&survey.MultiSelect{
-		Message: "Select releases to work with:",
-		Options: releaseNames,
-		Default: defaultSelected,
-	},
+	if err := survey.AskOne(
+		&survey.MultiSelect{
+			Message: "Select releases to work with:",
+			Options: releaseNames,
+			Default: defaultSelected,
+		},
 		&selected,
 		survey.WithPageSize(10),
 		survey.WithKeepFilter(true),
 		survey.WithValidator(survey.Required),
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("prompting for releases: %w", err)
 	}
 
@@ -60,13 +59,12 @@ func ConfigureSelection(cat *catalog.Catalog, configFilePath string, all bool) e
 	if len(selected) == len(releaseNames) {
 		selected = nil
 	}
-	cfg.Releases.Selected = selected
+	userCfg.Releases.Selected = selected
 
-	// Save config
-	err = cfg.Save()
-	if err != nil {
+	if err := userCfg.Save(); err != nil {
 		return fmt.Errorf("saving config file %s: %w", configFilePath, err)
 	}
+
 	fmt.Println("✅ Config updated.")
 	return nil
 }

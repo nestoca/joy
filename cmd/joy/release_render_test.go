@@ -37,21 +37,25 @@ func TestReleaseRender(t *testing.T) {
 
 	t.Run("render not found", func(t *testing.T) {
 		cfg := &config.Config{
-			CatalogDir: testCatalogPath,
-			Charts: map[string]helm.Chart{
-				"generic": {
-					RepoURL: "file://./testdata/charts",
-					Name:    "base",
-				},
+			User: config.User{
+				CatalogDir: testCatalogPath,
 			},
-			DefaultChartRef: "generic",
-			ValueMapping: &config.ValueMapping{
-				Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.Version }}",
+			Catalog: config.Catalog{
+				Charts: map[string]helm.Chart{
+					"generic": {
+						RepoURL: "file://./testdata/charts",
+						Name:    "base",
+					},
 				},
+				DefaultChartRef: "generic",
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }}",
+					},
+				},
+				GitHubOrganization: "nestoca",
 			},
-			JoyCache:           testCache,
-			GitHubOrganization: "nestoca",
+			JoyCache: testCache,
 		}
 
 		ctx := config.ToContext(context.Background(), cfg)
@@ -73,21 +77,25 @@ func TestReleaseRender(t *testing.T) {
 
 	t.Run("diff", func(t *testing.T) {
 		cfg := &config.Config{
-			CatalogDir: testCatalogPath,
-			Charts: map[string]helm.Chart{
-				"generic": {
-					RepoURL: "file://./testdata/charts",
-					Name:    "base",
-				},
+			User: config.User{
+				CatalogDir: testCatalogPath,
 			},
-			DefaultChartRef: "generic",
-			ValueMapping: &config.ValueMapping{
-				Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.Version }}",
+			Catalog: config.Catalog{
+				Charts: map[string]helm.Chart{
+					"generic": {
+						RepoURL: "file://./testdata/charts",
+						Name:    "base",
+					},
 				},
+				DefaultChartRef: "generic",
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }}",
+					},
+				},
+				GitHubOrganization: "nestoca",
 			},
-			JoyCache:           testCache,
-			GitHubOrganization: "nestoca",
+			JoyCache: testCache,
 		}
 
 		ctx := config.ToContext(context.Background(), cfg)
@@ -129,21 +137,25 @@ func TestReleaseRender(t *testing.T) {
 
 	t.Run("diff of new release", func(t *testing.T) {
 		cfg := &config.Config{
-			CatalogDir: testCatalogPath,
-			Charts: map[string]helm.Chart{
-				"generic": {
-					RepoURL: "file://./testdata/charts",
-					Name:    "base",
-				},
+			User: config.User{
+				CatalogDir: testCatalogPath,
 			},
-			DefaultChartRef: "generic",
-			ValueMapping: &config.ValueMapping{
-				Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.Version }}",
+			Catalog: config.Catalog{
+				Charts: map[string]helm.Chart{
+					"generic": {
+						RepoURL: "file://./testdata/charts",
+						Name:    "base",
+					},
 				},
+				DefaultChartRef: "generic",
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }}",
+					},
+				},
+				GitHubOrganization: "nestoca",
 			},
-			JoyCache:           testCache,
-			GitHubOrganization: "nestoca",
+			JoyCache: testCache,
 		}
 
 		ctx := config.ToContext(context.Background(), cfg)
@@ -185,21 +197,25 @@ func TestReleaseRender(t *testing.T) {
 
 	t.Run("diff of new release inversed refs", func(t *testing.T) {
 		cfg := &config.Config{
-			CatalogDir: testCatalogPath,
-			Charts: map[string]helm.Chart{
-				"generic": {
-					RepoURL: "file://./testdata/charts",
-					Name:    "base",
-				},
+			User: config.User{
+				CatalogDir: testCatalogPath,
 			},
-			DefaultChartRef: "generic",
-			ValueMapping: &config.ValueMapping{
-				Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.Version }}",
+			Catalog: config.Catalog{
+				Charts: map[string]helm.Chart{
+					"generic": {
+						RepoURL: "file://./testdata/charts",
+						Name:    "base",
+					},
 				},
+				DefaultChartRef: "generic",
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }}",
+					},
+				},
+				GitHubOrganization: "nestoca",
 			},
-			JoyCache:           testCache,
-			GitHubOrganization: "nestoca",
+			JoyCache: testCache,
 		}
 
 		ctx := config.ToContext(context.Background(), cfg)
@@ -241,21 +257,25 @@ func TestReleaseRender(t *testing.T) {
 
 	t.Run("diff release not found", func(t *testing.T) {
 		cfg := &config.Config{
-			CatalogDir: testCatalogPath,
-			Charts: map[string]helm.Chart{
-				"generic": {
-					RepoURL: "file://./testdata/charts",
-					Name:    "base",
-				},
+			User: config.User{
+				CatalogDir: testCatalogPath,
 			},
-			DefaultChartRef: "generic",
-			ValueMapping: &config.ValueMapping{
-				Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.Version }}",
+			Catalog: config.Catalog{
+				Charts: map[string]helm.Chart{
+					"generic": {
+						RepoURL: "file://./testdata/charts",
+						Name:    "base",
+					},
 				},
+				DefaultChartRef: "generic",
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }}",
+					},
+				},
+				GitHubOrganization: "nestoca",
 			},
-			JoyCache:           testCache,
-			GitHubOrganization: "nestoca",
+			JoyCache: testCache,
 		}
 
 		ctx := config.ToContext(context.Background(), cfg)

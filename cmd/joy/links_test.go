@@ -77,23 +77,25 @@ func TestEnvironmentSpecificLink(t *testing.T) {
 
 func executeLinksCommand(t *testing.T, cmd *cobra.Command, args ...string) string {
 	cfg := config.Config{
-		GitHubOrganization: "acme",
-		Templates: config.Templates{
-			Environment: config.EnvironmentTemplates{
-				Links: map[string]string{
-					"cd": "https://argo-cd.acme.com/applications/{{ .Environment.Name }}",
+		Catalog: config.Catalog{
+			GitHubOrganization: "acme",
+			Templates: config.Templates{
+				Environment: config.EnvironmentTemplates{
+					Links: map[string]string{
+						"cd": "https://argo-cd.acme.com/applications/{{ .Environment.Name }}",
+					},
 				},
-			},
-			Project: config.ProjectTemplates{
-				Links: map[string]string{
-					"repo":    "https://github.com/{{ .Repository }}",
-					"actions": "https://github.com/{{ .Repository }}/actions",
-					"pulls":   "https://github.com/{{ .Repository }}/pulls",
+				Project: config.ProjectTemplates{
+					Links: map[string]string{
+						"repo":    "https://github.com/{{ .Repository }}",
+						"actions": "https://github.com/{{ .Repository }}/actions",
+						"pulls":   "https://github.com/{{ .Repository }}/pulls",
+					},
 				},
-			},
-			Release: config.ReleaseTemplates{
-				Links: map[string]string{
-					"tag": "https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}",
+				Release: config.ReleaseTemplates{
+					Links: map[string]string{
+						"tag": "https://github.com/{{ .Repository }}/releases/tag/{{ .GitTag }}",
+					},
 				},
 			},
 		},

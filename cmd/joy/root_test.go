@@ -56,8 +56,8 @@ Please update joy! >> brew update && brew upgrade joy`,
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := config.ToContext(context.Background(), &config.Config{
-				MinVersion: tc.MinVersion,
-				CatalogDir: catalogDir,
+				User:    config.User{CatalogDir: catalogDir},
+				Catalog: config.Catalog{MinVersion: tc.MinVersion},
 			})
 
 			cmd := NewRootCmd(tc.Version, make(PreRunConfigs))

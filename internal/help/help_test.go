@@ -108,7 +108,7 @@ func TestWrapError(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := config.Config{Helps: tc.helps}
+			cfg := config.Config{Catalog: config.Catalog{Helps: tc.helps}}
 			nestedCmd := getNestedCommand("root", "sub", "cmd")
 			nestedCmd.SetContext(config.ToContext(context.TODO(), &cfg))
 

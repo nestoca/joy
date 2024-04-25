@@ -177,14 +177,6 @@ func (c *Catalog) WithEnvironments(names []string) *Catalog {
 	return c
 }
 
-func shallowClone[T any](ptr *T) *T {
-	if ptr == nil {
-		return nil
-	}
-	shallow := *ptr
-	return &shallow
-}
-
 func (c *Catalog) ResolveRefs() error {
 	var errs []error
 	if len(c.Releases.Items) > 0 {

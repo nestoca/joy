@@ -115,7 +115,7 @@ func TestExecutableDiagnostics(t *testing.T) {
 			require.Equal(
 				t,
 				tc.Expected,
-				diagnoseExecutable(&config.Config{MinVersion: tc.MinVersion}, tc.Version, opts).StripAnsi(),
+				diagnoseExecutable(&config.Config{Catalog: config.Catalog{MinVersion: tc.MinVersion}}, tc.Version, opts).StripAnsi(),
 			)
 		})
 	}
