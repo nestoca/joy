@@ -128,7 +128,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog(&config.Config{CatalogDir: "catalogDir"}, tc.Opts).StripAnsi())
+			require.Equal(t, tc.Expected, diagnoseCatalog(&config.Config{User: config.User{CatalogDir: "catalogDir"}}, tc.Opts).StripAnsi())
 		})
 	}
 }

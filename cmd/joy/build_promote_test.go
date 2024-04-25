@@ -65,7 +65,7 @@ func TestBuildPromote(t *testing.T) {
 			}
 
 			cfg := &config.Config{
-				CatalogDir: catalogDir,
+				User: config.User{CatalogDir: catalogDir},
 			}
 			ctx := config.ToContext(context.Background(), cfg)
 			ctx = catalog.ToContext(ctx, cat)

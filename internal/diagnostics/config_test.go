@@ -20,7 +20,7 @@ func TestConfigDiagnostics(t *testing.T) {
 	}{
 		{
 			Name:   "happy",
-			Config: &config.Config{FilePath: ".joyrc"},
+			Config: &config.Config{User: config.User{FilePath: ".joyrc"}},
 			Stat:   func(string) (fs.FileInfo, error) { return nil, nil },
 			Expected: Group{
 				Title: "Config",
@@ -34,7 +34,7 @@ func TestConfigDiagnostics(t *testing.T) {
 		},
 		{
 			Name:   "file not exists",
-			Config: &config.Config{FilePath: ".joyrc"},
+			Config: &config.Config{User: config.User{FilePath: ".joyrc"}},
 			Stat:   func(string) (fs.FileInfo, error) { return nil, os.ErrNotExist },
 			Expected: Group{
 				Title: "Config",
@@ -46,7 +46,7 @@ func TestConfigDiagnostics(t *testing.T) {
 		},
 		{
 			Name:   "fail to stat file",
-			Config: &config.Config{FilePath: ".joyrc"},
+			Config: &config.Config{User: config.User{FilePath: ".joyrc"}},
 			Stat:   func(string) (fs.FileInfo, error) { return nil, errors.New("corrupted disk!") },
 			Expected: Group{
 				Title: "Config",

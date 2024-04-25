@@ -30,7 +30,8 @@ func TestCatalogLoadE2E(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			cfg, err := config.LoadFile(filepath.Join("testdata", tc.Folder, "joy.yaml"))
+			var cfg config.Config
+			err := config.LoadFile(filepath.Join("testdata", tc.Folder, "joy.yaml"), &cfg.Catalog)
 			require.NoError(t, err)
 
 			_, err = Load(filepath.Join("testdata", tc.Folder), cfg.KnownChartRefs())

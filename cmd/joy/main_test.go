@@ -221,6 +221,7 @@ func TestMainRun(t *testing.T) {
 			}
 
 			if tc.expectedError != "" {
+				require.NotNil(t, err)
 				require.Contains(t, err.Error(), tc.expectedError)
 			} else {
 				require.NoError(t, err)
