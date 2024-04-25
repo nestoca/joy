@@ -70,6 +70,8 @@ type Config struct {
 	Templates Templates `yaml:"templates,omitempty"`
 
 	ColumnWidths ColumnWidths `yaml:"columnWidths,omitempty"`
+
+	Helps map[string][]Help `yaml:"help,omitempty"`
 }
 
 const (
@@ -117,6 +119,14 @@ type ReleaseTemplates struct {
 type ReleasePromoteTemplates struct {
 	Commit      string `yaml:"commit,omitempty"`
 	PullRequest string `yaml:"pullRequest,omitempty"`
+}
+
+type Help struct {
+	// ErrorPattern is an optional regex pattern to match against the error message to determine if this help message should be displayed.
+	ErrorPattern string `yaml:"error,omitempty"`
+
+	// Message is the help message to display.
+	Message string `yaml:"message,omitempty"`
 }
 
 func (config *Config) KnownChartRefs() []string {

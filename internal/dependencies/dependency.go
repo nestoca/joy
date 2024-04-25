@@ -2,6 +2,7 @@ package dependencies
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 
 	"github.com/nestoca/joy/internal/style"
@@ -45,11 +46,11 @@ func Add(dep *Dependency) {
 	}
 }
 
-func AllRequiredMustBeInstalled() error {
+func AllRequiredMustBeInstalled(out io.Writer) error {
 	missingRequired := false
 	for _, dep := range AllRequired {
 		if dep.IsRequired && !dep.IsInstalled() {
-			fmt.Printf("❌ The %s required dependency is missing (see %s).\n", style.Code(dep.Command), style.Link(dep.Url))
+			_, _ = fmt.Fprintf(out, "❌ The %s required dependency is missing (see %s).\n", style.Code(dep.Command), style.Link(dep.Url))
 			missingRequired = true
 		}
 	}

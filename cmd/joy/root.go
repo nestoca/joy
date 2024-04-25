@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nestoca/joy/internal"
+
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/survey/v2"
 	"github.com/spf13/cobra"
@@ -28,7 +30,7 @@ func (cfgs PreRunConfigs) PullCatalog(cmd *cobra.Command) {
 	cfgs[cmd] = cfg
 }
 
-func NewRootCmd(version string) *cobra.Command {
+func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	var (
 		configDir        string
 		catalogDir       string
@@ -40,12 +42,11 @@ func NewRootCmd(version string) *cobra.Command {
 		versionCmd       = NewVersionCmd(version)
 	)
 
-	preRunConfigs := make(PreRunConfigs)
-
 	cmd := &cobra.Command{
-		Use:          "joy",
-		Short:        "Manages project, environment and release resources as code",
-		SilenceUsage: true,
+		Use:           "joy",
+		Short:         "Manages project, environment and release resources as code",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.CalledAs() == "help" {
 				return nil
@@ -63,8 +64,9 @@ func NewRootCmd(version string) *cobra.Command {
 				fmt.Println()
 			}
 
+			io := internal.IoFromCommand(cmd)
 			if cmd != diagnoseCmd && cmd != setupCmd {
-				if err := dependencies.AllRequiredMustBeInstalled(); err != nil {
+				if err := dependencies.AllRequiredMustBeInstalled(io.Out); err != nil {
 					return err
 				}
 			}
@@ -72,21 +74,19 @@ func NewRootCmd(version string) *cobra.Command {
 			preRunConfig := preRunConfigs[cmd]
 
 			cfg, err := func() (*config.Config, error) {
-				if cfg := config.FromContext(cmd.Context()); cfg != nil {
-					return cfg, nil
+				cfg := config.FromContext(cmd.Context())
+				if cfg == nil {
+					return nil, fmt.Errorf("config not found in context")
 				}
 
-				cfg, err := config.Load(configDir, catalogDir)
-				if err != nil {
-					return nil, err
-				}
 				if preRunConfig.PullCatalog {
 					if flags.SkipCatalogUpdate {
-						fmt.Println("ℹ️ Skipping catalog update.")
+						_, _ = fmt.Fprintln(io.Err, "ℹ️ Skipping catalog update.")
 					} else {
-						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir); err != nil {
+						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, io.Err); err != nil {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
+						var err error
 						cfg, err = config.Load(configDir, cfg.CatalogDir)
 						if err != nil {
 							return nil, err
@@ -95,7 +95,7 @@ func NewRootCmd(version string) *cobra.Command {
 				}
 
 				cmd.SetContext(config.ToContext(cmd.Context(), cfg))
-				return cfg, err
+				return cfg, nil
 			}()
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
