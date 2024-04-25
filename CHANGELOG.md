@@ -1,3 +1,10 @@
+## [0.49.0](https://github.com/nestoca/joy/compare/v0.48.2...v0.49.0) (2024-04-25)
+
+
+### Features
+
+* **PL-2637:** custom error help messages ([#161](https://github.com/nestoca/joy/issues/161)) ([71b17d8](https://github.com/nestoca/joy/commit/71b17d80537ab8c415b584d990825958aac5e5af)), closes [#163](https://github.com/nestoca/joy/issues/163)
+
 ## [0.48.2](https://github.com/nestoca/joy/compare/v0.48.1...v0.48.2) (2024-04-24)
 
 ## [0.48.1](https://github.com/nestoca/joy/compare/v0.48.0...v0.48.1) (2024-04-24)
