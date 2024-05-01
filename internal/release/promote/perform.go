@@ -201,7 +201,7 @@ func getReviewers(info *PromotionInfo) []string {
 
 	var reviewers []string
 	for reviewer := range uniqueAuthors {
-		if reviewer == "*" {
+		if reviewer == "*" || reviewer == "github-actions[bot]" {
 			continue
 		}
 		reviewers = append(reviewers, reviewer)
