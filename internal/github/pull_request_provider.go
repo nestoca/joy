@@ -81,6 +81,9 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	}
 
 	for _, reviewer := range params.Reviewers {
+		if reviewer == "github-actions[bot]" {
+			continue
+		}
 		args = append(args, "--reviewer", reviewer)
 	}
 
