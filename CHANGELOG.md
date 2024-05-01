@@ -1,3 +1,10 @@
+## [0.49.2](https://github.com/nestoca/joy/compare/v0.49.1...v0.49.2) (2024-05-01)
+
+
+### Bug Fixes
+
+* **PL-2680:** exclude gha bot from reviewers ([#168](https://github.com/nestoca/joy/issues/168)) ([45bdf66](https://github.com/nestoca/joy/commit/45bdf6697360188f6676a44e82d7f080a62bc604))
+
 ## [0.49.1](https://github.com/nestoca/joy/compare/v0.49.0...v0.49.1) (2024-04-25)
 
 ## [0.49.0](https://github.com/nestoca/joy/compare/v0.48.2...v0.49.0) (2024-04-25)
