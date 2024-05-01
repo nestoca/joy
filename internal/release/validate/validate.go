@@ -67,7 +67,7 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		}
 	}
 
-	if err := validateSchema(params.Release, params.Chart); err != nil {
+	if err := validateSchema(params.Release, params.ValueMapping, params.Chart); err != nil {
 		return err
 	}
 
@@ -92,9 +92,14 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	return nil
 }
 
-func validateSchema(release *v1alpha1.Release, chart *helm.ChartFS) error {
+func validateSchema(release *v1alpha1.Release, mappings *config.ValueMapping, chart *helm.ChartFS) error {
 	if release.Spec.Values == nil {
 		return nil
+	}
+
+	hydratedValues, err := render.HydrateValues(release, mappings)
+	if err != nil {
+		return fmt.Errorf("hydrating values: %w", err)
 	}
 
 	schemaData, err := chart.ReadFile("values.cue")
@@ -111,7 +116,7 @@ func validateSchema(release *v1alpha1.Release, chart *helm.ChartFS) error {
 		CompileBytes(schemaData).
 		LookupPath(cue.MakePath(cue.Def("#values")))
 
-	values := runtime.Encode(release.Spec.Values)
+	values := runtime.Encode(hydratedValues)
 
 	validationErr := schema.Unify(values).Validate(cue.Concrete(true))
 

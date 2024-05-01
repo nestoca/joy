@@ -44,7 +44,7 @@ type EnvironmentSpec struct {
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 
 	// ChartVersions allows the environment to override the given version of the catalog's chart references.
-	// This allows for environments to rollout new versions of chart references.
+	// This allows for environments to roll out new versions of chart references.
 	ChartVersions map[string]string `yaml:"chartVersions,omitempty" json:"chartVersions,omitempty"`
 
 	// Owners is the list of identifiers of owners of the environment.
@@ -54,6 +54,10 @@ type EnvironmentSpec struct {
 	// SealedSecretsCert is the public certificate of the Sealed Secrets controller for this environment
 	// that can be used to encrypt secrets targeted to this environment using the `joy secret seal` command.
 	SealedSecretsCert string `yaml:"sealedSecretsCert,omitempty" json:"sealedSecretsCert,omitempty"`
+
+	// Values are the environment-level values that can optionally be injected into releases' values during rendering
+	// via the `$ref(.Environment.Spec.Values.someKey)` or `$spread(...)` template expressions.
+	Values map[string]any `yaml:"values,omitempty" json:"values,omitempty"`
 }
 
 type Environment struct {

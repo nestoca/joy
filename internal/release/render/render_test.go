@@ -112,7 +112,6 @@ func TestRender(t *testing.T) {
 												RepoUrl: "url",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -163,7 +162,6 @@ func TestRender(t *testing.T) {
 												Version: "v666",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -218,7 +216,6 @@ func TestRender(t *testing.T) {
 												"version": "{{ .Release.Spec.Version }}",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -227,37 +224,8 @@ func TestRender(t *testing.T) {
 				},
 				DefaultChart: "generic",
 				CacheDir:     "~/.cache/joy/does_not_exist",
-				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
-					require.Len(t, mock.PullCalls(), 1)
-					require.Equal(
-						t,
-						helm.PullOptions{
-							Chart: helm.Chart{
-								RepoURL: "default",
-								Name:    "chart",
-								Version: "v1",
-							},
-							OutputDir: "~/.cache/joy/does_not_exist/default/chart/v1",
-						},
-						mock.PullCalls()[0].PullOptions,
-					)
-					require.Len(t, mock.RenderCalls(), 1)
-					require.Equal(
-						t,
-						helm.RenderOpts{
-							Dst:         &stdout,
-							ReleaseName: "app",
-							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
-							Values: map[string]any{
-								"env":     "{{ .Environment.Name `!}}",
-								"version": "{{ .Release.Spec.Version }}",
-							},
-						},
-						mock.RenderCalls()[0].Opts,
-					)
-				},
 			},
-			ExpectedOut: "error hydrating values: template: :1: unterminated raw quoted string\nfallback to raw release.spec.values\n",
+			ExpectedError: "hydrating values: template: :1: unterminated raw quoted string",
 		},
 		{
 			Name: "fail to render",
@@ -282,7 +250,6 @@ func TestRender(t *testing.T) {
 												"version": "{{ .Release.Spec.Version }}",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -351,7 +318,6 @@ func TestRender(t *testing.T) {
 												"version": "{{ .Release.Spec.Version }}",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -420,7 +386,6 @@ func TestRender(t *testing.T) {
 												"version": "{{ .Release.Spec.Version }}",
 											},
 										},
-										Environment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"}},
 									},
 								},
 							},
@@ -467,6 +432,60 @@ func TestRender(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "render with environment-level values",
+			Params: RenderTestParams{
+				Env:     "qa",
+				Release: "app",
+				Catalog: &catalog.Catalog{
+					Environments: []*v1alpha1.Environment{
+						{
+							EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "qa"},
+							Spec:                v1alpha1.EnvironmentSpec{Values: map[string]any{"corsOrigins": []any{"origin1.com", "origin2.com"}}},
+						},
+					},
+					Releases: cross.ReleaseList{
+						Items: []*cross.Release{
+							{
+								Name: "app",
+								Releases: []*v1alpha1.Release{
+									{
+										ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "app"},
+										Spec: v1alpha1.ReleaseSpec{
+											Version: "1.2.3",
+											Values: map[string]any{
+												"env":         "{{ .Environment.Name }}",
+												"version":     "{{ .Release.Spec.Version }}",
+												"corsOrigins": "$ref(.Environment.Spec.Values.corsOrigins)",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				DefaultChart: "generic",
+				CacheDir:     "~/.cache/joy/does_not_exist",
+				HelmAssertions: func(t *testing.T, mock *helm.PullRendererMock) {
+					require.Len(t, mock.RenderCalls(), 1)
+					require.Equal(
+						t,
+						helm.RenderOpts{
+							Dst:         &stdout,
+							ReleaseName: "app",
+							ChartPath:   "~/.cache/joy/does_not_exist/default/chart/v1/chart",
+							Values: map[string]any{
+								"env":         "qa",
+								"version":     "1.2.3",
+								"corsOrigins": []any{"origin1.com", "origin2.com"},
+							},
+						},
+						mock.RenderCalls()[0].Opts,
+					)
+				},
+			},
+		},
 	}
 
 	io := internal.IO{
@@ -486,6 +505,15 @@ func TestRender(t *testing.T) {
 			}
 			if assertions := tc.Params.HelmAssertions; assertions != nil {
 				defer assertions(t, helmMock)
+			}
+
+			// Use first environment as default for releases, because in some cases we need to have the
+			// exact same environment in the release as in the catalog.
+			if len(tc.Params.Catalog.Releases.Items) > 0 &&
+				len(tc.Params.Catalog.Releases.Items[0].Releases) > 0 &&
+				tc.Params.Catalog.Releases.Items[0].Releases[0].Environment == nil &&
+				len(tc.Params.Catalog.Environments) > 0 {
+				tc.Params.Catalog.Releases.Items[0].Releases[0].Environment = tc.Params.Catalog.Environments[0]
 			}
 
 			err := Render(context.Background(), RenderParams{
@@ -600,6 +628,219 @@ func TestSetInMap(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			setInMap(tc.Input, tc.Segments, tc.Value)
 			require.Equal(t, tc.Expected, tc.Input)
+		})
+	}
+}
+
+func TestHydrateObjectValues(t *testing.T) {
+	cases := []struct {
+		Name           string
+		EnvValues      map[string]any
+		ReleaseValues  map[string]any
+		ExpectedValues map[string]any
+		ExpectedError  string
+	}{
+		{
+			Name:      "top-level value",
+			EnvValues: map[string]any{"corsOrigins": []any{"origin1.com", "origin2.com"}},
+			ReleaseValues: map[string]any{
+				"before":      "before",
+				"corsOrigins": "$ref(.Environment.Spec.Values.corsOrigins)",
+				"after":       "after",
+			},
+			ExpectedValues: map[string]any{
+				"before":      "before",
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+				"after":       "after",
+			},
+		},
+		{
+			Name: "nested env value",
+			EnvValues: map[string]any{
+				"infra": map[string]any{
+					"corsOrigins": []any{"origin1.com", "origin2.com"},
+				},
+			},
+			ReleaseValues: map[string]any{
+				"before":      "before",
+				"corsOrigins": "$ref(.Environment.Spec.Values.infra.corsOrigins)",
+				"after":       "after",
+			},
+			ExpectedValues: map[string]any{
+				"before":      "before",
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+				"after":       "after",
+			},
+		},
+		{
+			Name: "nested release value",
+			EnvValues: map[string]any{
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+			},
+			ReleaseValues: map[string]any{
+				"infra": map[string]any{
+					"before":      "before",
+					"corsOrigins": "$ref(.Environment.Spec.Values.corsOrigins)",
+					"after":       "after",
+				},
+			},
+			ExpectedValues: map[string]any{
+				"infra": map[string]any{
+					"before":      "before",
+					"corsOrigins": []any{"origin1.com", "origin2.com"},
+					"after":       "after",
+				},
+			},
+		},
+		{
+			Name: "array ref within array",
+			EnvValues: map[string]any{
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+			},
+			ReleaseValues: map[string]any{
+				"infra": []any{
+					"before",
+					"$ref(.Environment.Spec.Values.corsOrigins)",
+					"after",
+				},
+			},
+			ExpectedValues: map[string]any{
+				"infra": []any{
+					"before",
+					[]any{"origin1.com", "origin2.com"},
+					"after",
+				},
+			},
+		},
+		{
+			Name: "ref within array within array",
+			EnvValues: map[string]any{
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+			},
+			ReleaseValues: map[string]any{
+				"infra": []any{
+					[]any{
+						"before",
+						"$ref(.Environment.Spec.Values.corsOrigins)",
+						"after",
+					},
+				},
+			},
+			ExpectedValues: map[string]any{
+				"infra": []any{
+					[]any{
+						"before",
+						[]any{"origin1.com", "origin2.com"},
+						"after",
+					},
+				},
+			},
+		},
+		{
+			Name: "ref within map within array",
+			EnvValues: map[string]any{
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+			},
+			ReleaseValues: map[string]any{
+				"infra": []any{
+					"before",
+					map[string]any{
+						"before": "before",
+						"ref":    "$ref(.Environment.Spec.Values.corsOrigins)",
+						"after":  "after",
+					},
+					"after",
+				},
+			},
+			ExpectedValues: map[string]any{
+				"infra": []any{
+					"before",
+					map[string]any{
+						"before": "before",
+						"ref":    []any{"origin1.com", "origin2.com"},
+						"after":  "after",
+					},
+					"after",
+				},
+			},
+		},
+		{
+			Name: "array spread within array",
+			EnvValues: map[string]any{
+				"corsOrigins": []any{"origin1.com", "origin2.com"},
+			},
+			ReleaseValues: map[string]any{
+				"infra": []any{
+					"before",
+					"$spread(.Environment.Spec.Values.corsOrigins)",
+					"after",
+				},
+			},
+			ExpectedValues: map[string]any{
+				"infra": []any{
+					"before",
+					"origin1.com",
+					"origin2.com",
+					"after",
+				},
+			},
+		},
+		{
+			Name:      "preserve regular values",
+			EnvValues: map[string]any{"corsOrigins": []any{"origin1.com", "origin2.com"}},
+			ReleaseValues: map[string]any{
+				"string":  "string value",
+				"int":     42,
+				"object":  map[string]any{"key": "value", "nested": map[string]any{"key": "value"}},
+				"array":   []any{"a", "b", "c"},
+				"env":     "{{ .Environment.Name }}",
+				"version": "{{ .Release.Spec.Version }}",
+			},
+			ExpectedValues: map[string]any{
+				"string":  "string value",
+				"int":     42,
+				"object":  map[string]any{"key": "value", "nested": map[string]any{"key": "value"}},
+				"array":   []any{"a", "b", "c"},
+				"env":     "{{ .Environment.Name }}",
+				"version": "{{ .Release.Spec.Version }}",
+			},
+		},
+		{
+			Name:          "invalid operator",
+			ReleaseValues: map[string]any{"key": "$invalid(.Environment.Spec.Values.corsOrigins)"},
+			ExpectedError: `unsupported object interpolation operator "invalid" in expression: $invalid(.Environment.Spec.Values.corsOrigins)`,
+		},
+		{
+			Name:          "invalid prefix",
+			ReleaseValues: map[string]any{"key": "$ref(.Environment.Metadata.Name)"},
+			ExpectedError: `only ".Environment.Spec.Values." prefix is supported for object interpolation, but found: .Environment.Metadata.Name`,
+		},
+		{
+			Name:          "unsupported spread within object",
+			EnvValues:     map[string]any{"corsOrigins": []any{"origin1.com", "origin2.com"}},
+			ReleaseValues: map[string]any{"key": "$spread(.Environment.Spec.Values.corsOrigins)"},
+			ExpectedError: `only $ref() operator supported within object: $spread(.Environment.Spec.Values.corsOrigins)`,
+		},
+		{
+			Name:          "invalid path",
+			EnvValues:     map[string]any{},
+			ReleaseValues: map[string]any{"key": "$ref(.Environment.Spec.Values.does.not.exist)"},
+			ExpectedError: `resolving object value for path ".Environment.Spec.Values.does.not.exist": key "does" not found in values`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actualValues, err := hydrateObjectValues(tc.ReleaseValues, tc.EnvValues)
+
+			if tc.ExpectedError != "" {
+				require.EqualError(t, err, tc.ExpectedError)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tc.ExpectedValues, actualValues)
 		})
 	}
 }
