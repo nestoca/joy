@@ -1,3 +1,10 @@
+## [0.50.0](https://github.com/nestoca/joy/compare/v0.49.4...v0.50.0) (2024-05-06)
+
+
+### Features
+
+* **PL-2679:** add support for environment-level values ([#170](https://github.com/nestoca/joy/issues/170)) ([bd42031](https://github.com/nestoca/joy/commit/bd42031d4865b561ef01fac0398c36c49ed1c999))
+
 ## [0.49.4](https://github.com/nestoca/joy/compare/v0.49.3...v0.49.4) (2024-05-01)
 
 ## [0.49.3](https://github.com/nestoca/joy/compare/v0.49.2...v0.49.3) (2024-05-01)
