@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"maps"
+	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/Masterminds/sprig/v3"
 
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/survey/v2"
@@ -71,9 +73,7 @@ type RenderReleaseParams struct {
 func RenderRelease(ctx context.Context, params RenderReleaseParams) error {
 	values, err := HydrateValues(params.Release, params.ValueMapping)
 	if err != nil {
-		fmt.Fprintln(params.IO.Out, "error hydrating values:", err)
-		fmt.Fprintln(params.IO.Out, "fallback to raw release.spec.values")
-		values = params.Release.Spec.Values
+		return fmt.Errorf("hydrating values: %w", err)
 	}
 
 	dst := params.IO.Out
@@ -167,7 +167,13 @@ func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (ma
 		release.Environment,
 	}
 
-	values := maps.Clone(release.Spec.Values)
+	// The following call has the side effect of making a deep copy of the values, which is necessary
+	// for subsequent step to mutate the copy without affecting the original values.
+	values, err := hydrateObjectValues(release.Spec.Values, params.Environment.Spec.Values)
+	if err != nil {
+		return nil, fmt.Errorf("hydrating object values: %w", err)
+	}
+
 	if mappings != nil && !slices.Contains(mappings.ReleaseIgnoreList, release.Name) {
 		for mapping, value := range mappings.Mappings {
 			setInMap(values, splitIntoPathSegments(mapping), value)
@@ -179,7 +185,7 @@ func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (ma
 		return nil, err
 	}
 
-	tmpl, err := template.New("").Parse(string(data))
+	tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(string(data))
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +201,120 @@ func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (ma
 	}
 
 	return result, nil
+}
+
+var objectValuesRegex = regexp.MustCompile(`^\s*\$(\w+)\(\s*((\.\w+)+)\s*\)\s*$`)
+
+const objectValuesSupportedPrefix = ".Environment.Spec.Values."
+
+func hydrateObjectValues(values map[string]any, envValues map[string]any) (map[string]any, error) {
+	resolvedValue, err := hydrateObjectValue(values, envValues)
+	if err != nil {
+		return nil, err
+	}
+	return resolvedValue.(map[string]any), err
+}
+
+func hydrateObjectValue(value any, envValues map[string]any) (any, error) {
+	switch val := value.(type) {
+	case string:
+		operator, resolvedValue, err := resolveOperatorAndValue(val, envValues)
+		if err != nil {
+			return nil, err
+		}
+		if operator != "" && operator != "ref" {
+			return nil, fmt.Errorf("only $ref() operator supported within object: %s", val)
+		}
+		return resolvedValue, nil
+	case map[string]any:
+		result := map[string]any{}
+		for key, subValue := range val {
+			resolvedValue, err := hydrateObjectValue(subValue, envValues)
+			if err != nil {
+				return nil, err
+			}
+			result[key] = resolvedValue
+		}
+		return result, nil
+	case map[any]any:
+		result := map[string]any{}
+		for key, subValue := range val {
+			resolvedValue, err := hydrateObjectValue(subValue, envValues)
+			if err != nil {
+				return nil, err
+			}
+			result[fmt.Sprint(key)] = resolvedValue
+		}
+		return result, nil
+	case []any:
+		var values []any
+		for _, subValue := range val {
+			switch subVal := subValue.(type) {
+			case string:
+				operator, resolvedValue, err := resolveOperatorAndValue(subVal, envValues)
+				if err != nil {
+					return nil, err
+				}
+				if operator == "spread" {
+					resolvedSlice, ok := resolvedValue.([]any)
+					if !ok {
+						return nil, fmt.Errorf("$spread() operator must resolve to an array, but got: %T", resolvedValue)
+					}
+					values = append(values, resolvedSlice...)
+				} else {
+					values = append(values, resolvedValue)
+				}
+			default:
+				resolvedValue, err := hydrateObjectValue(subVal, envValues)
+				if err != nil {
+					return nil, err
+				}
+				values = append(values, resolvedValue)
+			}
+		}
+		return values, nil
+	default:
+		return value, nil
+	}
+}
+
+func resolveOperatorAndValue(value string, envValues map[string]any) (string, any, error) {
+	matches := objectValuesRegex.FindStringSubmatch(value)
+	if len(matches) == 0 {
+		return "", value, nil
+	}
+
+	operator := matches[1]
+	if operator != "spread" && operator != "ref" {
+		return "", nil, fmt.Errorf("unsupported object interpolation operator %q in expression: %s", operator, value)
+	}
+
+	fullPath := matches[2]
+	if !strings.HasPrefix(fullPath, objectValuesSupportedPrefix) {
+		return "", nil, fmt.Errorf("only %q prefix is supported for object interpolation, but found: %s", objectValuesSupportedPrefix, fullPath)
+	}
+	valuesPath := strings.Split(strings.TrimPrefix(fullPath, objectValuesSupportedPrefix), ".")
+	resolvedValue, err := resolveObjectValue(envValues, valuesPath)
+	if err != nil {
+		return "", nil, fmt.Errorf("resolving object value for path %q: %w", fullPath, err)
+	}
+	return operator, resolvedValue, nil
+}
+
+func resolveObjectValue(values map[string]any, path []string) (any, error) {
+	key := path[0]
+	value, ok := values[key]
+	if !ok {
+		return nil, fmt.Errorf("key %q not found in values", key)
+	}
+	if len(path) == 1 {
+		return value, nil
+	}
+	mapValue, ok := value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("value for key %q is not a map", key)
+	}
+	return resolveObjectValue(mapValue, path[1:])
 }
 
 // ManifestColorWriter colorizes helm manifest by searching for document breaks
@@ -222,7 +342,7 @@ func (w ManifestColorWriter) Write(data []byte) (int, error) {
 
 // setInMap modifies the map by adding the value to the path defined by segments.
 // If the path defined by segments already exists, even if it points to a falsy value, this function does nothing.
-// It will not overwite any existing key/value pairs.
+// It will not overwrite any existing key/value pairs.
 func setInMap(mapping map[string]any, segments []string, value any) {
 	for i, key := range segments {
 		if i == len(segments)-1 {

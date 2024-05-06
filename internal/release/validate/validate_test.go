@@ -109,6 +109,39 @@ func TestValidateRelease(t *testing.T) {
 			SkipReadCalls: true,
 			ExpectedErr:   "invalid version: prerelease branches not allowed: 1.0.0-rc.1+build.1",
 		},
+		{
+			Name:          "failing values hydration",
+			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"key": "$ref(.Invalid.Prefix.Ref)"}}, Environment: &v1alpha1.Environment{}},
+			ChartFS:       &xfs.FSMock{},
+			SkipReadCalls: true,
+			ExpectedErr:   `hydrating values: hydrating object values: only ".Environment.Spec.Values." prefix is supported for object interpolation, but found: .Invalid.Prefix.Ref`,
+		},
+		{
+			Name: "hydrated values matching schema",
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"hello": "$ref(.Environment.Spec.Values.hello)"}}, Environment: &v1alpha1.Environment{
+				Spec: v1alpha1.EnvironmentSpec{
+					Values: map[string]any{"hello": "world"},
+				},
+			}},
+			ChartFS: &xfs.FSMock{
+				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: "world" }`), nil },
+				DirNameFunc:  func() string { return "." },
+			},
+			ExpectedErr: "",
+		},
+		{
+			Name: "hydrated values not matching schema",
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"hello": "$ref(.Environment.Spec.Values.hello)"}}, Environment: &v1alpha1.Environment{
+				Spec: v1alpha1.EnvironmentSpec{
+					Values: map[string]any{"hello": "narnia"},
+				},
+			}},
+			ChartFS: &xfs.FSMock{
+				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: "world" }`), nil },
+				DirNameFunc:  func() string { return "." },
+			},
+			ExpectedErr: `#values.hello: conflicting values "narnia" and "world"`,
+		},
 	}
 
 	for _, tc := range cases {
