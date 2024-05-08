@@ -20,7 +20,10 @@ func Merge(dst, src *yaml.Node) *yaml.Node {
 	}()
 
 	dst = unwrapDocument(dst)
-	src = markLockedValuesAsTodo(unwrapDocument(src), false)
+
+	src = unwrapDocument(src)
+	src = markLockedValuesAsTodo(src, false)
+	src = purgeLocalContent(src)
 
 	result := merge(dst, src)
 	if result == nil {
@@ -79,39 +82,14 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
 	var (
-		srcIdx  int
-		dstIdx  int
+		maxLen  = max(len(dst.Content), len(src.Content))
 		content []*yaml.Node
 	)
-	for {
-		// If we have moved past both the source and dst length we must end the loop unless
-		// we want to go to infinity and beyond!
-		if srcIdx >= len(src.Content) && dstIdx >= len(dst.Content) {
-			break
-		}
 
-		// For the destination if the item is local we want to add it to the result, but move the dstIdx
-		// forward until we find a non local element to merge with.
-		for {
-			item := at(dst, dstIdx)
-			if !isLocal(item) {
-				break
-			}
-			content = append(content, item)
-			dstIdx++
-		}
-
-		// ignore local source elements and find the first non local idx.
-		for isLocal(at(src, srcIdx)) {
-			srcIdx++
-		}
-
-		if value := merge(at(dst, dstIdx), at(src, srcIdx)); value != nil {
+	for i := 0; i < maxLen; i++ {
+		if value := merge(at(dst, i), at(src, i)); value != nil {
 			content = append(content, value)
 		}
-
-		srcIdx++
-		dstIdx++
 	}
 
 	dst.Content = content
@@ -235,4 +213,32 @@ func firstNonNil(nodes ...*yaml.Node) *yaml.Node {
 		}
 	}
 	return nil
+}
+
+func purgeLocalContent(node *yaml.Node) *yaml.Node {
+	if node == nil || isLocal(node) {
+		return nil
+	}
+
+	copy := *node
+	copy.Content = nil
+
+	switch node.Kind {
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			if isLocal(node.Content[i+1]) {
+				continue
+			}
+			copy.Content = append(copy.Content, node.Content[i], purgeLocalContent(node.Content[i+1]))
+		}
+	case yaml.SequenceNode:
+		for _, item := range node.Content {
+			if isLocal(item) {
+				continue
+			}
+			copy.Content = append(copy.Content, purgeLocalContent(item))
+		}
+	}
+
+	return &copy
 }
