@@ -737,6 +737,12 @@ func TestYmlMerge(t *testing.T) {
 			Dst:      "[4, 5, 6, !local 7]",
 			Expected: "[1, 3, !local 7]",
 		},
+		{
+			Name:     "nested local must not be ported",
+			Src:      "{ outer: { inner: !local value } }",
+			Dst:      "{}",
+			Expected: "{outer: {}}",
+		},
 	}
 
 	for _, tc := range cases {
