@@ -1,3 +1,10 @@
+## [0.50.1](https://github.com/nestoca/joy/compare/v0.50.0...v0.50.1) (2024-05-08)
+
+
+### Bug Fixes
+
+* **!local:** local nodes must be removed from source before merge ([fa50b90](https://github.com/nestoca/joy/commit/fa50b90f7af000ed06181f00745a37aa31715f74))
+
 ## [0.50.0](https://github.com/nestoca/joy/compare/v0.49.4...v0.50.0) (2024-05-06)
 
 
