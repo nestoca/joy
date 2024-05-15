@@ -191,6 +191,25 @@ func Pull(dir string, args ...string) error {
 	return nil
 }
 
+func Diff(dir string, ref string) ([]string, error) {
+	cmd := exec.Command("git", "-C", dir, "diff", "--name-only", ref)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q", err, string(output))
+	}
+
+	var result []string
+	for _, value := range strings.Split(string(output), "\n") {
+		if value == "" {
+			continue
+		}
+		result = append(result, value)
+	}
+
+	return result, nil
+}
+
 func Reset(dir string) error {
 	// Check for uncommitted changes
 	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
