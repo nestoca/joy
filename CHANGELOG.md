@@ -1,3 +1,10 @@
+## [0.50.2](https://github.com/nestoca/joy/compare/v0.50.1...v0.50.2) (2024-05-15)
+
+
+### Bug Fixes
+
+* **PL-2714:** ensure clean copy against origin ([d9c72f5](https://github.com/nestoca/joy/commit/d9c72f5f0e9088439dfa9440cfa62d6edc203494))
+
 ## [0.50.1](https://github.com/nestoca/joy/compare/v0.50.0...v0.50.1) (2024-05-08)
 
 
