@@ -1,3 +1,10 @@
+## [0.50.3](https://github.com/nestoca/joy/compare/v0.50.2...v0.50.3) (2024-05-17)
+
+
+### Bug Fixes
+
+* **PL-2667:** remove defensive scope parsing ([5ac7521](https://github.com/nestoca/joy/commit/5ac7521ac65d9a8e2e75cff89db5000591705325))
+
 ## [0.50.2](https://github.com/nestoca/joy/compare/v0.50.1...v0.50.2) (2024-05-15)
 
 
