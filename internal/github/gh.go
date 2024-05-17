@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 
 	"github.com/nestoca/joy/internal/dependencies"
@@ -62,20 +61,11 @@ func EnsureInstalledAndAuthenticated() error {
 		return err
 	}
 
-	// Check if user is logged in
 	cmd := exec.Command("gh", "auth", "status")
-	output, err := cmd.CombinedOutput()
-	outputStr := string(output)
-	if err != nil {
+
+	if _, err := cmd.CombinedOutput(); err != nil {
 		fmt.Printf("🔐 Please run %s to authenticate the gh cli.\n", style.Code("gh auth login"))
 		return errors.New("gh cli not authenticated")
-	}
-
-	// Check if user has required scopes
-	scopesRegex := regexp.MustCompile(`Token scopes: .*?\b(read:org)\b.*?\b(repo)\b.*`)
-	if !scopesRegex.MatchString(outputStr) {
-		fmt.Printf("🔐 Please ensure you have the following permission scopes: %s, %s\n", style.Code("read:org"), style.Code("repo"))
-		return errors.New("gh cli token missing required scopes")
 	}
 
 	return nil
