@@ -83,7 +83,6 @@ func (cli CLI) Render(ctx context.Context, opts RenderOpts) error {
 	}
 
 	opts.ChartPath = strings.TrimPrefix(opts.ChartPath, "file://")
-	fmt.Println("helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 
 	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 	cmd.Stdin = &input
