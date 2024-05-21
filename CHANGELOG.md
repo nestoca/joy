@@ -1,3 +1,10 @@
+## [0.51.1](https://github.com/nestoca/joy/compare/v0.51.0...v0.51.1) (2024-05-21)
+
+
+### Bug Fixes
+
+* remove debug line ([7f7c70d](https://github.com/nestoca/joy/commit/7f7c70d5c9f59b3810e1886af49781f31ee549a7))
+
 ## [0.51.0](https://github.com/nestoca/joy/compare/v0.50.3...v0.51.0) (2024-05-21)
 
 
