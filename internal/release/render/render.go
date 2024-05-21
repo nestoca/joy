@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/sprig/v3"
-
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/survey/v2"
 	"gopkg.in/yaml.v3"

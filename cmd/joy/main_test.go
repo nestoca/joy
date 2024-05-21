@@ -8,12 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	cp "github.com/otiai10/copy"
-
-	"github.com/go-git/go-git/v5/plumbing"
-
 	"github.com/acarl005/stripansi"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	cp "github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 

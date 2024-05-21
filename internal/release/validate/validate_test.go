@@ -8,9 +8,11 @@ import (
 
 	"github.com/davidmdm/x/xfs"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/helm"
+	"github.com/nestoca/joy/internal/yml"
 )
 
 func TestValidateRelease(t *testing.T) {
@@ -142,6 +144,19 @@ func TestValidateRelease(t *testing.T) {
 			},
 			ExpectedErr: `#values.hello: conflicting values "narnia" and "world"`,
 		},
+		{
+			Name: "contains locked todos",
+			Release: &v1alpha1.Release{
+				Environment: &v1alpha1.Environment{},
+				File: &yml.File{Tree: func() *yaml.Node {
+					var node yaml.Node
+					_ = yaml.Unmarshal([]byte(`{ value: !lock TODO }`), &node)
+					return &node
+				}()},
+			},
+			ExpectedErr:   "contains locked TODO",
+			SkipReadCalls: true,
+		},
 	}
 
 	for _, tc := range cases {
@@ -149,6 +164,15 @@ func TestValidateRelease(t *testing.T) {
 			mock := new(helm.PullRendererMock)
 			if tc.HelmSetup != nil {
 				tc.HelmSetup(mock)
+			}
+
+			if tc.Release != nil {
+				if tc.Release.File == nil {
+					tc.Release.File = new(yml.File)
+				}
+				if tc.Release.File.Tree == nil {
+					tc.Release.File.Tree = new(yaml.Node)
+				}
 			}
 
 			err := ValidateRelease(context.Background(), ValidateReleaseParams{

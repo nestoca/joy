@@ -20,6 +20,7 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/render"
+	"github.com/nestoca/joy/internal/yml"
 )
 
 type ValidateParams struct {
@@ -65,6 +66,10 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		if semver.Prerelease(version)+semver.Build(version) != "" {
 			return fmt.Errorf("invalid version: prerelease branches not allowed: %s", params.Release.Spec.Version)
 		}
+	}
+
+	if yml.HasLockedTodos(params.Release.File.Tree) {
+		return errors.New("contains locked TODO")
 	}
 
 	if err := validateSchema(params.Release, params.ValueMapping, params.Chart); err != nil {
