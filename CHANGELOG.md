@@ -1,3 +1,10 @@
+## [0.51.0](https://github.com/nestoca/joy/compare/v0.50.3...v0.51.0) (2024-05-21)
+
+
+### Features
+
+* **PL-2723:** validate locked todos ([03bd487](https://github.com/nestoca/joy/commit/03bd48790787662818bef23969d72676cbe78740))
+
 ## [0.50.3](https://github.com/nestoca/joy/compare/v0.50.2...v0.50.3) (2024-05-17)
 
 
