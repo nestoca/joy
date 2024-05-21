@@ -7,13 +7,10 @@ import (
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
-
-	"github.com/nestoca/joy/internal"
-
-	"github.com/nestoca/joy/internal/config"
-
 	flag "github.com/spf13/pflag"
 
+	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/help"
 )
 

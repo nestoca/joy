@@ -5,13 +5,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/nestoca/joy/internal/style"
-
-	"github.com/nestoca/joy/internal"
-
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/style"
 )
 
 const allCommandsKey = "~all"
