@@ -1,0 +1,6 @@
+apiVersion: joy.nesto.ca/v1alpha1
+kind: Release
+metadata:
+  name: dev-release
+spec:
+  version: 2.2.2

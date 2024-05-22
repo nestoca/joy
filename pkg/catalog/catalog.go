@@ -14,6 +14,7 @@ import (
 	"gopkg.in/godo.v2/glob"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/ignore"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
@@ -56,9 +57,19 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 		return nil, fmt.Errorf("matching files with glob expression %s: %w", globExpr, err)
 	}
 
+	// Load .joyignore if it exists
+	ignoreMatcher, err := ignore.NewMatcher(dir)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("reading .joyignore: %w", err)
+	}
+
 	// Load all matching files
 	c := &Catalog{}
 	for _, fileAsset := range fileAssets {
+		if ignoreMatcher != nil && ignoreMatcher.Match(fileAsset.Path) {
+			continue
+		}
+
 		file, err := yml.LoadFile(fileAsset.Path)
 		if err != nil {
 			return nil, fmt.Errorf("loading yaml file %s: %w", fileAsset.Path, err)
