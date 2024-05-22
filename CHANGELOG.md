@@ -1,3 +1,10 @@
+## [0.52.0](https://github.com/nestoca/joy/compare/v0.51.1...v0.52.0) (2024-05-22)
+
+
+### Features
+
+* **PL-2729:** Support ignoring files when loading catalog ([4bffda1](https://github.com/nestoca/joy/commit/4bffda145ef994f74843810a1259a40c23f972cd))
+
 ## [0.51.1](https://github.com/nestoca/joy/compare/v0.51.0...v0.51.1) (2024-05-21)
 
 
