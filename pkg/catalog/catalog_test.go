@@ -64,6 +64,32 @@ func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	requireRelease(t, rels[2], "production-release", "", "1.1.1")
 }
 
+func TestFreeformEnvsAndReleasesLoadingWithJoyIgnore(t *testing.T) {
+	catalogDir, err := filepath.Abs("testdata/freeform-with-joyignore")
+	require.NoError(t, err)
+
+	cat, err := Load(catalogDir, nil)
+	require.NoError(t, err)
+
+	envs := cat.Environments
+	require.Equal(t, 1, len(envs))
+	require.Equal(t, "production", envs[0].Name)
+
+	projects := cat.Projects
+	require.Equal(t, 2, len(projects))
+	require.Equal(t, "project1", projects[0].Name)
+	require.Equal(t, "project2", projects[1].Name)
+
+	rels := cat.Releases.Items
+	require.Equal(t, 2, len(rels))
+	require.Equal(t, 1, len(rels[0].Releases))
+	require.Equal(t, "common-release", rels[0].Name)
+	require.Equal(t, "1.2.3", rels[0].Releases[0].Spec.Version)
+	require.Equal(t, 1, len(rels[0].Releases))
+	require.Equal(t, "production-release", rels[1].Name)
+	require.Equal(t, "1.1.1", rels[1].Releases[0].Spec.Version)
+}
+
 func requireRelease(t *testing.T, crossRelease *cross.Release, name string, devVersion string, prodVersion string) {
 	require.Equal(t, name, crossRelease.Name)
 	devRelease := crossRelease.Releases[0]
