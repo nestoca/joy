@@ -1,3 +1,10 @@
+## [0.52.1](https://github.com/nestoca/joy/compare/v0.52.0...v0.52.1) (2024-05-23)
+
+
+### Bug Fixes
+
+* release render should use git-ref config ([f4b1776](https://github.com/nestoca/joy/commit/f4b1776b00bf6d4288bc37570a828020e9c7c1d4))
+
 ## [0.52.0](https://github.com/nestoca/joy/compare/v0.51.1...v0.52.0) (2024-05-22)
 
 
