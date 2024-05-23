@@ -2,9 +2,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -226,22 +224,6 @@ func TestMainRun(t *testing.T) {
 			}
 		})
 	}
-}
-
-func cloneToTempDir(t *testing.T, repoName string) string {
-	dir := t.TempDir()
-	repoURL := func() string {
-		if gitToken := os.Getenv("GH_TOKEN"); gitToken != "" {
-			return fmt.Sprintf("https://%s@github.com/nestoca/%s.git", gitToken, repoName)
-		}
-		return fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
-	}()
-	cmd := exec.Command("git", "clone", repoURL, dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	require.NoError(t, cmd.Run())
-	return dir
 }
 
 func setupFuncToRequireCatalogUpdate(t *testing.T, tc *TestCase, dir string) {

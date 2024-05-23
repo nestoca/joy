@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -40,21 +39,7 @@ func TestReleaseRender(t *testing.T) {
 			User: config.User{
 				CatalogDir: testCatalogPath,
 			},
-			Catalog: config.Catalog{
-				Charts: map[string]helm.Chart{
-					"generic": {
-						RepoURL: "file://./testdata/charts",
-						Name:    "base",
-					},
-				},
-				DefaultChartRef: "generic",
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"image.tag": "{{ .Release.Spec.Version }}",
-					},
-				},
-				GitHubOrganization: "nestoca",
-			},
+			Catalog:  config.Catalog{},
 			JoyCache: testCache,
 		}
 
@@ -79,21 +64,6 @@ func TestReleaseRender(t *testing.T) {
 		cfg := &config.Config{
 			User: config.User{
 				CatalogDir: testCatalogPath,
-			},
-			Catalog: config.Catalog{
-				Charts: map[string]helm.Chart{
-					"generic": {
-						RepoURL: "file://./testdata/charts",
-						Name:    "base",
-					},
-				},
-				DefaultChartRef: "generic",
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"image.tag": "{{ .Release.Spec.Version }}",
-					},
-				},
-				GitHubOrganization: "nestoca",
 			},
 			JoyCache: testCache,
 		}
@@ -140,21 +110,6 @@ func TestReleaseRender(t *testing.T) {
 			User: config.User{
 				CatalogDir: testCatalogPath,
 			},
-			Catalog: config.Catalog{
-				Charts: map[string]helm.Chart{
-					"generic": {
-						RepoURL: "file://./testdata/charts",
-						Name:    "base",
-					},
-				},
-				DefaultChartRef: "generic",
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"image.tag": "{{ .Release.Spec.Version }}",
-					},
-				},
-				GitHubOrganization: "nestoca",
-			},
 			JoyCache: testCache,
 		}
 
@@ -200,21 +155,6 @@ func TestReleaseRender(t *testing.T) {
 			User: config.User{
 				CatalogDir: testCatalogPath,
 			},
-			Catalog: config.Catalog{
-				Charts: map[string]helm.Chart{
-					"generic": {
-						RepoURL: "file://./testdata/charts",
-						Name:    "base",
-					},
-				},
-				DefaultChartRef: "generic",
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"image.tag": "{{ .Release.Spec.Version }}",
-					},
-				},
-				GitHubOrganization: "nestoca",
-			},
 			JoyCache: testCache,
 		}
 
@@ -259,21 +199,6 @@ func TestReleaseRender(t *testing.T) {
 		cfg := &config.Config{
 			User: config.User{
 				CatalogDir: testCatalogPath,
-			},
-			Catalog: config.Catalog{
-				Charts: map[string]helm.Chart{
-					"generic": {
-						RepoURL: "file://./testdata/charts",
-						Name:    "base",
-					},
-				},
-				DefaultChartRef: "generic",
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"image.tag": "{{ .Release.Spec.Version }}",
-					},
-				},
-				GitHubOrganization: "nestoca",
 			},
 			JoyCache: testCache,
 		}
