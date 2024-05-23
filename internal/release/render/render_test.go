@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"strings"
 	"testing"
 
+	"github.com/davidmdm/x/xfs"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 func TestRender(t *testing.T) {
@@ -841,6 +844,74 @@ func TestHydrateObjectValues(t *testing.T) {
 			}
 
 			require.Equal(t, tc.ExpectedValues, actualValues)
+		})
+	}
+}
+
+func TestSchemaUnification(t *testing.T) {
+	cases := []struct {
+		Name           string
+		ReadFileFunc   func(string) ([]byte, error)
+		Values         map[string]any
+		ExpectedValues map[string]any
+		ExpectedError  string
+	}{
+		{
+			Name: "applies schema default",
+			ReadFileFunc: func(name string) ([]byte, error) {
+				return []byte(`#values: { color: "r" | "g" | *"b" }`), nil
+			},
+			Values:         map[string]any{},
+			ExpectedValues: map[string]any{"color": "b"},
+		},
+		{
+			Name: "fails schema validation",
+			ReadFileFunc: func(name string) ([]byte, error) {
+				return []byte(`#values: { color: "r" | "g" | *"b" }`), nil
+			},
+			Values: map[string]any{"color": "cyan", "enabled": true},
+			ExpectedError: strings.Join(
+				[]string{
+					"unifying with chart schema: validating values:",
+					"  - #values.color: 3 errors in empty disjunction:",
+					`  - #values.color: conflicting values "b" and "cyan"`,
+					`  - #values.color: conflicting values "g" and "cyan"`,
+					`  - #values.color: conflicting values "r" and "cyan"`,
+					`  - #values.enabled: field not allowed`,
+				},
+				"\n",
+			),
+		},
+		{
+			Name: "no schema file",
+			ReadFileFunc: func(name string) ([]byte, error) {
+				return nil, os.ErrNotExist
+			},
+			Values:         map[string]any{"color": "red"},
+			ExpectedValues: map[string]any{"color": "red"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			mockFS := &xfs.FSMock{ReadFileFunc: tc.ReadFileFunc}
+
+			result, err := HydrateValues(
+				&v1alpha1.Release{
+					Spec:        v1alpha1.ReleaseSpec{Values: tc.Values},
+					Environment: &v1alpha1.Environment{},
+				},
+				&helm.ChartFS{FS: mockFS},
+				&config.ValueMapping{},
+			)
+
+			if tc.ExpectedError != "" {
+				require.EqualError(t, err, tc.ExpectedError)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tc.ExpectedValues, result)
 		})
 	}
 }

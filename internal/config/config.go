@@ -12,7 +12,7 @@ import (
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 
-	"github.com/nestoca/joy/internal/helm"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 const (

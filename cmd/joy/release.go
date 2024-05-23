@@ -21,7 +21,6 @@ import (
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/links"
@@ -34,6 +33,7 @@ import (
 	"github.com/nestoca/joy/internal/text"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
