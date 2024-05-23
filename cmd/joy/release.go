@@ -346,8 +346,12 @@ func NewReleaseRenderCmd() *cobra.Command {
 			}
 
 			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
-				// In this case we cannot use the catalog loaded from the context
+				// In this case we cannot use the config or catalog loaded from the context
 				// Since we need to reload at whatever git reference we are at.
+				cfg, err := config.Load("", cfg.CatalogDir)
+				if err != nil {
+					return render.RenderParams{}, fmt.Errorf("loading config: %w", err)
+				}
 				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
 				if err != nil {
 					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
