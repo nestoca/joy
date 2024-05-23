@@ -5,12 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
-
-	"cuelang.org/go/cue"
-	"cuelang.org/go/cue/cuecontext"
-	cueerrors "cuelang.org/go/cue/errors"
 
 	"github.com/davidmdm/x/xerr"
 	"golang.org/x/mod/semver"
@@ -18,9 +13,9 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/yml"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 type ValidateParams struct {
@@ -72,10 +67,6 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		return errors.New("contains locked TODO")
 	}
 
-	if err := validateSchema(params.Release, params.ValueMapping, params.Chart); err != nil {
-		return err
-	}
-
 	renderOpts := render.RenderReleaseParams{
 		Release: params.Release,
 		Chart:   params.Chart,
@@ -95,49 +86,4 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	}
 
 	return nil
-}
-
-func validateSchema(release *v1alpha1.Release, mappings *config.ValueMapping, chart *helm.ChartFS) error {
-	if release.Spec.Values == nil {
-		return nil
-	}
-
-	hydratedValues, err := render.HydrateValues(release, mappings)
-	if err != nil {
-		return fmt.Errorf("hydrating values: %w", err)
-	}
-
-	schemaData, err := chart.ReadFile("values.cue")
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		return fmt.Errorf("reading schema file: %w", err)
-	}
-
-	runtime := cuecontext.New()
-
-	schema := runtime.
-		CompileBytes(schemaData).
-		LookupPath(cue.MakePath(cue.Def("#values")))
-
-	values := runtime.Encode(hydratedValues)
-
-	validationErr := schema.Unify(values).Validate(cue.Concrete(true))
-
-	if errs := cueerrors.Errors(validationErr); len(errs) == 1 {
-		return errs[0]
-	} else if len(errs) > 1 {
-		return xerr.MultiErrFrom("", AsErrorList(errs)...)
-	}
-
-	return nil
-}
-
-func AsErrorList[T error](list []T) []error {
-	result := make([]error, len(list))
-	for i, err := range list {
-		result[i] = err
-	}
-	return result
 }

@@ -7,12 +7,18 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"os"
 	"regexp"
 	"slices"
 	"strings"
 
+	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/cuecontext"
+	cueerrors "cuelang.org/go/cue/errors"
+
 	"github.com/Masterminds/sprig/v3"
 	"github.com/TwiN/go-color"
+	"github.com/davidmdm/x/xerr"
 	"github.com/nestoca/survey/v2"
 	"gopkg.in/yaml.v3"
 
@@ -20,9 +26,9 @@ import (
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/catalog"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 type RenderParams struct {
@@ -70,7 +76,7 @@ type RenderReleaseParams struct {
 }
 
 func RenderRelease(ctx context.Context, params RenderReleaseParams) error {
-	values, err := HydrateValues(params.Release, params.ValueMapping)
+	values, err := HydrateValues(params.Release, params.Chart, params.ValueMapping)
 	if err != nil {
 		return fmt.Errorf("hydrating values: %w", err)
 	}
@@ -157,7 +163,7 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (map[string]any, error) {
+func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS, mappings *config.ValueMapping) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
@@ -197,6 +203,44 @@ func HydrateValues(release *v1alpha1.Release, mappings *config.ValueMapping) (ma
 	var result map[string]any
 	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
 		return nil, err
+	}
+
+	result, err = unifyValues(result, chart)
+	if err != nil {
+		return nil, fmt.Errorf("unifying with chart schema: %w", err)
+	}
+
+	return result, nil
+}
+
+func unifyValues(values map[string]any, chart *helm.ChartFS) (map[string]any, error) {
+	if chart == nil {
+		return values, nil
+	}
+
+	rawSchema, err := chart.ReadFile("values.cue")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return values, nil
+		}
+		return nil, fmt.Errorf("reading values.cue: %w", err)
+	}
+
+	runtime := cuecontext.New()
+
+	schema := runtime.
+		CompileBytes(rawSchema).
+		LookupPath(cue.MakePath(cue.Def("#values")))
+
+	unified := schema.Unify(runtime.Encode(values))
+
+	if err := unified.Validate(cue.Final(), cue.Concrete(true)); err != nil {
+		return nil, xerr.MultiErrFrom("validating values", AsErrorList(cueerrors.Errors(err))...)
+	}
+
+	var result map[string]any
+	if err := unified.Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding values: %w", err)
 	}
 
 	return result, nil
@@ -412,4 +456,12 @@ func (NotFoundError) Is(err error) bool {
 func IsNotFoundError(err error) bool {
 	var notfound NotFoundError
 	return errors.Is(err, notfound)
+}
+
+func AsErrorList[T error](list []T) []error {
+	result := make([]error, len(list))
+	for i, err := range list {
+		result[i] = err
+	}
+	return result
 }

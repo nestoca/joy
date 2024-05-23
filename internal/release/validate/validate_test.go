@@ -11,8 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/yml"
+	"github.com/nestoca/joy/pkg/helm"
 )
 
 func TestValidateRelease(t *testing.T) {
@@ -42,7 +42,7 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 			},
-			ExpectedErr: "#values.hello: conflicting values string and true (mismatched types string and bool)",
+			ExpectedErr: "hydrating values: unifying with chart schema: validating values: #values.hello: conflicting values string and true (mismatched types string and bool)",
 		},
 		{
 			Name:    "values missing from spec",
@@ -50,7 +50,7 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 			},
-			ExpectedErr: "#values.hello: incomplete value string",
+			ExpectedErr: "hydrating values: unifying with chart schema: validating values: #values.hello: incomplete value string",
 		},
 		{
 			Name:    "multiple errors",
@@ -58,7 +58,10 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { one: 1, two: 2 }`), nil },
 			},
-			ExpectedErr: "error:\n  - #values.one: conflicting values 1 and \"one\" (mismatched types int and string)\n  - #values.two: conflicting values 2 and \"two\" (mismatched types int and string)",
+			ExpectedErr: "" +
+				"hydrating values: unifying with chart schema: validating values:\n" +
+				"  - #values.one: conflicting values 1 and \"one\" (mismatched types int and string)\n" +
+				"  - #values.two: conflicting values 2 and \"two\" (mismatched types int and string)",
 		},
 		{
 			Name:    "render fails",
@@ -94,7 +97,7 @@ func TestValidateRelease(t *testing.T) {
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return nil, errors.New("disk corrupted") },
 			},
-			ExpectedErr: "reading schema file: disk corrupted",
+			ExpectedErr: "hydrating values: unifying with chart schema: reading values.cue: disk corrupted",
 		},
 		{
 			Name:    "standard version with disallow promotion from pull requests",
@@ -142,7 +145,7 @@ func TestValidateRelease(t *testing.T) {
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: "world" }`), nil },
 				DirNameFunc:  func() string { return "." },
 			},
-			ExpectedErr: `#values.hello: conflicting values "narnia" and "world"`,
+			ExpectedErr: `hydrating values: unifying with chart schema: validating values: #values.hello: conflicting values "narnia" and "world"`,
 		},
 		{
 			Name: "contains locked todos",

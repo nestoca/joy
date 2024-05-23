@@ -1,0 +1,329 @@
+---
+# Source: generic/templates/api-pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: canary-api
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: canary-api
+      version: v1
+---
+# Source: generic/templates/api-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-api
+  namespace: default
+  annotations:
+    nesto.ca/deployed-by: joy
+  labels:
+    chart: generic-3.2.2
+    release: canary
+    nesto.ca/stream: platform
+spec:
+  selector:
+    app: canary-api
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+---
+# Source: generic/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-api
+  namespace: default
+  annotations:
+    nesto.ca/deployed-by: joy
+  labels:
+    app: canary-api
+    tags.datadoghq.com/service: canary
+    tags.datadoghq.com/version: 0.50.0
+    chart: generic-3.2.2
+    release: canary
+    nesto.ca/stream: platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: canary-api
+      version: v1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        nesto.ca/deployed-by: joy
+      labels:
+        app: canary-api
+        tags.datadoghq.com/service: canary
+        tags.datadoghq.com/version: 0.50.0
+        nesto.ca/config-hash: c5b68d9b8001a69418b7682deceac23ff2c7a619b8a9d9a5b183290e252910d
+        version: v1
+        chart: generic-3.2.2
+        release: canary
+        nesto.ca/stream: platform
+    spec:
+      volumes:
+        - name: sa-credentials
+          secret:
+            secretName: canary-sa-credentials
+        - name: scratch
+          emptyDir: {}
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+      containers:
+        #
+        # api container
+        #
+        - name: canary-api
+          image: "gcr.io/nesto-ci-78a3f2e6/canary/api:0.50.0"
+          imagePullPolicy: IfNotPresent
+          
+          env:
+            - name: IMAGE_TAG
+              value: "0.50.0"
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/service']
+            - name: DD_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/version']
+            - name: ENABLE_STACKDRIVER_LOGGING
+              value: "true"
+            - name: TEST
+              value: "JOY_ACTIONS"
+            # Automatic env var
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/credentials.json
+            # Automatic env var
+            - name: PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: projectId
+                  name: canary-sa-credentials
+            - name: GRPC_GO_LOG_SEVERITY_LEVEL
+              value: "ERROR"
+            # Database-specific automatic env vars
+            - name: DB_NAME
+              value: canary
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: canary-db-credentials
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: canary-db-credentials
+            - name: DB_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: encryption-key
+                  name: canary-db-credentials
+            - name: PORT
+              value: "3000"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          volumeMounts:
+            - name: sa-credentials
+              mountPath: /secrets
+              readOnly: true
+            - name: scratch
+              mountPath: /scratch
+          ports:
+            - name: api
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 1
+        #
+        # Cloud SQL Proxy container
+        #
+        - name: google-sql-proxy
+          image: "gcr.io/cloudsql-docker/gce-proxy:1.11"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - --
+          args:
+            - /cloud_sql_proxy -instances=${INSTANCES}=tcp:3306
+          env:
+            - name: INSTANCES
+              valueFrom:
+                configMapKeyRef:
+                  key: connection_name
+                  name: cloudsql-db-connection-name
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/cloudsql/credentials.json
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /secrets/cloudsql
+              name: cloudsql-instance-credentials
+              readOnly: true
+---
+# Source: generic/templates/api-vpa.yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: canary-api
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: canary-api
+  updatePolicy:
+    updateMode: 'Off' # so it only generates recommendations
+---
+# Source: generic/templates/api-migrations-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: canary-migrations
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+    nesto.ca/deployed-by: joy
+  labels:
+    chart: generic-3.2.2
+    release: canary
+    nesto.ca/stream: platform
+spec:
+  activeDeadlineSeconds: 300
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+        - emptyDir: {}
+          name: scratch
+      containers:
+        #
+        # Migrations container
+        #
+        - name: canary-migrations
+          image: "gcr.io/nesto-ci-78a3f2e6/canary/migrations:0.50.0"
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              if timeout 1 echo > /dev/null 2>&1; then
+                timeoutCmd="timeout"
+              else
+                timeoutCmd="timeout -t"
+              fi
+              # Notify proxy to terminate itself upon this job's completion
+              trap "touch /scratch/main-terminated" EXIT
+              # Wait for proxy to be ready
+              $timeoutCmd 15 sh -c 'until nc -z localhost 3306 </dev/null; do sleep 0.5; done'
+              if [ $? -ne 0 ]; then
+                echo "Couldn't connect to cloud_sql_proxy: timeout after 15s"
+                exit 1
+              fi
+              if [[ -f /entrypoint.sh ]]; then /entrypoint.sh; else /migrate -path=/migrations -database mysql://$DB_USER:$DB_PASSWORD@tcp\(localhost:3306\)/$DB_NAME up; fi
+          env:
+            - name: DB_NAME
+              value: canary
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: canary-db-credentials
+            - name: DB_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: encryption-key
+                  name: canary-db-credentials
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: canary-db-credentials
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /scratch
+              name: scratch
+        #
+        # Cloud SQL Proxy container
+        #
+        - name: google-sql-proxy
+          image: "gcr.io/cloudsql-docker/gce-proxy:1.11"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - --
+          args:
+            - |
+              # Start proxy in background
+              /cloud_sql_proxy -instances=${INSTANCES}=tcp:3306 &
+              # Wait for main job's completion then terminate proxy
+              CHILD_PID=$!
+              (while true; do if [[ -f "/scratch/main-terminated" ]]; then kill $CHILD_PID; echo "Killed $CHILD_PID as the main container terminated."; fi; sleep 1; done) &
+              wait $CHILD_PID
+              if [[ -f "/scratch/main-terminated" ]]; then exit 0; echo "Job completed. Exiting..."; fi
+          env:
+            - name: INSTANCES
+              valueFrom:
+                configMapKeyRef:
+                  key: connection_name
+                  name: cloudsql-db-connection-name
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/cloudsql/credentials.json
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /secrets/cloudsql
+              name: cloudsql-instance-credentials
+              readOnly: true
+            - mountPath: /scratch
+              name: scratch
+              readOnly: true
+
