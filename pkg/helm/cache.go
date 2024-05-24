@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidmdm/x/xfs"
 
@@ -86,7 +87,7 @@ func (cache ChartCache) GetReleaseChartFS(ctx context.Context, release *v1alpha1
 	if uri.Scheme == "file" {
 		return &ChartFS{
 			Chart: chart,
-			FS:    xfs.Dir(chart.RepoURL + "/" + chart.Name),
+			FS:    xfs.Dir(filepath.Clean(strings.Join([]string{uri.Host, uri.Path}, "/"))),
 		}, nil
 	}
 
