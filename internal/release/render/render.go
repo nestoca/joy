@@ -226,13 +226,13 @@ func unifyValues(values map[string]any, chart *helm.ChartFS) (map[string]any, er
 		return nil, fmt.Errorf("reading values.cue: %w", err)
 	}
 
-	runtime := cuecontext.New()
-
-	schema := runtime.
+	schema := cuecontext.New().
 		CompileBytes(rawSchema).
 		LookupPath(cue.MakePath(cue.Def("#values")))
 
-	unified := schema.Unify(runtime.Encode(values))
+	value := schema.Context().Encode(values)
+
+	unified := schema.Unify(value)
 
 	if err := unified.Validate(cue.Final(), cue.Concrete(true)); err != nil {
 		return nil, xerr.MultiErrFrom("validating values", AsErrorList(cueerrors.Errors(err))...)
