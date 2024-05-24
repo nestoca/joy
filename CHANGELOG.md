@@ -1,3 +1,10 @@
+## [0.53.1](https://github.com/nestoca/joy/compare/v0.53.0...v0.53.1) (2024-05-24)
+
+
+### Bug Fixes
+
+* **PL-2701:** fix local chart reads ([aa43485](https://github.com/nestoca/joy/commit/aa43485152f864efdec6fbc322d9d4f3e36bc435))
+
 ## [0.53.0](https://github.com/nestoca/joy/compare/v0.52.2...v0.53.0) (2024-05-24)
 
 
