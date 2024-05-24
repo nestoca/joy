@@ -1,3 +1,10 @@
+## [0.53.0](https://github.com/nestoca/joy/compare/v0.52.2...v0.53.0) (2024-05-24)
+
+
+### Features
+
+* **PL-2701:** remove artifacts from bad cue unification PR ([f114b89](https://github.com/nestoca/joy/commit/f114b890b0a3533b92e3f0fe9038fa3e1b9b3d76))
+
 ## [0.52.2](https://github.com/nestoca/joy/compare/v0.52.1...v0.52.2) (2024-05-24)
 
 ## [0.52.1](https://github.com/nestoca/joy/compare/v0.52.0...v0.52.1) (2024-05-23)
