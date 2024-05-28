@@ -320,6 +320,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 		gitRef       string
 		diffRef      string
 		diffContext  int
+		verbose      bool
 	)
 
 	cmd := &cobra.Command{
@@ -618,6 +619,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 					text.File{Name: diffRef, Content: content(diffRefResult[key])},
 					diffContext,
 				)
+				if !verbose && diff == "" {
+					continue
+				}
 				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\n%s\n\n", header(key), diff)
 			}
 
@@ -633,6 +637,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
 	cmd.Flags().BoolVar(&all, "all", false, "select all releases to be rendered")
 	cmd.Flags().BoolVar(&allEnvs, "all-envs", false, "select all environments to render from")
+	cmd.Flags().BoolVar(&verbose, "verbose", false, "print empty diffs with headers")
 
 	return cmd
 }
