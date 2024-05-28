@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 	"regexp"
 	"slices"
@@ -17,87 +16,37 @@ import (
 	cueerrors "cuelang.org/go/cue/errors"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
 	"github.com/nestoca/survey/v2"
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/release/cross"
-	"github.com/nestoca/joy/pkg/catalog"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
 type RenderParams struct {
-	Env     string
-	Release string
-	Cache   helm.ChartCache
-	Catalog *catalog.Catalog
-	CommonRenderParams
-}
-
-type CommonRenderParams struct {
+	Release      *v1alpha1.Release
+	Chart        *helm.ChartFS
 	ValueMapping *config.ValueMapping
-	IO           internal.IO
 	Helm         helm.PullRenderer
-	Color        bool
 }
 
-func Render(ctx context.Context, params RenderParams) error {
-	environment, err := getEnvironment(params.Catalog.Environments, params.Env)
-	if err != nil {
-		return fmt.Errorf("getting environment: %w", err)
-	}
-
-	release, err := getRelease(params.Catalog.Releases.Items, params.Release, environment.Name)
-	if err != nil {
-		return fmt.Errorf("getting release: %w", err)
-	}
-
-	chart, err := params.Cache.GetReleaseChartFS(ctx, release)
-	if err != nil {
-		return fmt.Errorf("getting release chart: %w", err)
-	}
-
-	return RenderRelease(ctx, RenderReleaseParams{
-		Release:            release,
-		Chart:              chart,
-		CommonRenderParams: params.CommonRenderParams,
-	})
-}
-
-type RenderReleaseParams struct {
-	Release *v1alpha1.Release
-	Chart   *helm.ChartFS
-	CommonRenderParams
-}
-
-func RenderRelease(ctx context.Context, params RenderReleaseParams) error {
+func Render(ctx context.Context, params RenderParams) (string, error) {
 	values, err := HydrateValues(params.Release, params.Chart, params.ValueMapping)
 	if err != nil {
-		return fmt.Errorf("hydrating values: %w", err)
-	}
-
-	dst := params.IO.Out
-	if params.Color {
-		dst = ManifestColorWriter{dst}
+		return "", fmt.Errorf("hydrating values: %w", err)
 	}
 
 	opts := helm.RenderOpts{
-		Dst:         dst,
 		ReleaseName: params.Release.Name,
 		ChartPath:   params.Chart.DirName(),
 		Values:      values,
 	}
 
-	if err := params.Helm.Render(ctx, opts); err != nil {
-		return fmt.Errorf("rendering chart: %w", err)
-	}
-
-	return nil
+	return params.Helm.Render(ctx, opts)
 }
 
 func getEnvironment(environments []*v1alpha1.Environment, name string) (*v1alpha1.Environment, error) {
@@ -358,29 +307,6 @@ func resolveObjectValue(values map[string]any, path []string) (any, error) {
 		return nil, fmt.Errorf("value for key %q is not a map", key)
 	}
 	return resolveObjectValue(mapValue, path[1:])
-}
-
-// ManifestColorWriter colorizes helm manifest by searching for document breaks
-// and source comments. The implementation is naive and depends on the write buffer
-// not breaking lines. In theory this means colorization can fail, however in practice
-// it works well enough.
-type ManifestColorWriter struct {
-	dst io.Writer
-}
-
-func (w ManifestColorWriter) Write(data []byte) (int, error) {
-	lines := strings.Split(string(data), "\n")
-	for i, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-		if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "# Source:") {
-			lines[i] = color.InYellow(line)
-		}
-	}
-
-	n, err := w.dst.Write([]byte(strings.Join(lines, "\n")))
-	return min(n, len(data)), err
 }
 
 // setInMap modifies the map by adding the value to the path defined by segments.

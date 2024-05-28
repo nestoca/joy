@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"strings"
 
 	"github.com/davidmdm/x/xerr"
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/yml"
@@ -67,21 +64,14 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		return errors.New("contains locked TODO")
 	}
 
-	renderOpts := render.RenderReleaseParams{
-		Release: params.Release,
-		Chart:   params.Chart,
-		CommonRenderParams: render.CommonRenderParams{
-			ValueMapping: params.ValueMapping,
-			IO: internal.IO{
-				Out: io.Discard,
-				Err: io.Discard,
-				In:  io.NopCloser(strings.NewReader("")),
-			},
-			Helm: params.Helm,
-		},
+	renderOpts := render.RenderParams{
+		Release:      params.Release,
+		Chart:        params.Chart,
+		ValueMapping: params.ValueMapping,
+		Helm:         params.Helm,
 	}
 
-	if err := render.RenderRelease(ctx, renderOpts); err != nil {
+	if _, err := render.Render(ctx, renderOpts); err != nil {
 		return err
 	}
 

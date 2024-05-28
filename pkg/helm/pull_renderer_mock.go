@@ -4,7 +4,7 @@
 package helm
 
 import (
-	context "context"
+	"context"
 	"sync"
 )
 
@@ -21,7 +21,7 @@ var _ PullRenderer = &PullRendererMock{}
 //			PullFunc: func(contextMoqParam context.Context, pullOptions PullOptions) error {
 //				panic("mock out the Pull method")
 //			},
-//			RenderFunc: func(ctx context.Context, opts RenderOpts) error {
+//			RenderFunc: func(ctx context.Context, opts RenderOpts) (string, error) {
 //				panic("mock out the Render method")
 //			},
 //		}
@@ -35,7 +35,7 @@ type PullRendererMock struct {
 	PullFunc func(contextMoqParam context.Context, pullOptions PullOptions) error
 
 	// RenderFunc mocks the Render method.
-	RenderFunc func(ctx context.Context, opts RenderOpts) error
+	RenderFunc func(ctx context.Context, opts RenderOpts) (string, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -98,7 +98,7 @@ func (mock *PullRendererMock) PullCalls() []struct {
 }
 
 // Render calls RenderFunc.
-func (mock *PullRendererMock) Render(ctx context.Context, opts RenderOpts) error {
+func (mock *PullRendererMock) Render(ctx context.Context, opts RenderOpts) (string, error) {
 	callInfo := struct {
 		Ctx  context.Context
 		Opts RenderOpts
@@ -111,9 +111,10 @@ func (mock *PullRendererMock) Render(ctx context.Context, opts RenderOpts) error
 	mock.lockRender.Unlock()
 	if mock.RenderFunc == nil {
 		var (
+			sOut   string
 			errOut error
 		)
-		return errOut
+		return sOut, errOut
 	}
 	return mock.RenderFunc(ctx, opts)
 }

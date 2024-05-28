@@ -72,8 +72,8 @@ func TestValidateRelease(t *testing.T) {
 			},
 
 			HelmSetup: func(mock *helm.PullRendererMock) {
-				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) error {
-					return errors.New("failed to render")
+				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) (string, error) {
+					return "", errors.New("failed to render")
 				}
 			},
 			ExpectedErr: "rendering chart: failed to render",
@@ -86,8 +86,8 @@ func TestValidateRelease(t *testing.T) {
 				DirNameFunc:  func() string { return "" },
 			},
 			HelmSetup: func(mock *helm.PullRendererMock) {
-				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) error {
-					return errors.New("failed to render")
+				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) (string, error) {
+					return "", errors.New("failed to render")
 				}
 			}, ExpectedErr: "rendering chart: failed to render",
 		},
