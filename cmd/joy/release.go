@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/TwiN/go-color"
+	"github.com/davidmdm/x/xerr"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -74,9 +75,9 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 
 			if len(args) > 0 {
 				releasePattern := args[0]
-				cat = cat.WithReleaseFilter(filtering.NewNamePatternFilter(releasePattern))
+				cat.WithReleaseFilter(filtering.NewNamePatternFilter(releasePattern))
 			} else if len(cfg.Releases.Selected) > 0 {
-				cat = cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
+				cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
 
 			selectedEnvs := func() []string {
@@ -86,7 +87,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				return strings.Split(envs, ",")
 			}()
 			if owners != "" {
-				cat = cat.WithReleaseFilter(filtering.NewOwnerFilter(owners))
+				cat.WithReleaseFilter(filtering.NewOwnerFilter(owners))
 			}
 
 			releaseList, err := list.GetReleaseList(cat, list.Params{
@@ -171,7 +172,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 			if len(releases) == 0 && !all && len(cfg.Releases.Selected) > 0 {
 				// if there is no pre-selection, ie: user did not explicity pass releases nor use the --all flag
 				// we want to limit the catalog releases to the user config defined release selection.
-				cat = cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
+				cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
 
 			sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, sourceEnv)
@@ -326,51 +327,171 @@ func NewReleaseRenderCmd() *cobra.Command {
 		Short: "render kubernetes manifests from joy release",
 		RunE: func(cmd *cobra.Command, releases []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
-			cat := catalog.FromContext(cmd.Context())
+
+			uniq := func(values []string) []string {
+				dedup := map[string]struct{}{}
+				for _, value := range values {
+					dedup[value] = struct{}{}
+				}
+				var result []string
+				for key := range dedup {
+					result = append(result, key)
+				}
+				slices.Sort(result)
+				return result
+			}
+
+			useRef := func(ref string) (restore func() error, err error) {
+				if ref == "" {
+					return func() error { return nil }, nil
+				}
+
+				restoreFuncs := []func() error{}
+
+				dirty, err := git.IsDirty(cfg.CatalogDir)
+				if err != nil {
+					return nil, fmt.Errorf("checking if catalog is in dirty state: %w", err)
+				}
+
+				if dirty {
+					if err := git.Stash(cfg.CatalogDir); err != nil {
+						return nil, fmt.Errorf("stashing catalog: %w", err)
+					}
+					restoreFuncs = append(restoreFuncs, func() error {
+						if err := git.StashApply(cfg.CatalogDir); err != nil {
+							return fmt.Errorf("applying stash: %w", err)
+						}
+						return nil
+					})
+				}
+
+				if err := git.Checkout(cfg.CatalogDir, ref); err != nil {
+					return nil, fmt.Errorf("checking out: %s: %w", ref, err)
+				}
+				restoreFuncs = append(restoreFuncs, func() error {
+					if err := git.SwitchBack(cfg.CatalogDir); err != nil {
+						return fmt.Errorf("switching git back to previous branch: %w", err)
+					}
+					return nil
+				})
+
+				return func() error {
+					slices.Reverse(restoreFuncs)
+					errs := make([]error, len(restoreFuncs))
+					for i, fn := range restoreFuncs {
+						errs[i] = fn()
+					}
+					return xerr.MultiErrFrom("restoring refs", errs...)
+				}, nil
+			}
+
+			knownEnvironments, err := func() (envs []string, err error) {
+				for _, ref := range uniq([]string{gitRef, diffRef}) {
+					restore, err := useRef(ref)
+					if err != nil {
+						return nil, fmt.Errorf("using ref: %s: %w", ref, err)
+					}
+					defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
+
+					// In this case we cannot use the config or catalog loaded from the context
+					// Since we need to reload at whatever git reference we are at.
+					cfg, err := config.Load("", cfg.CatalogDir)
+					if err != nil {
+						return nil, fmt.Errorf("loading config: %w", err)
+					}
+
+					cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+					if err != nil {
+						return nil, fmt.Errorf("loading catalog: %w", err)
+					}
+
+					envs = append(envs, cat.GetEnvironmentNames()...)
+				}
+
+				return uniq(envs), nil
+			}()
+			if err != nil {
+				return fmt.Errorf("getting known environments: %w", err)
+			}
 
 			if !allEnvs && len(environments) == 0 {
-				environments, err = internal.MultiSelect("Which environment(s) do you want to render from?", cat.GetEnvironmentNames())
+				environments, err = internal.MultiSelect("Which environment(s) do you want to render from?", knownEnvironments)
 				if err != nil {
 					return
 				}
 			}
+			if allEnvs {
+				environments = nil
+			}
 
-			cat = cat.WithEnvironments(environments)
+			var errs []error
+			for _, env := range environments {
+				if !slices.Contains(knownEnvironments, env) {
+					errs = append(errs, fmt.Errorf(env))
+				}
+			}
+
+			if err := xerr.MultiErrOrderedFrom("unknown environment(s)", errs...); err != nil {
+				return err
+			}
+
+			knownReleases, err := func() (releases []string, err error) {
+				for _, ref := range uniq([]string{gitRef, diffRef}) {
+					restore, err := useRef(ref)
+					if err != nil {
+						return nil, fmt.Errorf("using ref: %s: %w", ref, err)
+					}
+					defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
+
+					// In this case we cannot use the config or catalog loaded from the context
+					// Since we need to reload at whatever git reference we are at.
+					cfg, err := config.Load("", cfg.CatalogDir)
+					if err != nil {
+						return nil, fmt.Errorf("loading config: %w", err)
+					}
+
+					cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+					if err != nil {
+						return nil, fmt.Errorf("loading catalog: %w", err)
+					}
+
+					cat.WithEnvironments(environments)
+
+					releases = append(releases, cat.GetReleaseNames()...)
+				}
+
+				return uniq(releases), nil
+			}()
+			if err != nil {
+				return fmt.Errorf("getting known releases: %w", err)
+			}
 
 			if !all && len(releases) == 0 {
-				releases, err = internal.MultiSelect("Which release(s) do you want to render?", cat.GetReleaseNames())
+				releases, err = internal.MultiSelect("Which release(s) do you want to render?", knownReleases)
 				if err != nil {
 					return
 				}
+			}
+			if all {
+				releases = nil
+			}
+
+			for _, release := range releases {
+				if !slices.Contains(knownReleases, release) {
+					errs = append(errs, fmt.Errorf(release))
+				}
+			}
+
+			if err := xerr.MultiErrOrderedFrom("unknown release(s)", errs...); err != nil {
+				return err
 			}
 
 			renderRef := func(ref string) (result map[string]string, err error) {
-				if ref != "" {
-					dirty, err := git.IsDirty(cfg.CatalogDir)
-					if err != nil {
-						return nil, fmt.Errorf("checking if catalog is in dirty state: %w", err)
-					}
-
-					if dirty {
-						if err := git.Stash(cfg.CatalogDir); err != nil {
-							return nil, fmt.Errorf("stashing catalog: %w", err)
-						}
-						defer func() {
-							if applyErr := git.StashApply(cfg.CatalogDir); err == nil && applyErr != nil {
-								err = fmt.Errorf("applying stash: %w", applyErr)
-							}
-						}()
-					}
-
-					if err := git.Checkout(cfg.CatalogDir, ref); err != nil {
-						return nil, fmt.Errorf("checking out: %s: %w", ref, err)
-					}
-					defer func() {
-						if swichErr := git.SwitchBack(cfg.CatalogDir); err == nil && swichErr != nil {
-							err = fmt.Errorf("switching git back to previous branch: %w", swichErr)
-						}
-					}()
+				restore, err := useRef(ref)
+				if err != nil {
+					return nil, fmt.Errorf("using ref: %s: %w", ref, err)
 				}
+				defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
 
 				// In this case we cannot use the config or catalog loaded from the context
 				// Since we need to reload at whatever git reference we are at.
@@ -379,19 +500,20 @@ func NewReleaseRenderCmd() *cobra.Command {
 					return nil, fmt.Errorf("loading config: %w", err)
 				}
 
+				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+				if err != nil {
+					return nil, fmt.Errorf("loading catalog: %w", err)
+				}
+
+				cat.WithEnvironments(environments)
+				cat.WithReleases(releases)
+
 				cache := helm.ChartCache{
 					Refs:            cfg.Charts,
 					DefaultChartRef: cfg.DefaultChartRef,
 					Root:            cfg.JoyCache,
 					Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
 				}
-
-				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
-				if err != nil {
-					return nil, fmt.Errorf("loading catalog: %w", err)
-				}
-
-				cat = cat.WithReleases(releases).WithEnvironments(environments)
 
 				results := map[string]string{}
 
@@ -429,11 +551,16 @@ func NewReleaseRenderCmd() *cobra.Command {
 			}
 
 			orderedKeys := func(maps ...map[string]string) []string {
-				var keys []string
+				dedup := map[string]struct{}{}
 				for _, m := range maps {
 					for key := range m {
-						keys = append(keys, key)
+						dedup[key] = struct{}{}
 					}
+				}
+
+				var keys []string
+				for key := range dedup {
+					keys = append(keys, key)
 				}
 
 				slices.Sort(keys)
@@ -534,9 +661,9 @@ func NewValidateCommand() *cobra.Command {
 				return filtering.NewSpecificReleasesFilter(args)
 			}()
 
-			cat := catalog.FromContext(cmd.Context()).
-				WithEnvironments(selectedEnvs).
-				WithReleaseFilter(releaseFilter)
+			cat := catalog.FromContext(cmd.Context())
+			cat.WithEnvironments(selectedEnvs)
+			cat.WithReleaseFilter(releaseFilter)
 
 			var releases []*v1alpha1.Release
 			for _, item := range cat.Releases.Items {
@@ -706,7 +833,7 @@ func NewReleaseOpenCmd() *cobra.Command {
 				filter = filtering.NewSpecificReleasesFilter(cfg.Releases.Selected)
 			}
 
-			cat = cat.WithReleaseFilter(filter)
+			cat.WithReleaseFilter(filter)
 
 			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
 			linksProvider := links.NewProvider(infoProvider, cfg.Templates)

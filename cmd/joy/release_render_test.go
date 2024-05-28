@@ -57,7 +57,7 @@ func TestReleaseRender(t *testing.T) {
 		cmd.SetErr(&buffer)
 		cmd.SetArgs([]string{"--color=false", "--env=testing", "does-not-exist"})
 
-		require.EqualError(t, cmd.ExecuteContext(ctx), "getting release: not found: does-not-exist")
+		require.EqualError(t, cmd.ExecuteContext(ctx), "unknown release(s): does-not-exist")
 	})
 
 	t.Run("diff", func(t *testing.T) {
@@ -89,6 +89,7 @@ func TestReleaseRender(t *testing.T) {
 		})
 
 		err = cmd.ExecuteContext(ctx)
+		t.Log(buffer.String())
 		require.NoError(t, err, buffer.String())
 
 		var removals, additions []string
@@ -224,6 +225,6 @@ func TestReleaseRender(t *testing.T) {
 		})
 
 		err = cmd.ExecuteContext(ctx)
-		require.EqualError(t, err, "getting release: not found: does-not-exist")
+		require.EqualError(t, err, "unknown release(s): does-not-exist")
 	})
 }

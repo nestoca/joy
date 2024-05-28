@@ -133,9 +133,9 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 	return c, nil
 }
 
-func (c *Catalog) WithReleaseFilter(filter filtering.Filter) *Catalog {
+func (c *Catalog) WithReleaseFilter(filter filtering.Filter) {
 	if filter == nil {
-		return c
+		return
 	}
 
 	releases := c.Releases.Items
@@ -152,13 +152,11 @@ func (c *Catalog) WithReleaseFilter(filter filtering.Filter) *Catalog {
 		}
 		c.Releases.Items = append(c.Releases.Items, cross)
 	}
-
-	return c
 }
 
-func (c *Catalog) WithReleases(names []string) *Catalog {
+func (c *Catalog) WithReleases(names []string) {
 	if len(names) == 0 {
-		return c
+		return
 	}
 
 	releases := c.Releases.Items
@@ -169,13 +167,11 @@ func (c *Catalog) WithReleases(names []string) *Catalog {
 			c.Releases.Items = append(c.Releases.Items, cross)
 		}
 	}
-
-	return c
 }
 
-func (c *Catalog) WithEnvironments(names []string) *Catalog {
+func (c *Catalog) WithEnvironments(names []string) {
 	if len(names) == 0 {
-		return c
+		return
 	}
 
 	allEnvs := c.Environments
@@ -201,8 +197,6 @@ func (c *Catalog) WithEnvironments(names []string) *Catalog {
 			}
 		}
 	}
-
-	return c
 }
 
 func (c *Catalog) ResolveRefs() error {

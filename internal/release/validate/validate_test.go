@@ -76,7 +76,7 @@ func TestValidateRelease(t *testing.T) {
 					return "", errors.New("failed to render")
 				}
 			},
-			ExpectedErr: "rendering chart: failed to render",
+			ExpectedErr: "failed to render",
 		},
 		{
 			Name:    "no schema and render fails",
@@ -89,7 +89,8 @@ func TestValidateRelease(t *testing.T) {
 				mock.RenderFunc = func(ctx context.Context, opts helm.RenderOpts) (string, error) {
 					return "", errors.New("failed to render")
 				}
-			}, ExpectedErr: "rendering chart: failed to render",
+			},
+			ExpectedErr: "failed to render",
 		},
 		{
 			Name:    "fail to read schema",
