@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"cmp"
 	"fmt"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/TwiN/go-color"
-	"github.com/davidmdm/x/xerr"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -314,7 +312,9 @@ This command requires the jac cli: https://github.com/nestoca/jac
 
 func NewReleaseRenderCmd() *cobra.Command {
 	var (
-		env          string
+		all          bool
+		allEnvs      bool
+		environments []string
 		colorEnabled bool
 		gitRef       string
 		diffRef      string
@@ -324,74 +324,36 @@ func NewReleaseRenderCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "render [release]",
 		Short: "render kubernetes manifests from joy release",
-		Args:  cobra.RangeArgs(0, 1),
-		PreRunE: func(_ *cobra.Command, args []string) error {
-			var errs []error
-			if diffRef != "" {
-				if env == "" {
-					errs = append(errs, fmt.Errorf("flag --env must be provided when --diff-ref is used"))
-				}
-				if len(args) == 0 {
-					errs = append(errs, fmt.Errorf("release arg must be provided when --diff-ref is used"))
-				}
-			}
-			return xerr.MultiErrFrom("validating flags and args", errs...)
-		},
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
+		RunE: func(cmd *cobra.Command, releases []string) (err error) {
 			cfg := config.FromContext(cmd.Context())
+			cat := catalog.FromContext(cmd.Context())
 
-			var releaseName string
-			if len(args) == 1 {
-				releaseName = args[0]
+			if !allEnvs && len(environments) == 0 {
+				environments, err = internal.MultiSelect("Which environment(s) do you want to render from?", cat.GetEnvironmentNames())
+				if err != nil {
+					return
+				}
 			}
 
-			buildRenderParams := func(buffer *bytes.Buffer) (render.RenderParams, error) {
-				// In this case we cannot use the config or catalog loaded from the context
-				// Since we need to reload at whatever git reference we are at.
-				cfg, err := config.Load("", cfg.CatalogDir)
-				if err != nil {
-					return render.RenderParams{}, fmt.Errorf("loading config: %w", err)
-				}
-				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
-				if err != nil {
-					return render.RenderParams{}, fmt.Errorf("loading catalog: %w", err)
-				}
+			cat = cat.WithEnvironments(environments)
 
-				return render.RenderParams{
-					Env:     env,
-					Release: releaseName,
-					Cache: helm.ChartCache{
-						Refs:            cfg.Charts,
-						DefaultChartRef: cfg.DefaultChartRef,
-						Root:            cfg.JoyCache,
-						Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
-					},
-					Catalog: cat,
-					CommonRenderParams: render.CommonRenderParams{
-						ValueMapping: cfg.ValueMapping,
-						IO: internal.IO{
-							Out: buffer,
-							Err: cmd.ErrOrStderr(),
-							In:  cmd.InOrStdin(),
-						},
-						Helm: helm.CLI{
-							IO: internal.IoFromCommand(cmd),
-						},
-						Color: colorEnabled,
-					},
-				}, nil
+			if !all && len(releases) == 0 {
+				releases, err = internal.MultiSelect("Which release(s) do you want to render?", cat.GetReleaseNames())
+				if err != nil {
+					return
+				}
 			}
 
-			renderRef := func(ref string) (result string, err error) {
+			renderRef := func(ref string) (result map[string]string, err error) {
 				if ref != "" {
 					dirty, err := git.IsDirty(cfg.CatalogDir)
 					if err != nil {
-						return "", fmt.Errorf("checking if catalog is in dirty state: %w", err)
+						return nil, fmt.Errorf("checking if catalog is in dirty state: %w", err)
 					}
 
 					if dirty {
 						if err := git.Stash(cfg.CatalogDir); err != nil {
-							return "", fmt.Errorf("stashing catalog: %w", err)
+							return nil, fmt.Errorf("stashing catalog: %w", err)
 						}
 						defer func() {
 							if applyErr := git.StashApply(cfg.CatalogDir); err == nil && applyErr != nil {
@@ -401,7 +363,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 					}
 
 					if err := git.Checkout(cfg.CatalogDir, ref); err != nil {
-						return "", fmt.Errorf("checking out: %s: %w", ref, err)
+						return nil, fmt.Errorf("checking out: %s: %w", ref, err)
 					}
 					defer func() {
 						if swichErr := git.SwitchBack(cfg.CatalogDir); err == nil && swichErr != nil {
@@ -410,36 +372,110 @@ func NewReleaseRenderCmd() *cobra.Command {
 					}()
 				}
 
-				var buf bytes.Buffer
-				params, err := buildRenderParams(&buf)
+				// In this case we cannot use the config or catalog loaded from the context
+				// Since we need to reload at whatever git reference we are at.
+				cfg, err := config.Load("", cfg.CatalogDir)
 				if err != nil {
-					return "", err
+					return nil, fmt.Errorf("loading config: %w", err)
 				}
 
-				if err := render.Render(cmd.Context(), params); err != nil {
-					return "", err
+				cache := helm.ChartCache{
+					Refs:            cfg.Charts,
+					DefaultChartRef: cfg.DefaultChartRef,
+					Root:            cfg.JoyCache,
+					Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
 				}
 
-				return buf.String(), nil
+				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+				if err != nil {
+					return nil, fmt.Errorf("loading catalog: %w", err)
+				}
+
+				cat = cat.WithReleases(releases).WithEnvironments(environments)
+
+				results := map[string]string{}
+
+				for i := range len(cat.Releases.Environments) {
+					for _, cross := range cat.Releases.Items {
+						release := cross.Releases[i]
+						if release == nil {
+							continue
+						}
+
+						releaseIdentifier := release.Environment.Name + "/" + release.Name
+
+						chart, err := cache.GetReleaseChartFS(cmd.Context(), release)
+						if err != nil {
+							return nil, fmt.Errorf("getting chart for release: %s: %w", releaseIdentifier, err)
+						}
+
+						params := render.RenderParams{
+							Release:      release,
+							Chart:        chart,
+							ValueMapping: cfg.ValueMapping,
+							Helm:         helm.CLI{IO: internal.IoFromCommand(cmd)},
+						}
+
+						result, err := render.Render(cmd.Context(), params)
+						if err != nil {
+							return nil, fmt.Errorf("rendering release: %s: %w", releaseIdentifier, err)
+						}
+
+						results[releaseIdentifier] = result
+					}
+				}
+
+				return results, nil
 			}
 
-			gitRefResult, baseErr := renderRef(gitRef)
-			if baseErr != nil && (!render.IsNotFoundError(baseErr) || diffRef == "") {
-				return baseErr
+			orderedKeys := func(maps ...map[string]string) []string {
+				var keys []string
+				for _, m := range maps {
+					for key := range m {
+						keys = append(keys, key)
+					}
+				}
+
+				slices.Sort(keys)
+				return keys
 			}
 
-			if diffRef == "" {
-				_, err := fmt.Fprintln(cmd.OutOrStdout(), gitRefResult)
+			header := func(name string) string {
+				value := fmt.Sprintf("===\n%s\n===", name)
+				if colorEnabled {
+					value = color.InBold(color.InCyan(value))
+				}
+				return value
+			}
+
+			content := func(value string) string {
+				if !colorEnabled {
+					return value
+				}
+				lines := strings.Split(value, "\n")
+				for i, line := range lines {
+					if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "# Source:") {
+						lines[i] = color.InYellow(line)
+					}
+				}
+				return strings.Join(lines, "\n")
+			}
+
+			gitRefResult, err := renderRef(gitRef)
+			if err != nil {
 				return err
 			}
 
-			diffRefResult, diffErr := renderRef(diffRef)
-			if diffErr != nil && !render.IsNotFoundError(diffErr) {
-				return diffErr
+			if diffRef == "" {
+				for _, key := range orderedKeys(gitRefResult) {
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\n%s\n\n", header(key), content(gitRefResult[key]))
+				}
+				return nil
 			}
 
-			if render.IsNotFoundError(baseErr) && render.IsNotFoundError(diffErr) {
-				return baseErr
+			diffRefResult, err := renderRef(diffRef)
+			if err != nil {
+				return err
 			}
 
 			diffFunc := func() text.DiffFunc {
@@ -449,23 +485,28 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return text.Diff
 			}()
 
-			diff := diffFunc(
-				text.File{Name: cmp.Or(gitRef, "(current)"), Content: gitRefResult},
-				text.File{Name: diffRef, Content: diffRefResult},
-				diffContext,
-			)
+			for _, key := range orderedKeys(gitRefResult, diffRefResult) {
+				diff := diffFunc(
+					text.File{Name: cmp.Or(gitRef, "(current)"), Content: content(gitRefResult[key])},
+					text.File{Name: diffRef, Content: content(diffRefResult[key])},
+					diffContext,
+				)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\n%s\n\n", header(key), diff)
+			}
 
-			_, err = fmt.Fprint(cmd.OutOrStdout(), diff)
-			return err
+			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&gitRef, "git-ref", "", "git ref to checkout before render")
 	cmd.Flags().StringVar(&diffRef, "diff-ref", "", "git ref to checkout before render")
-	cmd.Flags().IntVarP(&diffContext, "diff-context", "c", 8, "line context when rendering diff")
+	cmd.Flags().IntVarP(&diffContext, "diff-context", "c", 4, "line context when rendering diff")
 
-	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
+	cmd.Flags().StringSliceVarP(&environments, "env", "e", nil, "environments to select releases from.")
 	cmd.Flags().BoolVar(&colorEnabled, "color", term.IsTerminal(int(os.Stdout.Fd())), "toggle output with color")
+	cmd.Flags().BoolVar(&all, "all", false, "select all releases to be rendered")
+	cmd.Flags().BoolVar(&allEnvs, "all-envs", false, "select all environments to render from")
+
 	return cmd
 }
 

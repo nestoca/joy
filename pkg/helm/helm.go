@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os/exec"
 	"path"
 	"strings"
@@ -21,7 +20,7 @@ type Puller interface {
 //go:generate moq -stub -out ./pull_renderer_mock.go . PullRenderer
 type PullRenderer interface {
 	Puller
-	Render(ctx context.Context, opts RenderOpts) error
+	Render(ctx context.Context, opts RenderOpts) (string, error)
 }
 
 type CLI struct {
@@ -70,24 +69,26 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 }
 
 type RenderOpts struct {
-	Dst         io.Writer
 	ReleaseName string
 	Values      map[string]any
 	ChartPath   string
 }
 
-func (cli CLI) Render(ctx context.Context, opts RenderOpts) error {
+func (cli CLI) Render(ctx context.Context, opts RenderOpts) (string, error) {
 	var input bytes.Buffer
 	if err := yaml.NewEncoder(&input).Encode(opts.Values); err != nil {
-		return err
+		return "", err
 	}
 
 	opts.ChartPath = strings.TrimPrefix(opts.ChartPath, "file://")
 
 	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-")
 	cmd.Stdin = &input
-	cmd.Stdout = opts.Dst
-	cmd.Stderr = cli.IO.Err
 
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("%w: %s", err, out)
+	}
+
+	return string(out), nil
 }

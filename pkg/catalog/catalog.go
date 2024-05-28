@@ -156,6 +156,23 @@ func (c *Catalog) WithReleaseFilter(filter filtering.Filter) *Catalog {
 	return c
 }
 
+func (c *Catalog) WithReleases(names []string) *Catalog {
+	if len(names) == 0 {
+		return c
+	}
+
+	releases := c.Releases.Items
+	c.Releases.Items = []*cross.Release{}
+
+	for _, cross := range releases {
+		if slices.Contains(names, cross.Name) {
+			c.Releases.Items = append(c.Releases.Items, cross)
+		}
+	}
+
+	return c
+}
+
 func (c *Catalog) WithEnvironments(names []string) *Catalog {
 	if len(names) == 0 {
 		return c
@@ -305,6 +322,26 @@ func (c *Catalog) loadProjects() ([]*v1alpha1.Project, error) {
 	})
 
 	return projects, nil
+}
+
+func (c *Catalog) GetReleaseNames() []string {
+	result := []string{}
+	for _, cross := range c.Releases.Items {
+		if slices.ContainsFunc(cross.Releases, func(release *v1alpha1.Release) bool {
+			return release != nil
+		}) {
+			result = append(result, cross.Name)
+		}
+	}
+	return result
+}
+
+func (c *Catalog) GetEnvironmentNames() []string {
+	result := []string{}
+	for _, env := range c.Environments {
+		result = append(result, env.Name)
+	}
+	return result
 }
 
 type catalogKey struct{}
