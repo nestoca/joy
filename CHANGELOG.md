@@ -1,3 +1,15 @@
+## [0.54.0](https://github.com/nestoca/joy/compare/v0.53.1...v0.54.0) (2024-05-28)
+
+
+### Features
+
+* **PL-2736:** joy release render support all and all-env flags ([98de852](https://github.com/nestoca/joy/commit/98de852c799dafd1ad37d7f8eed48b4949179573))
+
+
+### Bug Fixes
+
+* **PL-2736:** include both git-ref and diff-ref catalog in known state ([51e1315](https://github.com/nestoca/joy/commit/51e13158ec90a416349c2487c9d38568e468cd12))
+
 ## [0.53.1](https://github.com/nestoca/joy/compare/v0.53.0...v0.53.1) (2024-05-24)
 
 
