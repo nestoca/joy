@@ -1,3 +1,10 @@
+## [0.54.3](https://github.com/nestoca/joy/compare/v0.54.2...v0.54.3) (2024-05-29)
+
+
+### Bug Fixes
+
+* **PL-2736:** fix stash being used in conjunction with untracked files ([88b366f](https://github.com/nestoca/joy/commit/88b366f79c3cba32051c21c61873242331608dac))
+
 ## [0.54.2](https://github.com/nestoca/joy/compare/v0.54.1...v0.54.2) (2024-05-29)
 
 
