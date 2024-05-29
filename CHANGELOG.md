@@ -1,3 +1,10 @@
+## [0.54.1](https://github.com/nestoca/joy/compare/v0.54.0...v0.54.1) (2024-05-29)
+
+
+### Bug Fixes
+
+* **PL-2736:** add verbose flag for diff rendering ([5ec02c0](https://github.com/nestoca/joy/commit/5ec02c048044465cc118ac89dc980b0e001a208d))
+
 ## [0.54.0](https://github.com/nestoca/joy/compare/v0.53.1...v0.54.0) (2024-05-28)
 
 
