@@ -349,7 +349,8 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 				restoreFuncs := []func() error{}
 
-				dirty, err := git.IsDirty(cfg.CatalogDir)
+				// Stash does not stash untracked files so we do not want a dirty state unless it is stashable
+				dirty, err := git.IsDirty(cfg.CatalogDir, git.UncommittedChangesOptions{SkipUntrackedFiles: true})
 				if err != nil {
 					return nil, fmt.Errorf("checking if catalog is in dirty state: %w", err)
 				}

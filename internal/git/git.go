@@ -48,21 +48,39 @@ func IsValid(dir string) bool {
 	return exec.Command("git", "-C", dir, "status").Run() == nil
 }
 
+type UncommittedChangesOptions struct {
+	SkipUntrackedFiles bool
+}
+
 func GetUncommittedChanges(dir string) ([]string, error) {
-	cmd := exec.Command("git", "-C", dir, "status", "--porcelain")
-	output, err := cmd.CombinedOutput()
+	return GetUncommittedChangesWithOpts(dir, UncommittedChangesOptions{})
+}
+
+func GetUncommittedChangesWithOpts(dir string, opts UncommittedChangesOptions) ([]string, error) {
+	output, err := exec.Command("git", "-C", dir, "status", "--porcelain").CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("executing git status: %s", string(output))
 	}
+
 	trimmed := strings.TrimSpace(string(output))
 	if trimmed == "" {
 		return nil, nil
 	}
-	return strings.Split(trimmed, "\n"), nil
+
+	var result []string
+	for _, value := range strings.Split(trimmed, "\n") {
+		if opts.SkipUntrackedFiles && strings.HasPrefix(value, "??") {
+			continue
+		}
+		result = append(result, value)
+	}
+
+	return result, nil
 }
 
-func IsDirty(dir string) (bool, error) {
-	changes, err := GetUncommittedChanges(dir)
+// IsDirty check if any files in the the git directory specified by dir have been modified.
+func IsDirty(dir string, opts UncommittedChangesOptions) (bool, error) {
+	changes, err := GetUncommittedChangesWithOpts(dir, opts)
 	if err != nil {
 		return false, err
 	}
