@@ -1,3 +1,10 @@
+## [0.54.2](https://github.com/nestoca/joy/compare/v0.54.1...v0.54.2) (2024-05-29)
+
+
+### Bug Fixes
+
+* **PLP-2736:** skip helm tests when rendering releases ([167833f](https://github.com/nestoca/joy/commit/167833f0cdaa5eb1a25c4e8f3132064d1698c10d))
+
 ## [0.54.1](https://github.com/nestoca/joy/compare/v0.54.0...v0.54.1) (2024-05-29)
 
 
