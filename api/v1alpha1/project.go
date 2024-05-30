@@ -3,8 +3,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -71,7 +69,7 @@ func IsValidProject(apiVersion, kind string) bool {
 // NewProject creates a new project from given yaml file.
 func NewProject(file *yml.File) (*Project, error) {
 	var proj Project
-	if err := yaml.Unmarshal(file.Yaml, &proj); err != nil {
+	if err := yml.UnmarshalStrict(file.Yaml, &proj); err != nil {
 		return nil, fmt.Errorf("unmarshalling project: %w", err)
 	}
 	proj.File = file

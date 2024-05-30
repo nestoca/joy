@@ -1,0 +1,8 @@
+apiVersion: joy.nesto.ca/v1alpha1
+kind: Project
+metadata:
+  name: testing
+spec:
+  unknown-key: should not pass strict decoding
+  owners:
+    - stream-platform
