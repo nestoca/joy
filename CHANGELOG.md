@@ -1,3 +1,10 @@
+## [0.54.4](https://github.com/nestoca/joy/compare/v0.54.3...v0.54.4) (2024-05-30)
+
+
+### Bug Fixes
+
+* **PL-660:** stricter crd decoding ([3b377eb](https://github.com/nestoca/joy/commit/3b377ebd64dbf5f92d0a42a94d9900eb405adf40))
+
 ## [0.54.3](https://github.com/nestoca/joy/compare/v0.54.2...v0.54.3) (2024-05-29)
 
 
