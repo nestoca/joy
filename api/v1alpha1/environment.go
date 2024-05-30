@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/davidmdm/x/xerr"
-	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/internal/yml"
 )
@@ -97,7 +96,7 @@ func IsValidEnvironment(apiVersion, kind string) bool {
 // NewEnvironment creates a new environment from given yaml file.
 func NewEnvironment(file *yml.File) (*Environment, error) {
 	var env Environment
-	if err := yaml.Unmarshal(file.Yaml, &env); err != nil {
+	if err := yml.UnmarshalStrict(file.Yaml, &env); err != nil {
 		return nil, fmt.Errorf("unmarshalling environment: %w", err)
 	}
 	env.File = file

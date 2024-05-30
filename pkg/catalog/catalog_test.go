@@ -26,6 +26,11 @@ func TestCatalogLoadE2E(t *testing.T) {
 			Folder: "broken-chart-ref-release",
 			Error:  "validating releases: test-release/testing: invalid chart: unknown ref: missing-ref",
 		},
+		{
+			Name:   "invalid crd schema",
+			Folder: "invalid-crd-schema",
+			Error:  "unmarshalling project: yaml: unmarshal errors:\n  line 6: field unknown-key not found in type v1alpha1.ProjectSpe",
+		},
 	}
 
 	for _, tc := range cases {
@@ -35,7 +40,8 @@ func TestCatalogLoadE2E(t *testing.T) {
 			require.NoError(t, err)
 
 			_, err = Load(filepath.Join("testdata", tc.Folder), cfg.KnownChartRefs())
-			require.EqualError(t, err, tc.Error)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.Error)
 		})
 	}
 }

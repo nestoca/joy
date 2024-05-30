@@ -98,7 +98,7 @@ func IsValidRelease(apiVersion, kind string) bool {
 // LoadRelease loads a release from the given release file.
 func LoadRelease(file *yml.File) (*Release, error) {
 	var rel Release
-	if err := yaml.Unmarshal(file.Yaml, &rel); err != nil {
+	if err := yml.UnmarshalStrict(file.Yaml, &rel); err != nil {
 		return nil, fmt.Errorf("unmarshalling release: %w", err)
 	}
 	rel.File = file
