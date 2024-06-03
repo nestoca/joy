@@ -10,6 +10,7 @@ import (
 
 	"github.com/nestoca/survey/v2"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/style"
 )
@@ -24,14 +25,15 @@ func init() {
 	dependencies.Add(dependency)
 }
 
-func Run(dir string, args []string) error {
+func Run(dir string, io internal.IO, args []string) error {
 	args = append([]string{"-C", dir}, args...)
 	cmd := exec.Command("git", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
+
+	cmd.Stdin = io.In
+	cmd.Stdout = io.Out
+	cmd.Stderr = io.Err
+
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running git command: %w", err)
 	}
 	return nil

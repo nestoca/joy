@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git"
 )
@@ -23,7 +24,7 @@ func NewGitCmd() *cobra.Command {
 			if err := os.Chdir(cfg.CatalogDir); err != nil {
 				return fmt.Errorf("changing to catalog directory: %w", err)
 			}
-			return git.Run(cfg.CatalogDir, args)
+			return git.Run(cfg.CatalogDir, internal.IoFromCommand(cmd), args)
 		},
 	}
 	return cmd

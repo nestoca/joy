@@ -51,6 +51,8 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 				return nil
 			}
 
+			fmt.Println("SKIP_DEV_CHECK", skipDevCheck, args)
+
 			if !skipDevCheck && (!semver.IsValid(version) || semver.Prerelease(version) != "") {
 				var ok bool
 				prompt := &survey.Confirm{Message: fmt.Sprintf("You are running joy on a development build: %s\n\nDo you wish to continue?", color.InYellow(version))}
