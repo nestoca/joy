@@ -54,6 +54,18 @@ jobs:
       - name: Build cli binary
         run: make build
 
+  test-internal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch workflow
+        env:
+          GH_TOKEN: ${{ secrets.CATALOG_TRIGGER_TOKEN }}
+        run: |
+          gh workflow run --repo github.com/nestoca/catalog -f ref=${{ github.head_ref }} .github/workflows/joy-test.yaml
+          sleep 5s
+          workflowId=$(gh run ls --repo github.com/nestoca/catalog --workflow joy-test --json databaseId -q '.[0].databaseId')
+          gh run watch --exit-status --repo github.com/nestoca/catalog $workflowId
+
   publish:
     needs:
       - test-and-build
