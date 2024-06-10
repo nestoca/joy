@@ -127,7 +127,7 @@ jobs:
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
         uses: goreleaser/goreleaser-action@v4
         with:
-          version: latest
+          version: ~> v1
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLIC_TOKEN }}
