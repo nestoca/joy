@@ -71,7 +71,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		}
 
 		p.printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
-		releaseInfo, err := getReleaseInfo(sourceRelease, targetRelease, opts)
+		releaseInfo, err := getReleaseInfo(crossRelease, sourceRelease, targetRelease, opts)
 		if err != nil {
 			err = fmt.Errorf("collecting release %q info: %w", sourceRelease.Name, err)
 			p.printf("⚠️ %v\n", err)

@@ -4,6 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/info"
+	"github.com/nestoca/joy/internal/links"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/yml"
 )
 
 func TestInjectPullRequestLinks(t *testing.T) {
@@ -67,6 +73,66 @@ func TestInjectPullRequestLinks(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+func TestGetReleaseInfo(t *testing.T) {
+	cases := []struct {
+		Name           string
+		Cross          *cross.Release
+		Source, Target *v1alpha1.Release
+		Opts           PerformOpts
+		Expectations   func(*testing.T, *ReleaseInfo, error)
+	}{
+		{
+			Name:   "ValuesChanged should be false if no promotion file",
+			Cross:  &cross.Release{ValuesInSync: false, PromotedFile: nil},
+			Source: &v1alpha1.Release{Project: &v1alpha1.Project{}},
+			Target: &v1alpha1.Release{},
+			Opts: PerformOpts{
+				infoProvider:  new(info.ProviderMock),
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.False(t, releaseInfo.ValuesChanged)
+			},
+		},
+		{
+			Name:   "ValuesChanged should be false if values are in sync",
+			Cross:  &cross.Release{ValuesInSync: true, PromotedFile: new(yml.File)},
+			Source: &v1alpha1.Release{Project: &v1alpha1.Project{}},
+			Target: &v1alpha1.Release{},
+			Opts: PerformOpts{
+				infoProvider:  new(info.ProviderMock),
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.False(t, releaseInfo.ValuesChanged)
+			},
+		},
+		{
+			Name:   "ValuesChanged should be true if values are not in sync",
+			Cross:  &cross.Release{ValuesInSync: false, PromotedFile: new(yml.File)},
+			Source: &v1alpha1.Release{Project: &v1alpha1.Project{}},
+			Target: &v1alpha1.Release{},
+			Opts: PerformOpts{
+				infoProvider:  new(info.ProviderMock),
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.True(t, releaseInfo.ValuesChanged)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual, err := getReleaseInfo(tc.Cross, tc.Source, tc.Target, tc.Opts)
+			tc.Expectations(t, actual, err)
 		})
 	}
 }

@@ -9,8 +9,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
-const commentPrefix = "#"
-const ignoreFileName = ".joyignore"
+const (
+	commentPrefix  = "#"
+	ignoreFileName = ".joyignore"
+)
 
 type Matcher struct {
 	giMatcher gitignore.Matcher

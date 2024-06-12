@@ -10,6 +10,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/release/cross"
 )
 
 type ChangeType string
@@ -21,18 +22,19 @@ const (
 )
 
 type ReleaseInfo struct {
-	Name         string
-	Project      *v1alpha1.Project
-	Reviewers    []string
-	Repository   string
-	Source       EnvironmentReleaseInfo
-	Target       EnvironmentReleaseInfo
-	OlderGitTag  string
-	NewerGitTag  string
-	IsPrerelease bool
-	ChangeType   ChangeType
-	Commits      []*CommitInfo
-	Error        error
+	Name          string
+	Project       *v1alpha1.Project
+	Reviewers     []string
+	Repository    string
+	Source        EnvironmentReleaseInfo
+	Target        EnvironmentReleaseInfo
+	OlderGitTag   string
+	NewerGitTag   string
+	IsPrerelease  bool
+	ValuesChanged bool
+	ChangeType    ChangeType
+	Commits       []*CommitInfo
+	Error         error
 }
 
 type EnvironmentReleaseInfo struct {
@@ -59,7 +61,7 @@ type CommitInfo struct {
 	ShortMessage string
 }
 
-func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) (*ReleaseInfo, error) {
+func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) (*ReleaseInfo, error) {
 	project := sourceRelease.Project
 	changeType := ChangeTypeUpgrade
 	if targetRelease != nil {
@@ -109,15 +111,19 @@ func getReleaseInfo(sourceRelease, targetRelease *v1alpha1.Release, opts Perform
 
 	repository := opts.infoProvider.GetProjectRepository(project)
 	releaseInfo := ReleaseInfo{
-		Name:         sourceRelease.Name,
-		Project:      project,
-		Repository:   repository,
-		Source:       EnvironmentReleaseInfo{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag, Links: sourceLinks},
-		Target:       EnvironmentReleaseInfo{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag, Links: targetLinks},
-		OlderGitTag:  olderTag,
-		NewerGitTag:  newerTag,
-		ChangeType:   changeType,
-		IsPrerelease: IsPrerelease(sourceRelease) || IsPrerelease(targetRelease),
+		Name:          sourceRelease.Name,
+		Project:       project,
+		Reviewers:     []string{},
+		Repository:    repository,
+		Source:        EnvironmentReleaseInfo{Release: sourceRelease, DisplayVersion: sourceRelease.Spec.Version, GitTag: sourceTag, Links: sourceLinks},
+		Target:        EnvironmentReleaseInfo{Release: targetRelease, DisplayVersion: displayTargetVersion, GitTag: targetTag, Links: targetLinks},
+		OlderGitTag:   olderTag,
+		NewerGitTag:   newerTag,
+		IsPrerelease:  IsPrerelease(sourceRelease) || IsPrerelease(targetRelease),
+		ValuesChanged: cross.PromotedFile != nil && !cross.ValuesInSync,
+		ChangeType:    changeType,
+		Commits:       []*CommitInfo{},
+		Error:         nil,
 	}
 
 	if releaseInfo.IsPrerelease {

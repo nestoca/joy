@@ -211,13 +211,13 @@ loop:
 			performParams.draft = true
 			break loop
 		case ViewGitLog:
-			for _, item := range selectedList.Items {
-				p.println(style.SecondaryInfo("--- " + item.Name))
-				source, target := at(item.Releases, sourceEnvIndex), at(item.Releases, targetEnvIndex)
+			for _, crossRelease := range selectedList.Items {
+				p.println(style.SecondaryInfo("--- " + crossRelease.Name))
+				source, target := at(crossRelease.Releases, sourceEnvIndex), at(crossRelease.Releases, targetEnvIndex)
 
-				info, err := getReleaseInfo(source, target, performParams)
+				info, err := getReleaseInfo(crossRelease, source, target, performParams)
 				if err != nil {
-					p.printf("error getting release information %s: %v\n", item.Name, err)
+					p.printf("error getting release information %s: %v\n", crossRelease.Name, err)
 					continue
 				}
 
