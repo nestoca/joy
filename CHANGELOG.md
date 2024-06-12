@@ -1,3 +1,10 @@
+## [0.55.1](https://github.com/nestoca/joy/compare/v0.55.0...v0.55.1) (2024-06-12)
+
+
+### Bug Fixes
+
+* remove error stuttering ([2abbc86](https://github.com/nestoca/joy/commit/2abbc86d85a66759786c32a83194430e94d71fae))
+
 ## [0.55.0](https://github.com/nestoca/joy/compare/v0.54.6...v0.55.0) (2024-06-12)
 
 
