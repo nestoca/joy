@@ -37,9 +37,5 @@ func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files
 }
 
 func (g *ShellGitProvider) CheckoutMasterBranch() error {
-	err := git.Checkout(g.dir, "master")
-	if err != nil {
-		return fmt.Errorf("checking out master branch: %w", err)
-	}
-	return nil
+	return git.Checkout(g.dir, "master")
 }
