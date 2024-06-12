@@ -135,7 +135,7 @@ func Checkout(dir, branch string) error {
 	cmd := exec.Command("git", "-C", dir, "checkout", branch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("checking out branch %s: %s", branch, string(output))
+		return fmt.Errorf("%w: %s", err, string(output))
 	}
 	return nil
 }
