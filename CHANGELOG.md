@@ -1,3 +1,10 @@
+## [0.55.0](https://github.com/nestoca/joy/compare/v0.54.6...v0.55.0) (2024-06-12)
+
+
+### Features
+
+* **PL-2604:** add ConfigChanges to ReleaseInfo ([fb82836](https://github.com/nestoca/joy/commit/fb828362131c3f8c72ba138f53d5b95a805ce621))
+
 ## [0.54.6](https://github.com/nestoca/joy/compare/v0.54.5...v0.54.6) (2024-06-10)
 
 
