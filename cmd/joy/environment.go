@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/info"
@@ -24,6 +25,7 @@ func NewEnvironmentCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewEnvironmentSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewEnvironmentLinksCmd())
 	cmd.AddCommand(NewEnvironmentOpenCmd())
+	cmd.AddCommand(NewEnvironmentSchemaCmd())
 	return cmd
 }
 
@@ -127,4 +129,14 @@ func NewEnvironmentLinksCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func NewEnvironmentSchemaCmd() *cobra.Command {
+	return &cobra.Command{
+		Use: "schema",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), v1alpha1.EnvironmentSpecification())
+			return err
+		},
+	}
 }

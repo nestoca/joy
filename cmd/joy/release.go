@@ -3,10 +3,14 @@ package main
 import (
 	"cmp"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"slices"
 	"strings"
+
+	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/cuecontext"
 
 	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
@@ -50,6 +54,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewReleaseOpenCmd())
 	cmd.AddCommand(NewReleaseLinksCmd())
+	cmd.AddCommand(NewReleaseSchemaCmd())
 	cmd.AddCommand(NewGitCommands())
 	cmd.AddCommand(NewValidateCommand())
 
@@ -912,5 +917,63 @@ func NewReleaseLinksCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment (interactive if not specified)")
 
+	return cmd
+}
+
+func NewReleaseSchemaCmd() *cobra.Command {
+	var env string
+	cmd := &cobra.Command{
+		Use:  "schema",
+		Args: cobra.RangeArgs(0, 1),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 0 && env == "" {
+				return fmt.Errorf("environment (--env flag) is required when querying a release")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				_, err := fmt.Fprintln(cmd.OutOrStdout(), v1alpha1.ReleaseSpecification())
+				return err
+			}
+
+			cat := catalog.FromContext(cmd.Context())
+
+			release, err := cat.LookupRelease(env, args[0])
+			if err != nil {
+				return fmt.Errorf("looking up release: %w", err)
+			}
+
+			cfg := config.FromContext(cmd.Context())
+
+			charts := helm.ChartCache{
+				Refs:            cfg.Charts,
+				DefaultChartRef: cfg.DefaultChartRef,
+				Root:            cfg.JoyCache,
+				Puller:          helm.CLI{IO: internal.IO{Out: cmd.ErrOrStderr(), Err: cmd.ErrOrStderr()}},
+			}
+
+			chart, err := charts.GetReleaseChartFS(cmd.Context(), release)
+			if err != nil {
+				return fmt.Errorf("getting release chart: %w", err)
+			}
+
+			schemaBytes, err := chart.ReadFile("values.cue")
+			if err != nil {
+				if os.IsNotExist(err) {
+					_, err := io.WriteString(cmd.OutOrStdout(), v1alpha1.ReleaseSpecification())
+					return err
+				}
+				return fmt.Errorf("reading schema: %w", err)
+			}
+
+			schema := cuecontext.New().CompileBytes(schemaBytes).LookupPath(cue.MakePath(cue.Def("values")))
+
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), internal.StringifySchema(schema))
+			return err
+		},
+	}
+
+	cmd.Flags().StringVar(&env, "env", "", "environment to find release from")
 	return cmd
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/jac"
@@ -26,6 +27,7 @@ func NewProjectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewProjectPeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewProjectOpenCmd())
 	cmd.AddCommand(NewProjectLinksCmd())
+	cmd.AddCommand(NewProjectSchemaCmd())
 	return cmd
 }
 
@@ -155,4 +157,14 @@ func NewProjectLinksCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func NewProjectSchemaCmd() *cobra.Command {
+	return &cobra.Command{
+		Use: "schema",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), v1alpha1.ProjectSpecification())
+			return err
+		},
+	}
 }

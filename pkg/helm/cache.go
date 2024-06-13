@@ -52,6 +52,10 @@ type ChartFS struct {
 }
 
 func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error) {
+	if release.Spec.Chart == nil {
+		return cache.Refs[cache.DefaultChartRef], nil
+	}
+
 	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {
 		return Chart{
 			RepoURL: repoURL,

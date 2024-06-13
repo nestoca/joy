@@ -3,7 +3,7 @@ module github.com/nestoca/joy
 go 1.22.0
 
 require (
-	cuelang.org/go v0.8.2
+	cuelang.org/go v0.9.1
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/TwiN/go-color v1.4.1
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
@@ -63,10 +63,10 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
-	golang.org/x/tools v0.19.0 // indirect
+	golang.org/x/tools v0.21.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 
 )

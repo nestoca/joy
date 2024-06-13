@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -60,6 +61,10 @@ type Project struct {
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-" json:"-"`
+}
+
+func (project *Project) Validate() error {
+	return internal.ValidateAgainstSchema(schemas.Project, project)
 }
 
 func IsValidProject(apiVersion, kind string) bool {

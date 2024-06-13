@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -24,7 +25,7 @@ type ReleaseMetadata struct {
 }
 
 type ReleaseChart struct {
-	Ref     string `yaml:"ref,omitempty"`
+	Ref     string `yaml:"ref,omitempty" json:"ref,omitempty"`
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 	Name    string `yaml:"name,omitempty" json:"name,omitempty"`
 	RepoUrl string `yaml:"repoUrl,omitempty" json:"repoUrl,omitempty"`
@@ -54,7 +55,7 @@ type ReleaseSpec struct {
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// Chart is the chart that the release is based on.
-	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
+	Chart *ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
 
 	// Values is the values to use to render the chart.
 	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
@@ -86,6 +87,10 @@ type Release struct {
 	Environment *Environment `yaml:"-" json:"-"`
 }
 
+func (release Release) Validate() error {
+	return internal.ValidateAgainstSchema(schemas.Release, release)
+}
+
 func (release *Release) UnmarshalYAML(node *yaml.Node) error {
 	type raw Release
 	return stripCustomTags(yml.Clone(node)).Decode((*raw)(release))
@@ -102,6 +107,7 @@ func LoadRelease(file *yml.File) (*Release, error) {
 		return nil, fmt.Errorf("unmarshalling release: %w", err)
 	}
 	rel.File = file
+
 	return &rel, nil
 }
 
