@@ -4,3 +4,4 @@ metadata:
   name: dev-release
 spec:
   version: 2.2.2
+  project: project1

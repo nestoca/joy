@@ -7,6 +7,7 @@ import (
 
 	"github.com/davidmdm/x/xerr"
 
+	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
 )
 
@@ -86,7 +87,10 @@ func (e Environment) Validate(validChartRefs []string) error {
 			errs = append(errs, fmt.Errorf("unknown ref: %s", ref))
 		}
 	}
-	return xerr.MultiErrOrderedFrom("validating chart references", errs...)
+	return xerr.MultiErrOrderedFrom("",
+		internal.ValidateAgainstSchema(schemas.Environment, e),
+		xerr.MultiErrOrderedFrom("validating chart references", errs...),
+	)
 }
 
 func IsValidEnvironment(apiVersion, kind string) bool {

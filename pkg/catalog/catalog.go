@@ -101,6 +101,16 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 		return nil, fmt.Errorf("loading projects: %w", err)
 	}
 
+	for _, project := range c.Projects {
+		if err := project.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", project.Name, err))
+		}
+	}
+
+	if err := xerr.MultiErrOrderedFrom("validating project", errs...); err != nil {
+		return nil, err
+	}
+
 	allReleaseFiles := c.GetFilesByKind(v1alpha1.ReleaseKind)
 
 	if err := validateTagsForFiles(allReleaseFiles); err != nil {
@@ -121,8 +131,13 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 			if release == nil {
 				continue
 			}
-			if err := release.Spec.Chart.Validate(validChartRefs); err != nil {
-				errs = append(errs, fmt.Errorf("%s/%s: invalid chart: %w", release.Name, release.Environment.Name, err))
+			if release.Spec.Chart != nil {
+				if err := release.Spec.Chart.Validate(validChartRefs); err != nil {
+					errs = append(errs, fmt.Errorf("%s/%s: invalid chart: %w", release.Name, release.Environment.Name, err))
+				}
+			}
+			if err := release.Validate(); err != nil {
+				errs = append(errs, fmt.Errorf("%s/%s: validation: %w", release.Name, release.Environment.Name, err))
 			}
 		}
 	}
@@ -336,6 +351,32 @@ func (c *Catalog) GetEnvironmentNames() []string {
 		result = append(result, env.Name)
 	}
 	return result
+}
+
+func (c *Catalog) LookupRelease(env, release string) (*v1alpha1.Release, error) {
+	if !slices.Contains(c.GetEnvironmentNames(), env) {
+		return nil, fmt.Errorf("unknown environment: %s", env)
+	}
+	if !slices.Contains(c.GetReleaseNames(), release) {
+		return nil, fmt.Errorf("unknown release: %s", release)
+	}
+
+	for _, cross := range c.Releases.Items {
+		if cross.Name != release {
+			continue
+		}
+		for _, rel := range cross.Releases {
+			if rel == nil {
+				continue
+			}
+			if rel.Environment.Name == env {
+				return rel, nil
+			}
+		}
+		break
+	}
+
+	return nil, fmt.Errorf("release %s not found in environment %s", release, env)
 }
 
 type catalogKey struct{}
