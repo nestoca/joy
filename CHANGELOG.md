@@ -1,3 +1,10 @@
+## [0.56.0](https://github.com/nestoca/joy/compare/v0.55.1...v0.56.0) (2024-06-21)
+
+
+### Features
+
+* **PL-660:** add v1alpha1 schemas ([6a361c3](https://github.com/nestoca/joy/commit/6a361c3fe27f77b4690a19ce97f10a5422010209))
+
 ## [0.55.1](https://github.com/nestoca/joy/compare/v0.55.0...v0.55.1) (2024-06-12)
 
 
