@@ -131,10 +131,8 @@ func Load(dir string, validChartRefs []string) (*Catalog, error) {
 			if release == nil {
 				continue
 			}
-			if release.Spec.Chart != nil {
-				if err := release.Spec.Chart.Validate(validChartRefs); err != nil {
-					errs = append(errs, fmt.Errorf("%s/%s: invalid chart: %w", release.Name, release.Environment.Name, err))
-				}
+			if err := release.Spec.Chart.Validate(validChartRefs); err != nil {
+				errs = append(errs, fmt.Errorf("%s/%s: invalid chart: %w", release.Name, release.Environment.Name, err))
 			}
 			if err := release.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("%s/%s: validation: %w", release.Name, release.Environment.Name, err))

@@ -55,7 +55,7 @@ type ReleaseSpec struct {
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// Chart is the chart that the release is based on.
-	Chart *ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
+	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
 
 	// Values is the values to use to render the chart.
 	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
