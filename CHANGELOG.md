@@ -1,3 +1,10 @@
+## [0.56.1](https://github.com/nestoca/joy/compare/v0.56.0...v0.56.1) (2024-07-05)
+
+
+### Bug Fixes
+
+* **PL-660:** revert chart as pointer change ([979c605](https://github.com/nestoca/joy/commit/979c6052c5b20f6abbb951e6492e44a1dacfa627))
+
 ## [0.56.0](https://github.com/nestoca/joy/compare/v0.55.1...v0.56.0) (2024-06-21)
 
 
