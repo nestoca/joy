@@ -21,13 +21,15 @@ func NewBuildCmd() *cobra.Command {
 }
 
 func NewBuildPromoteCmd() *cobra.Command {
+	var chartVersion string
+
 	cmd := &cobra.Command{
 		Use:   "promote",
 		Short: "Promote a project to given version",
 		Long: `Promote a project to given version in given environment.
 Typically called at the end of a CI pipeline to promote a new build to default target environment.
 
-Usage: joy build promote <env> <project> <version>`,
+Usage: joy build promote [--chart-version <chart-version>] <env> <project> <version>`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			env := args[0]
@@ -38,14 +40,17 @@ Usage: joy build promote <env> <project> <version>`,
 			cat.WithEnvironments([]string{env})
 
 			return build.Promote(build.Opts{
-				Catalog:     cat,
-				Environment: env,
-				Project:     project,
-				Version:     version,
-				Writer:      yml.DiskWriter,
+				Catalog:      cat,
+				Environment:  env,
+				Project:      project,
+				Version:      version,
+				Writer:       yml.DiskWriter,
+				ChartVersion: chartVersion,
 			})
 		},
 	}
+
+	cmd.Flags().StringVar(&chartVersion, "chart-version", "", "(optional) Chart version to promote")
 
 	return cmd
 }

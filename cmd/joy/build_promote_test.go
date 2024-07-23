@@ -19,11 +19,17 @@ func TestBuildPromote(t *testing.T) {
 		name          string
 		version       string
 		catalog       *catalog.Catalog
+		chartVersion  string
 		expectedError string
 	}{
 		{
 			name:    "allowed_pre_release",
 			version: "2.3.4-rc1",
+		},
+		{
+			name:         "allowed_pre_release_with_chart",
+			version:      "2.3.4-rc1",
+			chartVersion: "5.6.7",
 		},
 		{
 			name:          "disallowed_pre_release",
@@ -80,6 +86,10 @@ func TestBuildPromote(t *testing.T) {
 				"my-project",
 				tc.version,
 			})
+			if tc.chartVersion != "" {
+				err := cmd.Flags().Set("chart-version", tc.chartVersion)
+				require.NoError(t, err)
+			}
 
 			err := cmd.ExecuteContext(ctx)
 
