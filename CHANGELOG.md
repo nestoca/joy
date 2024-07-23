@@ -1,3 +1,10 @@
+## [0.57.0](https://github.com/nestoca/joy/compare/v0.56.1...v0.57.0) (2024-07-23)
+
+
+### Features
+
+* **PL-2814:** Support promoting chart version in joy build promote ([#193](https://github.com/nestoca/joy/issues/193)) ([389e9f6](https://github.com/nestoca/joy/commit/389e9f6a8bcc4d4115f1c20338f96528575b5601))
+
 ## [0.56.1](https://github.com/nestoca/joy/compare/v0.56.0...v0.56.1) (2024-07-05)
 
 
