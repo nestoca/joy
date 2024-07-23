@@ -29,7 +29,7 @@ func NewBuildPromoteCmd() *cobra.Command {
 		Long: `Promote a project to given version in given environment.
 Typically called at the end of a CI pipeline to promote a new build to default target environment.
 
-Usage: joy build promote [--chart-version <version>] <env> <project> <version>`,
+Usage: joy build promote [--chart-version <chart-version>] <env> <project> <version>`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			env := args[0]
