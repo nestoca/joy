@@ -64,7 +64,7 @@ type Project struct {
 }
 
 func (project *Project) Validate() error {
-	return internal.ValidateAgainstSchema(schemas.Project, project)
+	return internal.ValidateAgainstSchema(schemas.Project, project.File.Tree)
 }
 
 func IsValidProject(apiVersion, kind string) bool {
