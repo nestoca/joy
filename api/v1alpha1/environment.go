@@ -88,7 +88,7 @@ func (e Environment) Validate(validChartRefs []string) error {
 		}
 	}
 	return xerr.MultiErrOrderedFrom("",
-		internal.ValidateAgainstSchema(schemas.Environment, e),
+		internal.ValidateAgainstSchema(schemas.Environment, e.File.Tree),
 		xerr.MultiErrOrderedFrom("validating chart references", errs...),
 	)
 }

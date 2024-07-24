@@ -88,7 +88,7 @@ type Release struct {
 }
 
 func (release Release) Validate() error {
-	return internal.ValidateAgainstSchema(schemas.Release, release)
+	return internal.ValidateAgainstSchema(schemas.Release, release.File.Tree)
 }
 
 func (release *Release) UnmarshalYAML(node *yaml.Node) error {
