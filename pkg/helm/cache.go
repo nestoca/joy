@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path"
@@ -24,9 +25,10 @@ type ChartCache struct {
 }
 
 type Chart struct {
-	RepoURL string `yaml:"repoUrl"`
-	Name    string `yaml:"name"`
-	Version string `yaml:"version"`
+	RepoURL  string         `yaml:"repoUrl"`
+	Name     string         `yaml:"name"`
+	Version  string         `yaml:"version"`
+	Mappings map[string]any `yaml:"mappings"`
 }
 
 func (chart Chart) ToURL() (*url.URL, error) {
@@ -54,9 +56,10 @@ type ChartFS struct {
 func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error) {
 	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {
 		return Chart{
-			RepoURL: repoURL,
-			Name:    release.Spec.Chart.Name,
-			Version: release.Spec.Chart.Version,
+			RepoURL:  repoURL,
+			Name:     release.Spec.Chart.Name,
+			Version:  release.Spec.Chart.Version,
+			Mappings: release.Spec.Chart.Mappings,
 		}, nil
 	}
 
@@ -69,6 +72,13 @@ func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error
 		release.Environment.Spec.ChartVersions[ref],
 		chart.Version,
 	)
+
+	chart.Mappings = func() map[string]any {
+		mappings := make(map[string]any)
+		maps.Copy(mappings, chart.Mappings)
+		maps.Copy(mappings, release.Spec.Chart.Mappings)
+		return mappings
+	}()
 
 	return chart, nil
 }
