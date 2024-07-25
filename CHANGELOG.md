@@ -1,3 +1,10 @@
+## [0.57.1](https://github.com/nestoca/joy/compare/v0.57.0...v0.57.1) (2024-07-25)
+
+
+### Bug Fixes
+
+* **PL-660:** validate crd schemas against file content not deserialized representation ([ce84b03](https://github.com/nestoca/joy/commit/ce84b0329270d6c740fc3c9cd5d6efd44e435257))
+
 ## [0.57.0](https://github.com/nestoca/joy/compare/v0.56.1...v0.57.0) (2024-07-23)
 
 
