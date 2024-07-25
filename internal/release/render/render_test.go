@@ -21,6 +21,7 @@ import (
 func TestRenderRelease(t *testing.T) {
 	type RenderTestParams struct {
 		Release       *v1alpha1.Release
+		Chart         helm.Chart
 		ChartFS       func(*xfs.FSMock) func(*testing.T)
 		IO            internal.IO
 		SetupHelmMock func(*helm.PullRendererMock) func(*testing.T)
@@ -70,7 +71,7 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
-								Values:      map[string]interface{}{},
+								Values:      map[string]any{},
 								ChartPath:   "path/to/chart",
 							},
 							mock.RenderCalls()[0].Opts,
@@ -165,8 +166,8 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
-								Values: map[string]interface{}{
-									"corsOrigins": []interface{}{"origin1.com", "origin2.com"},
+								Values: map[string]any{
+									"corsOrigins": []any{"origin1.com", "origin2.com"},
 									"env":         "env",
 									"version":     "v1.2.3",
 								},
@@ -175,6 +176,78 @@ func TestRenderRelease(t *testing.T) {
 							mock.RenderCalls()[0].Opts,
 						)
 					}
+				},
+			},
+		},
+		{
+			Name: "with chart level mappings",
+			Params: RenderTestParams{
+				Release: func() *v1alpha1.Release {
+					rel := buildRelease("env", "release")
+					rel.Spec.Values = map[string]any{}
+					rel.Spec.Version = "v9.9.9"
+					return rel
+				}(),
+				Chart: helm.Chart{
+					Mappings: map[string]any{
+						"test.mapping": "{{ .Release.Spec.Version }}",
+					},
+				},
+				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
+					return func(t *testing.T) {
+						require.Len(t, mock.RenderCalls(), 1)
+						require.Equal(
+							t,
+							helm.RenderOpts{
+								ReleaseName: "release",
+								Values: map[string]any{
+									"test": map[string]any{
+										"mapping": "v9.9.9",
+									},
+								},
+								ChartPath: "path/to/chart",
+							},
+							mock.RenderCalls()[0].Opts,
+						)
+					}
+				},
+				ValueMapping: &config.ValueMapping{},
+			},
+		},
+		{
+			Name: "chart mappings take priority over global mappings",
+			Params: RenderTestParams{
+				Release: func() *v1alpha1.Release {
+					rel := buildRelease("env", "release")
+					rel.Spec.Values = map[string]any{}
+					rel.Spec.Version = "v9.9.9"
+					return rel
+				}(),
+				Chart: helm.Chart{
+					Mappings: map[string]any{"test.mapping": "{{ .Release.Spec.Version }}"},
+				},
+				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
+					return func(t *testing.T) {
+						require.Len(t, mock.RenderCalls(), 1)
+						require.Equal(
+							t,
+							helm.RenderOpts{
+								ReleaseName: "release",
+								Values: map[string]any{
+									"test": map[string]any{
+										"mapping": "v9.9.9",
+									},
+								},
+								ChartPath: "path/to/chart",
+							},
+							mock.RenderCalls()[0].Opts,
+						)
+					}
+				},
+				ValueMapping: &config.ValueMapping{
+					Mappings: map[string]any{
+						"test.mapping": "GLOBAL",
+					},
 				},
 			},
 		},
@@ -211,7 +284,8 @@ func TestRenderRelease(t *testing.T) {
 			result, err := Render(context.Background(), RenderParams{
 				Release: tc.Params.Release,
 				Chart: &helm.ChartFS{
-					FS: fsMock,
+					Chart: tc.Params.Chart,
+					FS:    fsMock,
 				},
 				ValueMapping: tc.Params.ValueMapping,
 				Helm:         helmMock,

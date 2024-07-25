@@ -128,6 +128,10 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS, mappings *con
 		return nil, fmt.Errorf("hydrating object values: %w", err)
 	}
 
+	for key, value := range chart.Mappings {
+		setInMap(values, splitIntoPathSegments(key), value)
+	}
+
 	if mappings != nil && !slices.Contains(mappings.ReleaseIgnoreList, release.Name) {
 		for mapping, value := range mappings.Mappings {
 			setInMap(values, splitIntoPathSegments(mapping), value)
