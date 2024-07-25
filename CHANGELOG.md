@@ -1,3 +1,10 @@
+## [0.58.0](https://github.com/nestoca/joy/compare/v0.57.1...v0.58.0) (2024-07-25)
+
+
+### Features
+
+* **PL-2834:** support mappings per chart and release ([e04d73c](https://github.com/nestoca/joy/commit/e04d73c0fd0f2d1d47696d017fc093f249847e5f))
+
 ## [0.57.1](https://github.com/nestoca/joy/compare/v0.57.0...v0.57.1) (2024-07-25)
 
 
