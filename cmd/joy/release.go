@@ -539,10 +539,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 						}
 
 						params := render.RenderParams{
-							Release:      release,
-							Chart:        chart,
-							ValueMapping: cfg.ValueMapping,
-							Helm:         helm.CLI{IO: internal.IoFromCommand(cmd)},
+							Release: release,
+							Chart:   chart,
+							Helm:    helm.CLI{IO: internal.IoFromCommand(cmd)},
 						}
 
 						result, err := render.Render(cmd.Context(), params)
@@ -687,9 +686,8 @@ func NewValidateCommand() *cobra.Command {
 			}
 
 			return validate.Validate(cmd.Context(), validate.ValidateParams{
-				Releases:     releases,
-				ValueMapping: cfg.ValueMapping,
-				Helm:         helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
+				Releases: releases,
+				Helm:     helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
 				ChartCache: helm.ChartCache{
 					Refs:            cfg.Charts,
 					DefaultChartRef: cfg.DefaultChartRef,
