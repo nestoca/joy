@@ -53,16 +53,6 @@ type Catalog struct {
 	// then referenceEnvironment should be "testing". This setting allows release versions to be compared to main version.
 	ReferenceEnvironment string `yaml:"referenceEnvironment,omitempty"`
 
-	// ValueMapping are used to apply parameters to the chart values. The values of the mapping
-	// can use the Release and Environment as template values. Chart mappings will not override values
-	// already present in the chart.
-	// For example:
-	//
-	//   image.tag: {{ .Release.Spec.Version }}
-	//   common.annotations.example\.com/custom: true
-	//
-	ValueMapping *ValueMapping `yaml:"valueMapping,omitempty"`
-
 	RepositoriesDir string `yaml:"repositoriesDir,omitempty"`
 
 	// Default GitHub organization to infer the repository from the project name.
@@ -141,32 +131,6 @@ func (config *Config) KnownChartRefs() []string {
 		refs = append(refs, ref)
 	}
 	return refs
-}
-
-type ValueMapping struct {
-	ReleaseIgnoreList []string
-	Mappings          map[string]any
-}
-
-// UnmarshalYAML provides custom unmarshalling for backwards compatibility with map[string]string valueMappings.
-// This is a stop gap so that we do not break the current joy CLI interpretation of the catalog.
-// However, this will enable us to add a releaseIgnoreList to ignore injecting default values into charts
-// that would otherwise break.
-func (mapping *ValueMapping) UnmarshalYAML(node *yaml.Node) error {
-	// Cannot decode directly to mapping otherwise we have entered the infinite recursive look up unmarshalling
-	var value struct {
-		ReleaseIgnoreList []string       `yaml:"releaseIgnoreList,omitempty"`
-		Mappings          map[string]any `yaml:"mappings,omitempty"`
-	}
-
-	if err := node.Decode(&value); err == nil && len(value.Mappings) > 0 {
-		*mapping = ValueMapping(value)
-		return nil
-	}
-
-	// for backwards compatibility with versions that declared value mappings as map[string]string
-	// we need to be able unmarshal that structure.
-	return node.Decode(&mapping.Mappings)
 }
 
 type Environments struct {

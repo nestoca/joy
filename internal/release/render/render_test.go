@@ -14,7 +14,6 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
@@ -25,7 +24,6 @@ func TestRenderRelease(t *testing.T) {
 		ChartFS       func(*xfs.FSMock) func(*testing.T)
 		IO            internal.IO
 		SetupHelmMock func(*helm.PullRendererMock) func(*testing.T)
-		ValueMapping  *config.ValueMapping
 	}
 
 	var stdout bytes.Buffer
@@ -47,12 +45,14 @@ func TestRenderRelease(t *testing.T) {
 			Name: "fail to hydrate values",
 			Params: RenderTestParams{
 				Release: buildRelease("env", "release"),
+				Chart: helm.Chart{
+					Mappings: map[string]any{
+						"image.tag": "{{ .Release.Spec.Version }",
+					},
+				},
 				ChartFS: func(f *xfs.FSMock) func(*testing.T) {
 					return func(t *testing.T) {}
 				},
-				ValueMapping: &config.ValueMapping{Mappings: map[string]any{
-					"image.tag": "{{ .Release.Spec.version }",
-				}},
 			},
 			ExpectedError: `hydrating values: template: :2: unexpected "}" in operand`,
 		},
@@ -80,68 +80,6 @@ func TestRenderRelease(t *testing.T) {
 				},
 			},
 			ExpectedError: "bebop",
-		},
-		{
-			Name: "render with chart mappings",
-			Params: RenderTestParams{
-				Release: func() *v1alpha1.Release {
-					rel := buildRelease("env", "release")
-					rel.Spec.Version = "v1.2.3"
-					return rel
-				}(),
-				ValueMapping: &config.ValueMapping{Mappings: map[string]any{
-					"image.tag":             "{{ .Release.Spec.Version }}",
-					`annotations.nesto\.ca`: true,
-				}},
-				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
-					return func(t *testing.T) {
-						require.Len(t, mock.RenderCalls(), 1)
-						require.Equal(
-							t,
-							helm.RenderOpts{
-								ReleaseName: "release",
-								Values: map[string]any{
-									"annotations": map[string]any{"nesto.ca": true},
-									"image":       map[string]any{"tag": "v1.2.3"},
-								},
-								ChartPath: "path/to/chart",
-							},
-							mock.RenderCalls()[0].Opts,
-						)
-					}
-				},
-			},
-		},
-		{
-			Name: "render with ignored chart mappings",
-			Params: RenderTestParams{
-				Release: func() *v1alpha1.Release {
-					rel := buildRelease("env", "release")
-					rel.Spec.Version = "v1.2.3"
-					return rel
-				}(),
-				ValueMapping: &config.ValueMapping{
-					ReleaseIgnoreList: []string{"release"},
-					Mappings: map[string]any{
-						"image.tag":             "{{ .Release.Spec.Version }}",
-						`annotations.nesto\.ca`: true,
-					},
-				},
-				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
-					return func(t *testing.T) {
-						require.Len(t, mock.RenderCalls(), 1)
-						require.Equal(
-							t,
-							helm.RenderOpts{
-								ReleaseName: "release",
-								Values:      map[string]any{},
-								ChartPath:   "path/to/chart",
-							},
-							mock.RenderCalls()[0].Opts,
-						)
-					}
-				},
-			},
 		},
 		{
 			Name: "render with environment-level values",
@@ -211,7 +149,6 @@ func TestRenderRelease(t *testing.T) {
 						)
 					}
 				},
-				ValueMapping: &config.ValueMapping{},
 			},
 		},
 		{
@@ -243,11 +180,6 @@ func TestRenderRelease(t *testing.T) {
 							mock.RenderCalls()[0].Opts,
 						)
 					}
-				},
-				ValueMapping: &config.ValueMapping{
-					Mappings: map[string]any{
-						"test.mapping": "GLOBAL",
-					},
 				},
 			},
 		},
@@ -287,8 +219,7 @@ func TestRenderRelease(t *testing.T) {
 					Chart: tc.Params.Chart,
 					FS:    fsMock,
 				},
-				ValueMapping: tc.Params.ValueMapping,
-				Helm:         helmMock,
+				Helm: helmMock,
 			})
 
 			if tc.ExpectedError != "" {
@@ -654,7 +585,6 @@ func TestSchemaUnification(t *testing.T) {
 					Environment: &v1alpha1.Environment{},
 				},
 				&helm.ChartFS{FS: mockFS},
-				&config.ValueMapping{},
 			)
 
 			if tc.ExpectedError != "" {

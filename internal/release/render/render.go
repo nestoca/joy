@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -21,21 +20,19 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
 type RenderParams struct {
-	Release      *v1alpha1.Release
-	Chart        *helm.ChartFS
-	ValueMapping *config.ValueMapping
-	Helm         helm.PullRenderer
+	Release *v1alpha1.Release
+	Chart   *helm.ChartFS
+	Helm    helm.PullRenderer
 }
 
 func Render(ctx context.Context, params RenderParams) (string, error) {
-	values, err := HydrateValues(params.Release, params.Chart, params.ValueMapping)
+	values, err := HydrateValues(params.Release, params.Chart)
 	if err != nil {
 		return "", fmt.Errorf("hydrating values: %w", err)
 	}
@@ -112,7 +109,7 @@ func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Relea
 	return candidateReleases[idx], nil
 }
 
-func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS, mappings *config.ValueMapping) (map[string]any, error) {
+func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
 		Environment *v1alpha1.Environment
@@ -130,12 +127,6 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS, mappings *con
 
 	for key, value := range chart.Mappings {
 		setInMap(values, splitIntoPathSegments(key), value)
-	}
-
-	if mappings != nil && !slices.Contains(mappings.ReleaseIgnoreList, release.Name) {
-		for mapping, value := range mappings.Mappings {
-			setInMap(values, splitIntoPathSegments(mapping), value)
-		}
 	}
 
 	data, err := yaml.Marshal(values)

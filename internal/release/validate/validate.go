@@ -9,17 +9,15 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/release/render"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
 type ValidateParams struct {
-	Releases     []*v1alpha1.Release
-	ValueMapping *config.ValueMapping
-	Helm         helm.PullRenderer
-	ChartCache   helm.ChartCache
+	Releases   []*v1alpha1.Release
+	Helm       helm.PullRenderer
+	ChartCache helm.ChartCache
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
@@ -31,10 +29,9 @@ func Validate(ctx context.Context, params ValidateParams) error {
 		}
 
 		validateParams := ValidateReleaseParams{
-			Chart:        chart,
-			Release:      release,
-			ValueMapping: params.ValueMapping,
-			Helm:         params.Helm,
+			Chart:   chart,
+			Release: release,
+			Helm:    params.Helm,
 		}
 
 		if err := ValidateRelease(ctx, validateParams); err != nil {
@@ -46,10 +43,9 @@ func Validate(ctx context.Context, params ValidateParams) error {
 }
 
 type ValidateReleaseParams struct {
-	Release      *v1alpha1.Release
-	ValueMapping *config.ValueMapping
-	Chart        *helm.ChartFS
-	Helm         helm.PullRenderer
+	Release *v1alpha1.Release
+	Chart   *helm.ChartFS
+	Helm    helm.PullRenderer
 }
 
 func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
@@ -65,10 +61,9 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	}
 
 	renderOpts := render.RenderParams{
-		Release:      params.Release,
-		Chart:        params.Chart,
-		ValueMapping: params.ValueMapping,
-		Helm:         params.Helm,
+		Release: params.Release,
+		Chart:   params.Chart,
+		Helm:    params.Helm,
 	}
 
 	if _, err := render.Render(ctx, renderOpts); err != nil {
