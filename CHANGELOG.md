@@ -1,3 +1,10 @@
+## [0.59.0](https://github.com/nestoca/joy/compare/v0.58.0...v0.59.0) (2024-07-29)
+
+
+### Features
+
+* **PL-2834:** remove valuesMapping feature ([c086c25](https://github.com/nestoca/joy/commit/c086c25e85b12d6b62a027cf001d233e560050b3))
+
 ## [0.58.0](https://github.com/nestoca/joy/compare/v0.57.1...v0.58.0) (2024-07-25)
 
 
