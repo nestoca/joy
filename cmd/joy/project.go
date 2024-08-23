@@ -9,7 +9,6 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/info"
-	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -24,40 +23,9 @@ func NewProjectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 		GroupID: "core",
 	}
 	cmd.AddCommand(NewProjectListCmd(preRunConfigs))
-	cmd.AddCommand(NewProjectPeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewProjectOpenCmd())
 	cmd.AddCommand(NewProjectLinksCmd())
 	cmd.AddCommand(NewProjectSchemaCmd())
-	return cmd
-}
-
-func NewProjectPeopleCmd(preRunConfigs PreRunConfigs) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "owners",
-		Short: "List people owning a project via jac cli",
-		Long: `List people owning a project via jac cli.
-
-Calls 'jac people --group <owner1>,<owner2>...' with the owners of the project.
-
-All extra arguments and flags are passed to jac cli as is.
-
-This command requires the jac cli: https://github.com/nestoca/jac
-`,
-		Aliases: []string{
-			"owner",
-			"own",
-			"people",
-		},
-		Args:               cobra.ArbitraryArgs,
-		DisableFlagParsing: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-			return jac.ListProjectPeople(cat, args)
-		},
-	}
-
-	preRunConfigs.PullCatalog(cmd)
-
 	return cmd
 }
 

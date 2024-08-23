@@ -25,7 +25,6 @@ import (
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/info"
-	"github.com/nestoca/joy/internal/jac"
 	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
@@ -50,7 +49,6 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewReleaseListCmd(preRunConfigs))
 	cmd.AddCommand(NewReleasePromoteCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
 	cmd.AddCommand(NewReleaseSelectCmd(preRunConfigs))
-	cmd.AddCommand(NewReleasePeopleCmd(preRunConfigs))
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewReleaseOpenCmd())
 	cmd.AddCommand(NewReleaseLinksCmd())
@@ -286,36 +284,6 @@ func NewReleaseSelectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	return cmd
 }
 
-func NewReleasePeopleCmd(preRunConfigs PreRunConfigs) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "owners",
-		Short: "List people owning a release's project via jac cli",
-		Long: `List people owning a release's project via jac cli.
-
-Calls 'jac people --group <owner1>,<owner2>...' with the owners of the release's project.
-
-All extra arguments and flags are passed to jac cli as is.
-
-This command requires the jac cli: https://github.com/nestoca/jac
-`,
-		Aliases: []string{
-			"owner",
-			"own",
-			"people",
-		},
-		Args:               cobra.ArbitraryArgs,
-		DisableFlagParsing: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-			return jac.ListReleasePeople(cat, args)
-		},
-	}
-
-	preRunConfigs.PullCatalog(cmd)
-
-	return cmd
-}
-
 func NewReleaseRenderCmd() *cobra.Command {
 	var (
 		all          bool
@@ -352,7 +320,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 					return func() error { return nil }, nil
 				}
 
-				restoreFuncs := []func() error{}
+				var restoreFuncs []func() error
 
 				// Stash does not stash untracked files so we do not want a dirty state unless it is stashable
 				dirty, err := git.IsDirty(cfg.CatalogDir, git.UncommittedChangesOptions{SkipUntrackedFiles: true})
@@ -483,9 +451,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 				releases = nil
 			}
 
-			for _, release := range releases {
-				if !slices.Contains(knownReleases, release) {
-					errs = append(errs, fmt.Errorf(release))
+			for _, releaseItem := range releases {
+				if !slices.Contains(knownReleases, releaseItem) {
+					errs = append(errs, fmt.Errorf(releaseItem))
 				}
 			}
 
@@ -524,22 +492,22 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 				results := map[string]string{}
 
-				for i := range len(cat.Releases.Environments) {
+				for i := range cat.Releases.Environments {
 					for _, cross := range cat.Releases.Items {
-						release := cross.Releases[i]
-						if release == nil {
+						releaseItem := cross.Releases[i]
+						if releaseItem == nil {
 							continue
 						}
 
-						releaseIdentifier := release.Environment.Name + "/" + release.Name
+						releaseIdentifier := releaseItem.Environment.Name + "/" + releaseItem.Name
 
-						chart, err := cache.GetReleaseChartFS(cmd.Context(), release)
+						chart, err := cache.GetReleaseChartFS(cmd.Context(), releaseItem)
 						if err != nil {
 							return nil, fmt.Errorf("getting chart for release: %s: %w", releaseIdentifier, err)
 						}
 
 						params := render.RenderParams{
-							Release: release,
+							Release: releaseItem,
 							Chart:   chart,
 							Helm:    helm.CLI{IO: internal.IoFromCommand(cmd)},
 						}
@@ -937,7 +905,7 @@ func NewReleaseSchemaCmd() *cobra.Command {
 
 			cat := catalog.FromContext(cmd.Context())
 
-			release, err := cat.LookupRelease(env, args[0])
+			foundRelease, err := cat.LookupRelease(env, args[0])
 			if err != nil {
 				return fmt.Errorf("looking up release: %w", err)
 			}
@@ -951,7 +919,7 @@ func NewReleaseSchemaCmd() *cobra.Command {
 				Puller:          helm.CLI{IO: internal.IO{Out: cmd.ErrOrStderr(), Err: cmd.ErrOrStderr()}},
 			}
 
-			chart, err := charts.GetReleaseChartFS(cmd.Context(), release)
+			chart, err := charts.GetReleaseChartFS(cmd.Context(), foundRelease)
 			if err != nil {
 				return fmt.Errorf("getting release chart: %w", err)
 			}

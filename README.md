@@ -10,7 +10,6 @@ Joy is a GitOps CLI tool with Kubernetes-style YAML file formats for simplifying
 - The `joy` CLI allows you to:
   - List and select environments, projects, releases.
   - Promote releases from one environment to another, transfering specific portions of release configuration intelligently.
-  - Query who owns given projects/releases, optionally integrating with [jac](https://github.com/nestoca/jac) for rich people metadata.
 - The [joy-generator](https://github.com/nestoca/joy-generator) ArgoCD `ApplicationSet` generator plugin allows to automatically generate ArgoCD `Application` resources from your joy catalog, to deploy your releases to Kubernetes.
 - YAML resources are extensible via custom values to address your specific metadata needs.
 
@@ -72,45 +71,6 @@ catalog-dir: /absolute/path/to/your/catalog
   - The values to pass to the Helm chart.
   - Certain environment-specific portions of the release can be marked with a `# lock` comment to exclude them from promotions.
 - CI pipelines for `master` branch build call `joy build promote` at the end of their process to promote the release in
-
-# Using joy with jac
-
-[Jac](https://github.com/nestoca/jac) is a GitOps CLI tool and YAML file format for managing and querying your people metadata Source of Truth™.
-
-In order to use jac with joy, simply configure your joy projects with owners that correspond to jac group identifiers, for example:
-
-```yaml
-apiVersion: joy.nesto.ca/v1alpha1
-kind: Project
-metadata:
-  name: podinfo
-spec:
-  owners:
-    - team-dragons
-```
-
-You can then use `joy project owners` and `joy release owners` to have jac resolve the actual people owning those projects and releases:
-
-```bash
-$ joy release owners
-Select release:
-  service-1
-  service-2
-> podinfo-1
-  podinfo-2
-
-  NAME          FIRST NAME  LAST NAME  EMAIL              GROUPS                      INHERITED GROUPS
-  jack-sparrow  Jack        Sparrow    jack@example.com   DevOps Dragons              Tech Support
-  peter-pan     Peter       Pan        peter@example.com  Backend Developer Dragons   Tech Support
- ———
- Count: 2
-```
-
-(shorthand: `joy proj own` and `joy rel own`)
-
-Arbitrary arguments and flags following those two commands will be passed directly to jac, allowing you to leverage all of jac's querying and filtering capabilities.
-
-Note that the `jac` CLI must be installed and configured on your machine in order for this to work.
 
 # Using joy with Sealed Secrets
 
@@ -197,4 +157,3 @@ Integrating a tool like [Crossplane](https://www.crossplane.io/) with joy allows
 Take the example of a project that's just been modified to now require a storage bucket. Whenever that new version will be deployed to a new environment, it will require that bucket to be provisioned in that environment. With joy, that infrastructure requirement can be defined in the `Release` resource values and that bucket can be provisioned automatically whenever that new version of the project gets promoted to a new environment. That is a game changer, as it can be extremely tricky to try and keep track of the evolving infrastructure requirements of your projects as they get promoted across environments.
 
 As Crossplane is not yet very flexible in terms of templating (eg: conditionals and loops), we recommend relying on helm charts to deal with this templating complexity and create the appropriate Crossplane resources required by the project based on the values passed to it. For example, given a `bucketName` value, the helm chart could create a Crossplane `Bucket` resource and let the Crossplane provider provision the actual bucket in the cloud.
-
