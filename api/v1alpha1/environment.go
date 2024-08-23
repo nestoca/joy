@@ -48,7 +48,7 @@ type EnvironmentSpec struct {
 	ChartVersions map[string]string `yaml:"chartVersions,omitempty" json:"chartVersions,omitempty"`
 
 	// Owners is the list of identifiers of owners of the environment.
-	// It can be any strings that uniquely identifies the owners, such as email addresses or Jac group identifiers.
+	// It can be any strings that uniquely identifies the owners, such as email addresses or backstage group names.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 
 	// SealedSecretsCert is the public certificate of the Sealed Secrets controller for this environment

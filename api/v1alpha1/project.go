@@ -22,7 +22,7 @@ type ProjectMetadata struct {
 
 type ProjectSpec struct {
 	// Owners is the list of identifiers of owners of the project.
-	// It can be any string that uniquely identifies the owners, such as email addresses or Jac group identifiers.
+	// It can be any string that uniquely identifies the owners, such as email addresses or backstage group names.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 
 	// Reviewers is the list of GitHub users who should always added a reviewer for the project.

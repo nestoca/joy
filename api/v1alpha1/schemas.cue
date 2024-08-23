@@ -60,7 +60,7 @@ package v1alpha1
 	metadata!:  #metadata
 	spec: {
 		// Owners is the list of identifiers of owners of the project.
-		// It can be any string that uniquely identifies the owners, such as email addresses or Jac group identifiers.
+		// It can be any string that uniquely identifies the owners, such as email addresses or backstage group names
 		owners?: [...string]
 
 		// Reviewers is the list of GitHub users who should always added a reviewer for the project.
