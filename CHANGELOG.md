@@ -1,3 +1,10 @@
+## [0.60.0](https://github.com/nestoca/joy/compare/v0.59.1...v0.60.0) (2024-08-29)
+
+
+### Features
+
+* **PL-2800:** instrument helm package ([9cf2e04](https://github.com/nestoca/joy/commit/9cf2e0443e79078e0130896123162fd55c0abbb4))
+
 ## [0.59.1](https://github.com/nestoca/joy/compare/v0.59.0...v0.59.1) (2024-08-23)
 
 ## [0.59.0](https://github.com/nestoca/joy/compare/v0.58.0...v0.59.0) (2024-07-29)
