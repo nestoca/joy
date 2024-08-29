@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/observability"
 )
 
 type Puller interface {
@@ -33,6 +34,9 @@ type PullOptions struct {
 }
 
 func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
+	ctx, span := observability.StartTrace(ctx, "helm_pull")
+	defer span.End()
+
 	if opts.OutputDir == "" {
 		opts.OutputDir = "."
 	}
@@ -74,7 +78,16 @@ type RenderOpts struct {
 	ChartPath   string
 }
 
-func (cli CLI) Render(ctx context.Context, opts RenderOpts) (string, error) {
+func (cli CLI) Render(ctx context.Context, opts RenderOpts) (result string, err error) {
+	ctx, span := observability.StartTrace(ctx, "helm_render")
+	defer span.End()
+
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+		}
+	}()
+
 	var input bytes.Buffer
 	if err := yaml.NewEncoder(&input).Encode(opts.Values); err != nil {
 		return "", err
