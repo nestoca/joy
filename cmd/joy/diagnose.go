@@ -18,7 +18,7 @@ func NewDiagnoseCmd(version string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.FromContext(cmd.Context())
 
-			_, err := fmt.Fprintln(cmd.OutOrStdout(), diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(version, cfg)))
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(cmd.Context(), version, cfg)))
 			return err
 		},
 	}

@@ -15,6 +15,7 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/ignore"
+	"github.com/nestoca/joy/internal/observability"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/yml"
@@ -34,7 +35,10 @@ type Catalog struct {
 	Files        []*yml.File
 }
 
-func Load(dir string, validChartRefs []string) (*Catalog, error) {
+func Load(ctx context.Context, dir string, validChartRefs []string) (*Catalog, error) {
+	_, span := observability.StartTrace(ctx, "load_catalog")
+	defer span.End()
+
 	// Get absolute and clean path of directory, so we can determine whether a release belongs to an environment
 	// by simply comparing the beginning of their paths.
 	dir, err := filepath.Abs(dir)

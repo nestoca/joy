@@ -86,7 +86,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
 						var err error
-						cfg, err = config.Load(configDir, cfg.CatalogDir)
+						cfg, err = config.Load(cmd.Context(), configDir, cfg.CatalogDir)
 						if err != nil {
 							return nil, err
 						}
@@ -112,7 +112,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 				return nil
 			}
 
-			cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+			cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
 			if err != nil {
 				return fmt.Errorf("loading catalog: %w", err)
 			}

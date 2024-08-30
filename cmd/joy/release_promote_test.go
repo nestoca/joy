@@ -251,10 +251,10 @@ func TestViewGitLog(t *testing.T) {
 func executeReleasePromoteCommand(t *testing.T, cmd *cobra.Command, args ...string) (string, string, error) {
 	dir := testutils.CloneToTempDir(t, "joy-release-promote-test")
 
-	cat, err := catalog.Load(dir, nil)
+	cat, err := catalog.Load(context.Background(), dir, nil)
 	require.NoError(t, err)
 
-	cfg, err := config.Load(dir, dir)
+	cfg, err := config.Load(context.Background(), dir, dir)
 	require.NoError(t, err)
 
 	ctx := config.ToContext(catalog.ToContext(context.Background(), cat), cfg)

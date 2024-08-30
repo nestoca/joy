@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -11,12 +12,12 @@ import (
 	"github.com/nestoca/joy/internal/style"
 )
 
-func Evaluate(cliVersion string, cfg *config.Config) Groups {
+func Evaluate(ctx context.Context, cliVersion string, cfg *config.Config) Groups {
 	return Groups{
 		diagnoseExecutable(cfg, cliVersion, ExecutableOptions{}),
 		diagnoseDependencies(dependencies.AllRequired, dependencies.AllOptional),
 		diagnoseConfig(cfg, ConfigOpts{}),
-		diagnoseCatalog(cfg, CatalogOpts{}),
+		diagnoseCatalog(ctx, cfg, CatalogOpts{}),
 	}
 }
 

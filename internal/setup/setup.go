@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -20,17 +21,17 @@ const (
 	separator         = "————————————————————————————————————————————————————————————————————————————————"
 )
 
-func Setup(version, configDir, catalogDir, catalogRepo string) error {
+func Setup(ctx context.Context, version, configDir, catalogDir, catalogRepo string) error {
 	fmt.Println("👋 Hey there, let's kickstart your most joyful CD experience! ☀️")
 	fmt.Println(separator)
 
 	// Setup catalog and config
 	fmt.Print("🛠️ Let's first set up your configuration and catalog repo...\n\n")
-	catalogDir, err := setupCatalog(configDir, catalogDir, catalogRepo)
+	catalogDir, err := setupCatalog(ctx, configDir, catalogDir, catalogRepo)
 	if err != nil {
 		return err
 	}
-	cfg, err := setupConfig(configDir, catalogDir)
+	cfg, err := setupConfig(ctx, configDir, catalogDir)
 	if err != nil {
 		return err
 	}
@@ -39,13 +40,13 @@ func Setup(version, configDir, catalogDir, catalogRepo string) error {
 
 	// Run diagnostics
 	fmt.Print("🔍 Let's run a few diagnostics to check everything is in order...\n\n")
-	_, err = fmt.Println(diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(version, cfg)))
+	_, err = fmt.Println(diagnostics.OutputWithGlobalStats(diagnostics.Evaluate(ctx, version, cfg)))
 	return err
 }
 
-func setupConfig(configDir string, catalogDir string) (*config.Config, error) {
+func setupConfig(ctx context.Context, configDir string, catalogDir string) (*config.Config, error) {
 	// Try loading config file from given or default location
-	cfg, err := config.Load(configDir, catalogDir)
+	cfg, err := config.Load(ctx, configDir, catalogDir)
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
@@ -60,9 +61,9 @@ func setupConfig(configDir string, catalogDir string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func setupCatalog(configDir string, catalogDir string, catalogRepo string) (string, error) {
+func setupCatalog(ctx context.Context, configDir string, catalogDir string, catalogRepo string) (string, error) {
 	var err error
-	catalogDir, err = getCatalogDir(configDir, catalogDir)
+	catalogDir, err = getCatalogDir(ctx, configDir, catalogDir)
 	if err != nil {
 		return "", err
 	}
@@ -82,10 +83,10 @@ func setupCatalog(configDir string, catalogDir string, catalogRepo string) (stri
 	return catalogDir, nil
 }
 
-func getCatalogDir(configDir string, catalogDir string) (string, error) {
+func getCatalogDir(ctx context.Context, configDir string, catalogDir string) (string, error) {
 	if catalogDir == "" {
 		// Try loading catalog dir from config file to use as prompt default value
-		cfg, err := config.Load(configDir, catalogDir)
+		cfg, err := config.Load(ctx, configDir, catalogDir)
 		if err == nil {
 			catalogDir = cfg.CatalogDir
 		} else {
