@@ -45,7 +45,7 @@ func TestReleaseRender(t *testing.T) {
 
 		ctx := config.ToContext(context.Background(), cfg)
 
-		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		cat, err := catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		require.NoError(t, err)
 
 		ctx = catalog.ToContext(ctx, cat)
@@ -70,7 +70,7 @@ func TestReleaseRender(t *testing.T) {
 
 		ctx := config.ToContext(context.Background(), cfg)
 
-		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		cat, err := catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		require.NoError(t, err)
 
 		ctx = catalog.ToContext(ctx, cat)
@@ -116,7 +116,7 @@ func TestReleaseRender(t *testing.T) {
 
 		ctx := config.ToContext(context.Background(), cfg)
 
-		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		cat, err := catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		require.NoError(t, err)
 
 		ctx = catalog.ToContext(ctx, cat)
@@ -161,7 +161,7 @@ func TestReleaseRender(t *testing.T) {
 
 		ctx := config.ToContext(context.Background(), cfg)
 
-		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		cat, err := catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		require.NoError(t, err)
 
 		ctx = catalog.ToContext(ctx, cat)
@@ -206,7 +206,7 @@ func TestReleaseRender(t *testing.T) {
 
 		ctx := config.ToContext(context.Background(), cfg)
 
-		cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+		cat, err := catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		require.NoError(t, err)
 
 		ctx = catalog.ToContext(ctx, cat)

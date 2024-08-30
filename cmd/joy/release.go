@@ -370,12 +370,12 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load("", cfg.CatalogDir)
+					cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
 					if err != nil {
 						return nil, fmt.Errorf("loading config: %w", err)
 					}
 
-					cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+					cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
 					if err != nil {
 						return nil, fmt.Errorf("loading catalog: %w", err)
 					}
@@ -420,12 +420,12 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load("", cfg.CatalogDir)
+					cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
 					if err != nil {
 						return nil, fmt.Errorf("loading config: %w", err)
 					}
 
-					cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+					cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
 					if err != nil {
 						return nil, fmt.Errorf("loading catalog: %w", err)
 					}
@@ -470,12 +470,12 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 				// In this case we cannot use the config or catalog loaded from the context
 				// Since we need to reload at whatever git reference we are at.
-				cfg, err := config.Load("", cfg.CatalogDir)
+				cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
 				if err != nil {
 					return nil, fmt.Errorf("loading config: %w", err)
 				}
 
-				cat, err := catalog.Load(cfg.CatalogDir, cfg.KnownChartRefs())
+				cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
 				if err != nil {
 					return nil, fmt.Errorf("loading catalog: %w", err)
 				}

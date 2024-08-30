@@ -12,6 +12,7 @@ import (
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 
+	"github.com/nestoca/joy/internal/observability"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
@@ -150,7 +151,10 @@ type Releases struct {
 // Load loads config from given configDir (or user home if not specified) and
 // optionally overrides loaded config's catalog directory with given catalogDir,
 // defaulting to ~/.joy if not specified.
-func Load(configDir, catalogDir string) (*Config, error) {
+func Load(ctx context.Context, configDir, catalogDir string) (*Config, error) {
+	_, span := observability.StartTrace(ctx, "load_config")
+	defer span.End()
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("getting home directory: %w", err)

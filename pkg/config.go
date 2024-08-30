@@ -1,6 +1,8 @@
 package joy
 
 import (
+	"context"
+
 	"github.com/nestoca/joy/internal/config"
 )
 
@@ -12,6 +14,6 @@ type (
 
 // LoadConfigFromCatalog takes the path to the catalog as input and loads any catalog specific
 // configuration found in its .joyrc
-func LoadConfigFromCatalog(catalogPath string) (*Config, error) {
-	return config.Load("", catalogPath)
+func LoadConfigFromCatalog(ctx context.Context, catalogPath string) (*Config, error) {
+	return config.Load(ctx, "", catalogPath)
 }

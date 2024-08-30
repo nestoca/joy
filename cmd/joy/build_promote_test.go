@@ -66,7 +66,7 @@ func TestBuildPromote(t *testing.T) {
 				err := cp.Copy("testdata/build_promote/"+tc.name+"/original", catalogDir)
 				require.NoError(t, err)
 
-				cat, err = catalog.Load(catalogDir, nil)
+				cat, err = catalog.Load(context.Background(), catalogDir, nil)
 				require.NoError(t, err)
 			}
 

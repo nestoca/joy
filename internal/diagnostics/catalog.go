@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -23,12 +24,12 @@ type GitOpts struct {
 
 type CatalogOpts struct {
 	Stat         func(string) (fs.FileInfo, error)
-	LoadCatalog  func(string, []string) (*catalog.Catalog, error)
+	LoadCatalog  func(context.Context, string, []string) (*catalog.Catalog, error)
 	CheckCatalog func(string) error
 	Git          GitOpts
 }
 
-func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
+func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) (group Group) {
 	if opts.Stat == nil {
 		opts.Stat = os.Stat
 	}
@@ -138,7 +139,7 @@ func diagnoseCatalog(cfg *config.Config, opts CatalogOpts) (group Group) {
 
 		group.AddMsg(success, "Catalog detected")
 
-		cata, err := opts.LoadCatalog(cfg.CatalogDir, cfg.KnownChartRefs())
+		cata, err := opts.LoadCatalog(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 		if err != nil {
 			group.AddMsg(failed, label("Failed loading catalog", err.Error()))
 			return

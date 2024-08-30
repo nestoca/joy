@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -39,7 +40,7 @@ func TestCatalogLoadE2E(t *testing.T) {
 			err := config.LoadFile(filepath.Join("testdata", tc.Folder, "joy.yaml"), &cfg.Catalog)
 			require.NoError(t, err)
 
-			_, err = Load(filepath.Join("testdata", tc.Folder), cfg.KnownChartRefs())
+			_, err = Load(context.Background(), filepath.Join("testdata", tc.Folder), cfg.KnownChartRefs())
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tc.Error)
 		})
@@ -50,7 +51,7 @@ func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
 	catalogDir, err := filepath.Abs("testdata/freeform")
 	require.NoError(t, err)
 
-	cat, err := Load(catalogDir, nil)
+	cat, err := Load(context.Background(), catalogDir, nil)
 	require.NoError(t, err)
 
 	envs := cat.Environments
@@ -74,7 +75,7 @@ func TestFreeformEnvsAndReleasesLoadingWithJoyIgnore(t *testing.T) {
 	catalogDir, err := filepath.Abs("testdata/freeform-with-joyignore")
 	require.NoError(t, err)
 
-	cat, err := Load(catalogDir, nil)
+	cat, err := Load(context.Background(), catalogDir, nil)
 	require.NoError(t, err)
 
 	envs := cat.Environments

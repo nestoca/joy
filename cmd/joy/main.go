@@ -58,7 +58,7 @@ func run(params RunParams) error {
 	flags.Usage = func() {}
 	_ = flags.Parse(params.args)
 
-	cfg, err := config.Load(configDir, catalogDir)
+	cfg, err := config.Load(context.Background(), configDir, catalogDir)
 	if err != nil {
 		return err
 	}
