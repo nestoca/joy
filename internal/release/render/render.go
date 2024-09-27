@@ -26,15 +26,21 @@ import (
 )
 
 type RenderParams struct {
-	Release *v1alpha1.Release
-	Chart   *helm.ChartFS
-	Helm    helm.PullRenderer
+	Release    *v1alpha1.Release
+	Chart      *helm.ChartFS
+	Helm       helm.PullRenderer
+	ValuesOnly bool
 }
 
 func Render(ctx context.Context, params RenderParams) (string, error) {
 	values, err := HydrateValues(params.Release, params.Chart)
 	if err != nil {
 		return "", fmt.Errorf("hydrating values: %w", err)
+	}
+
+	if params.ValuesOnly {
+		data, err := yaml.Marshal(values)
+		return string(data), err
 	}
 
 	opts := helm.RenderOpts{
