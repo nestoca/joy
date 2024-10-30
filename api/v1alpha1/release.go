@@ -58,7 +58,10 @@ type ReleaseSpec struct {
 	// Chart is the chart that the release is based on.
 	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
 
-	// Values is the values to use to render the chart.
+	// Namespace is the namespace that the release is deployed to.
+	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// Values are the values to use to render the chart.
 	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
 
 	// Links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
