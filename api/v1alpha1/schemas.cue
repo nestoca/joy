@@ -17,12 +17,17 @@ package v1alpha1
 			version?: string
 		})
 
+		// Namespace to deploy the release to. If omitted will use the default namespace defined in application set template.
+		namespace?: string
+
 		// values are the values used with the chart of this release.
 		// To see the the spec for the values associated to a chart for a given release run:
 		// joy rel schema --env $ENV $RELEASE
 		values: [string]: _
+
+		// links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
+		links?: [string]: string
 	}
-	links?: [string]: string
 }
 
 #environment: {
