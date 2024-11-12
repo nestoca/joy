@@ -1,3 +1,10 @@
+## [0.63.1](https://github.com/nestoca/joy/compare/v0.63.0...v0.63.1) (2024-11-12)
+
+
+### Bug Fixes
+
+* **PL-3111:** use text/template ([bb5db7e](https://github.com/nestoca/joy/commit/bb5db7e0ab0173c8c4cdc11934ca50fbd4456256)), closes [/github.com/nestoca/catalog/commit/0955b70944217a91c50acffcc21994f1973daafe#diff-91aa1f4b1ecdb0c810eed73d84a3f0657a423783212cfa7db6df3c2ab4d04882R91](https://github.com/nestoca//github.com/nestoca/catalog/commit/0955b70944217a91c50acffcc21994f1973daafe/issues/diff-91aa1f4b1ecdb0c810eed73d84a3f0657a423783212cfa7db6df3c2ab4d04882R91)
+
 ## [0.63.0](https://github.com/nestoca/joy/compare/v0.62.0...v0.63.0) (2024-10-30)
 
 
