@@ -4,10 +4,11 @@
 package promote
 
 import (
+	"sync"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
-	"sync"
 )
 
 // Ensure, that PromptProviderMock does implement PromptProvider.

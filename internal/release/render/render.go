@@ -5,10 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
@@ -16,8 +16,9 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davidmdm/x/xerr"
-	"github.com/nestoca/survey/v2"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/environment"
