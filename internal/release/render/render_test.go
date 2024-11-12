@@ -573,6 +573,14 @@ func TestSchemaUnification(t *testing.T) {
 			Values:         map[string]any{"color": "red"},
 			ExpectedValues: map[string]any{"color": "red"},
 		},
+		{
+			Name: "do not html escape strings",
+			ReadFileFunc: func(name string) ([]byte, error) {
+				return nil, os.ErrNotExist
+			},
+			Values:         map[string]any{"successCondition": "x > 100"},
+			ExpectedValues: map[string]any{"successCondition": "x > 100"},
+		},
 	}
 
 	for _, tc := range cases {
