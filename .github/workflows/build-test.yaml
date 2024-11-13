@@ -15,7 +15,7 @@ on:
 
 jobs:
   test-and-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
 
@@ -55,7 +55,7 @@ jobs:
         run: make build
 
   test-internal:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Dispatch workflow
         env:
@@ -69,7 +69,7 @@ jobs:
   publish:
     needs:
       - test-and-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/master'
     permissions:
       contents: write
