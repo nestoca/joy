@@ -1,5 +1,12 @@
 ## [0.63.3](https://github.com/nestoca/joy/compare/v0.63.2...v0.63.3) (2025-01-06)
 
+
+### Bug Fixes
+
+* **PL-3217:** use proper joy homebrew secret ([#210](https://github.com/nestoca/joy/issues/210)) ([915d848](https://github.com/nestoca/joy/commit/915d8483d23fa2ffa49a62b035aa73eceef2c63c))
+
+## [0.63.3](https://github.com/nestoca/joy/compare/v0.63.2...v0.63.3) (2025-01-06)
+
 ## [0.63.2](https://github.com/nestoca/joy/compare/v0.63.1...v0.63.2) (2024-11-13)
 
 ## [0.63.1](https://github.com/nestoca/joy/compare/v0.63.0...v0.63.1) (2024-11-12)
