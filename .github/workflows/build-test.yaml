@@ -5,13 +5,13 @@ concurrency:
 
 on:
   push:
-    branches: ['master']
+    branches: ["master"]
     paths-ignore:
-      - 'CHANGELOG.md'
+      - "CHANGELOG.md"
 
   pull_request:
     paths-ignore:
-      - 'CHANGELOG.md'
+      - "CHANGELOG.md"
 
 jobs:
   test-and-build:
@@ -130,4 +130,4 @@ jobs:
           version: ~> v1
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLIC_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_HOMEBREW_PUBLISHER }}
