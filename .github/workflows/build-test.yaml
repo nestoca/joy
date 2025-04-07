@@ -74,9 +74,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: NestoCI generate a token
+        id: nestoci-generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.NESTOCI_APP_ID }}
+          private-key: ${{ secrets.NESTOCI_APP_PRIVATE_KEY }}
+          owner: nestoca
+          repositories: joy
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ steps.nestoci-generate-token.outputs.token }}
 
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
@@ -129,4 +139,4 @@ jobs:
           version: ~> v1
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.nestoci-generate-token.outputs.token }}
