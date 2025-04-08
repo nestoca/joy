@@ -74,19 +74,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: NestoCI generate a token
-        id: nestoci-generate-token
+      - name: Generate a token from the Joy CI Actions App
+        id: generate-joy-ci-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.NESTOCI_APP_ID }}
-          private-key: ${{ secrets.NESTOCI_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.JOY_CI_ACTIONS_APP_ID }}
+          private-key: ${{ secrets.JOY_CI_ACTIONS_APP_PRIVATE_KEY }}
           owner: nestoca
-          repositories: joy
 
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ steps.nestoci-generate-token.outputs.token }}
+          token: ${{ steps.generate-joy-ci-token.outputs.token }}
 
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
