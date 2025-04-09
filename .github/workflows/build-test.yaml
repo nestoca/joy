@@ -74,9 +74,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Generate a token from the Joy CI Actions App
+        id: generate-joy-ci-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.JOY_CI_ACTIONS_APP_ID }}
+          private-key: ${{ secrets.JOY_CI_ACTIONS_APP_PRIVATE_KEY }}
+          owner: nestoca
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ steps.generate-joy-ci-token.outputs.token }}
 
       - name: Setup Go environment
         uses: actions/setup-go@v3.3.1
@@ -129,4 +138,4 @@ jobs:
           version: ~> v1
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.nestoci-generate-token.outputs.token }}
