@@ -1,3 +1,11 @@
+## [0.64.0](https://github.com/nestoca/joy/compare/v0.63.6...v0.64.0) (2025-04-09)
+
+
+### Features
+
+* **PL-3378:** remove usage of nestobot usage ([cafaaa1](https://github.com/nestoca/joy/commit/cafaaa12de42c2a46de6cd96032968ce2b0515a3))
+* **PL-3378:** use gh apps instead ([#214](https://github.com/nestoca/joy/issues/214)) ([0ee90ef](https://github.com/nestoca/joy/commit/0ee90ef6c333680a2af7046852cd5a540c9e4bb7))
+
 ## [0.63.6](https://github.com/nestoca/joy/compare/v0.63.5...v0.63.6) (2025-03-14)
 
 ## [0.63.5](https://github.com/nestoca/joy/compare/v0.63.4...v0.63.5) (2025-03-12)
