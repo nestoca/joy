@@ -141,7 +141,9 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 			break
 		}
 		if attempts == retryLimit {
-			return nil, fmt.Errorf("getting project clone (after %d attempts): %w", attempts, err)
+			fmt.Printf("⚠️ Failed to clone %s repository after %d attempts: %v\n", repository, attempts, err)
+			releaseInfo.Error = fmt.Errorf("getting project source dir: %w", err)
+			return &releaseInfo, nil
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -188,13 +190,9 @@ func IsPrerelease(release *v1alpha1.Release) bool {
 
 func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) {
 	getErrorMessage := func(err error) string {
-		return fmt.Sprintf("Promote %d releases (%s -> %s)\nFailed to render message: %v",
+		return fmt.Sprintf("Promote %d releases (%s -> %s)\n\nFailed to render message: %v",
 			len(info.Releases), info.SourceEnvironment.Name,
 			info.TargetEnvironment.Name, err)
-	}
-
-	if info.Error != nil {
-		return getErrorMessage(info.Error), nil
 	}
 
 	tmpl, err := template.New("message").Funcs(sprig.FuncMap()).Parse(messageTemplate)
@@ -206,6 +204,11 @@ func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) 
 	if err := tmpl.Execute(&message, info); err != nil {
 		return getErrorMessage(fmt.Errorf("executing message template: %w", err)), nil
 	}
+
+	if info.Error != nil {
+		return fmt.Sprintf("%s\n\n# Rendering Errors: %v", message.String(), info.Error), nil
+	}
+
 	return message.String(), nil
 }
 
