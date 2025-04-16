@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"golang.org/x/mod/semver"
@@ -130,9 +131,19 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 		return &releaseInfo, nil
 	}
 
-	projectDir, err := opts.infoProvider.GetProjectSourceDir(project)
-	if err != nil {
-		return nil, fmt.Errorf("getting project clone: %w", err)
+	var projectDir string
+	attempts := 0
+	const retryLimit = 3
+	for {
+		attempts++
+		projectDir, err = opts.infoProvider.GetProjectSourceDir(project)
+		if err == nil {
+			break
+		}
+		if attempts == retryLimit {
+			return nil, fmt.Errorf("getting project clone (after %d attempts): %w", attempts, err)
+		}
+		time.Sleep(5 * time.Second)
 	}
 
 	commitsMetadata, err := opts.infoProvider.GetCommitsMetadata(projectDir, olderTag, newerTag)
