@@ -138,4 +138,4 @@ jobs:
           version: ~> v1
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
-          GITHUB_TOKEN: ${{ steps.nestoci-generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate-joy-ci-token.outputs.token }}
