@@ -1,3 +1,10 @@
+## [0.65.0](https://github.com/nestoca/joy/compare/v0.64.2...v0.65.0) (2025-05-15)
+
+
+### Features
+
+* **PL-3517:** exporting YAMLFile ([d680241](https://github.com/nestoca/joy/commit/d68024153d2cc032ff19d58422433d0286597b2c))
+
 ## [0.64.2](https://github.com/nestoca/joy/compare/v0.64.1...v0.64.2) (2025-04-29)
 
 ## [0.64.1](https://github.com/nestoca/joy/compare/v0.64.0...v0.64.1) (2025-04-29)
