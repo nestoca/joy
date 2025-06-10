@@ -1,3 +1,10 @@
+## [0.66.0](https://github.com/nestoca/joy/compare/v0.65.0...v0.66.0) (2025-06-10)
+
+
+### Features
+
+* **PL-3613:** expose links provider via pkg ([2c19f1d](https://github.com/nestoca/joy/commit/2c19f1dd37bfca3a248dd0c83a6958b71d44a91d))
+
 ## [0.65.0](https://github.com/nestoca/joy/compare/v0.64.2...v0.65.0) (2025-05-15)
 
 
