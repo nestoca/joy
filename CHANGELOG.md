@@ -1,3 +1,10 @@
+## [0.66.1](https://github.com/nestoca/joy/compare/v0.66.0...v0.66.1) (2025-06-16)
+
+
+### Bug Fixes
+
+* **PL-3644:** ignore invalid-email-address when building reviewer list ([9ce3d69](https://github.com/nestoca/joy/commit/9ce3d69c082ef1fea22a845b90c1c22479e0c113))
+
 ## [0.66.0](https://github.com/nestoca/joy/compare/v0.65.0...v0.66.0) (2025-06-10)
 
 
