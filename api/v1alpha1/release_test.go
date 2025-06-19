@@ -13,12 +13,13 @@ func TestReleaseUnmarshalling(t *testing.T) {
 	data := `{
 	  kind: Release,
 	  spec: {
-		values: {
-			str: !lock string, 
-			yes: !lock true,
-			nil: !lock null,
-			age: !lock 42,
-		},
+			autoSync: false,
+			values: {
+				str: !lock string, 
+				yes: !lock true,
+				nil: !lock null,
+				age: !lock 42,
+			},
 	  },
 	}`
 
@@ -28,6 +29,9 @@ func TestReleaseUnmarshalling(t *testing.T) {
 	require.Equal(t, true, release.Spec.Values["yes"])
 	require.Equal(t, nil, release.Spec.Values["nil"])
 	require.Equal(t, 42, release.Spec.Values["age"])
+
+	require.NotNil(t, release.Spec.AutoSync)
+	require.Equal(t, false, *release.Spec.AutoSync)
 }
 
 func TestReleaseChartValidation(t *testing.T) {

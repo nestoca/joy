@@ -25,6 +25,10 @@ package v1alpha1
 		// joy rel schema --env $ENV $RELEASE
 		values: [string]: _
 
+		// autoSync corresponds to argocd's Application autoSync property. 
+		// To disable autoSync you must explicitly set this property to false.
+		autoSync?: bool
+
 		// links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
 		links?: [string]: string
 	}

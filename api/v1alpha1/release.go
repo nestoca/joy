@@ -64,6 +64,10 @@ type ReleaseSpec struct {
 	// Values are the values to use to render the chart.
 	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
 
+	// AutoSync corresponds to ArgoCD's Application auto-sync.
+	// To disable the release's corresponding Application's autosync you must explicity set this to false.
+	AutoSync *bool `yaml:"autoSync,omitempty" json:"autoSync,omitempty"`
+
 	// Links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
 	Links map[string]string `yaml:"links,omitempty" json:"links,omitempty"`
 }
