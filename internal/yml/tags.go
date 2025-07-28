@@ -9,6 +9,7 @@ var StandardTags = []string{
 	"!!str",
 	"!!seq",
 	"!!null",
+	"!!merge",
 }
 
 var CustomTags = []string{"!lock", "!local"}
