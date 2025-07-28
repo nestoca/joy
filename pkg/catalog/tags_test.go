@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,6 +35,18 @@ func TestValidateTagsForFiles(t *testing.T) {
 				{
 					Path:    "./custom.yaml",
 					Content: "{pad: !lock ''}",
+				},
+				{
+					Path: "./merge.yaml",
+					Content: strings.Join(
+						[]string{
+							"obj: &obj",
+							"  key: value",
+							"merged:",
+							"  <<: *obj",
+						},
+						"\n",
+					),
 				},
 			},
 		},
