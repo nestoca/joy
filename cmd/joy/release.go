@@ -295,6 +295,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 		diffContext  int
 		verbose      bool
 		valuesOnly   bool
+		debug        bool
 	)
 
 	cmd := &cobra.Command{
@@ -510,7 +511,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 						params := render.RenderParams{
 							Release:    releaseItem,
 							Chart:      chart,
-							Helm:       helm.CLI{IO: internal.IoFromCommand(cmd)},
+							Helm:       helm.CLI{IO: internal.IoFromCommand(cmd), Debug: debug},
 							ValuesOnly: valuesOnly,
 						}
 
@@ -614,6 +615,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&allEnvs, "all-envs", false, "select all environments to render from")
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print empty diffs with headers")
 	cmd.Flags().BoolVar(&valuesOnly, "values", false, "print rendered chart values only")
+	cmd.Flags().BoolVar(&debug, "debug", false, "send the --debug flag to the helm cli")
 
 	return cmd
 }

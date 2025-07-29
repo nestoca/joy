@@ -26,6 +26,7 @@ type PullRenderer interface {
 
 type CLI struct {
 	internal.IO
+	Debug bool
 }
 
 type PullOptions struct {
@@ -95,7 +96,13 @@ func (cli CLI) Render(ctx context.Context, opts RenderOpts) (result string, err 
 
 	opts.ChartPath = strings.TrimPrefix(opts.ChartPath, "file://")
 
-	cmd := exec.CommandContext(ctx, "helm", "template", opts.ReleaseName, opts.ChartPath, "--values", "-", "--skip-tests")
+	args := []string{"template", opts.ReleaseName, opts.ChartPath, "--values", "-", "--skip-tests"}
+
+	if cli.Debug {
+		args = append(args, "--debug")
+	}
+
+	cmd := exec.CommandContext(ctx, "helm", args...)
 	cmd.Stdin = &input
 
 	out, err := cmd.CombinedOutput()
