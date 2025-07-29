@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
+	"gopkg.in/yaml.v3"
 
 	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
@@ -295,6 +297,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 		diffContext  int
 		verbose      bool
 		valuesOnly   bool
+		normalize    bool
 		debug        bool
 	)
 
@@ -520,6 +523,27 @@ func NewReleaseRenderCmd() *cobra.Command {
 							return nil, fmt.Errorf("rendering release: %s: %w", releaseIdentifier, err)
 						}
 
+						if normalize {
+							var (
+								builder strings.Builder
+								encoder = yaml.NewEncoder(&builder)
+								decoder = yaml.NewDecoder(strings.NewReader(result))
+							)
+							for {
+								var elem any
+								if err := decoder.Decode(&elem); err != nil {
+									if errors.Is(err, io.EOF) {
+										break
+									}
+									return nil, fmt.Errorf("failed to decode values: %w", err)
+								}
+								if err := encoder.Encode(elem); err != nil {
+									return nil, fmt.Errorf("failed to encode values: %w", err)
+								}
+							}
+							result = builder.String()
+						}
+
 						results[releaseIdentifier] = result
 					}
 				}
@@ -616,6 +640,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&verbose, "verbose", false, "print empty diffs with headers")
 	cmd.Flags().BoolVar(&valuesOnly, "values", false, "print rendered chart values only")
 	cmd.Flags().BoolVar(&debug, "debug", false, "send the --debug flag to the helm cli")
+	cmd.Flags().BoolVar(&normalize, "normalize", false, "decodes and re-encodes the rendered yaml into a normalized format so that templating diffs are ignored")
 
 	return cmd
 }
