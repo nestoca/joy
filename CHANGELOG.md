@@ -1,3 +1,16 @@
+## [0.67.0](https://github.com/nestoca/joy/compare/v0.66.1...v0.67.0) (2025-07-29)
+
+
+### Features
+
+* **PL-3359:** add debug flag for release render ([fbd1ed6](https://github.com/nestoca/joy/commit/fbd1ed66a0c1fa60e0a435da51e7998795013644))
+* **PL-3359:** add normalize flag to joy release render ([1715f22](https://github.com/nestoca/joy/commit/1715f22673cae99d503f5aa8186fbe75e72048e8))
+
+
+### Bug Fixes
+
+* **PL-3359:** support merge tags ([885d047](https://github.com/nestoca/joy/commit/885d04775b5845f2dd22c78a424d4fb0ba56f31b))
+
 ## [0.66.1](https://github.com/nestoca/joy/compare/v0.66.0...v0.66.1) (2025-06-16)
 
 
