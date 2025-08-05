@@ -1,3 +1,10 @@
+## [0.68.0](https://github.com/nestoca/joy/compare/v0.67.0...v0.68.0) (2025-08-05)
+
+
+### Features
+
+* **PL-3802:** update cue to latest version v0.14.0 ([39efe31](https://github.com/nestoca/joy/commit/39efe31a4344455f2cc372c416aa3c58c1073ad3))
+
 ## [0.67.0](https://github.com/nestoca/joy/compare/v0.66.1...v0.67.0) (2025-07-29)
 
 
