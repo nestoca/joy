@@ -560,7 +560,6 @@ func TestSchemaUnification(t *testing.T) {
 					`  - #values.color: conflicting values "b" and "cyan"`,
 					`  - #values.color: conflicting values "g" and "cyan"`,
 					`  - #values.color: conflicting values "r" and "cyan"`,
-					`  - #values.enabled: field not allowed`,
 				},
 				"\n",
 			),
