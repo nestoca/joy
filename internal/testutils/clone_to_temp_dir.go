@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,6 +17,9 @@ func CloneToTempDir(t *testing.T, repoName string) string {
 
 	repoURL := func() string {
 		if gitToken := os.Getenv("GH_TOKEN"); gitToken != "" {
+			if strings.HasPrefix(gitToken, "ghs_") || strings.HasPrefix(gitToken, "ghu_") {
+				return fmt.Sprintf("https://x-access-token:%s@github.com/nestoca/%s.git", gitToken, repoName)
+			}
 			return fmt.Sprintf("https://%s@github.com/nestoca/%s.git", gitToken, repoName)
 		}
 		return fmt.Sprintf("git@github.com:nestoca/%s.git", repoName)
