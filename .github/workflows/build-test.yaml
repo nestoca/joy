@@ -45,10 +45,18 @@ jobs:
       - name: Setup dependencies
         run: make setup
 
+      - name: Generate a token from the Joy CI Actions App
+        id: generate-joy-ci-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.JOY_CI_ACTIONS_APP_ID }}
+          private-key: ${{ secrets.JOY_CI_ACTIONS_APP_PRIVATE_KEY }}
+          owner: nestoca
+
       - name: Run tests w/ Coverage
         env:
-          CATALOG_TEST_REPO: https://${{ secrets.GH_JOY_TEST }}@github.com/nestoca/joy-catalog-test
-          GH_TOKEN: ${{ secrets.GH_JOY_TEST }}
+          CATALOG_TEST_REPO: https://x-access-token:${{ steps.generate-joy-ci-token.outputs.token }}@github.com/nestoca/joy-catalog-test
+          GH_TOKEN: ${{ steps.generate-joy-ci-token.outputs.token }}
         run: make test-cov
 
       - name: Build cli binary
@@ -57,9 +65,17 @@ jobs:
   test-internal:
     runs-on: ubuntu-24.04
     steps:
+      - name: Generate a token from the Joy CI Actions App
+        id: generate-joy-ci-triggerer-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.JOY_CI_ACTIONS_TRIGGERER_APP_ID }}
+          private-key: ${{ secrets.JOY_CI_ACTIONS_TRIGGERER_APP_PRIVATE_KEY }}
+          owner: nestoca
+          repositories: catalog
       - name: Dispatch workflow
         env:
-          GH_TOKEN: ${{ secrets.CATALOG_TRIGGER_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-joy-ci-triggerer-token.outputs.token }}
         run: |
           gh workflow run --repo github.com/nestoca/catalog -f ref=${{ github.head_ref }} .github/workflows/joy-test.yaml
           sleep 5s
