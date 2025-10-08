@@ -1,3 +1,10 @@
+## [0.69.0](https://github.com/nestoca/joy/compare/v0.68.0...v0.69.0) (2025-10-08)
+
+
+### Features
+
+* **PL-4036:** remove usage of nestobot tokens ([9669aeb](https://github.com/nestoca/joy/commit/9669aeb2155e865a004915f1515109b0e3bc7075))
+
 ## [0.68.0](https://github.com/nestoca/joy/compare/v0.67.0...v0.68.0) (2025-08-05)
 
 
