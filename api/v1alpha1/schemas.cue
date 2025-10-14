@@ -85,6 +85,10 @@ package v1alpha1
 
 		// ReleaseLinks is the map of project-level overrides and additions for release links defined in catalog configuration.
 		releaseLinks?: [string]: string
+
+		// skipPreReleaseCheck  allows the project to use pre-release versions (e.g. 1.0.0-beta.1) for its releases.
+		// External projects may have different versioning schemes and may not follow semantic versioning.
+		skipPreReleaseCheck?: bool
 	}
 }
 

@@ -102,7 +102,7 @@ func TestValidateRelease(t *testing.T) {
 		},
 		{
 			Name:    "standard version with disallow promotion from pull requests",
-			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "1.0.0", Values: map[string]any{"hello": "world"}}, Environment: &disallowPullRequest},
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "1.0.0", Values: map[string]any{"hello": "world"}}, Environment: &disallowPullRequest, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}}},
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
 				DirNameFunc:  func() string { return "." },
@@ -111,13 +111,22 @@ func TestValidateRelease(t *testing.T) {
 		},
 		{
 			Name:          "non-standard version with disallow promotion from pull requests",
-			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "1.0.0-rc.1+build.1"}, Environment: &disallowPullRequest},
+			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "1.0.0-rc.1+build.1"}, Environment: &disallowPullRequest, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}}},
 			SkipReadCalls: true,
 			ExpectedErr:   "invalid version: prerelease branches not allowed: 1.0.0-rc.1+build.1",
 		},
 		{
+			Name:    "non-standard version but skip pre-release check",
+			Release: &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Version: "2.133.0-pactbroker2.116.0", Values: map[string]any{"hello": "world"}}, Environment: &disallowPullRequest, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{SkipPreReleaseCheck: true}}},
+			ChartFS: &xfs.FSMock{
+				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: string }`), nil },
+				DirNameFunc:  func() string { return "." },
+			},
+			ExpectedErr: "",
+		},
+		{
 			Name:          "failing values hydration",
-			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"key": "$ref(.Invalid.Prefix.Ref)"}}, Environment: &v1alpha1.Environment{}},
+			Release:       &v1alpha1.Release{Spec: v1alpha1.ReleaseSpec{Values: map[string]any{"key": "$ref(.Invalid.Prefix.Ref)"}}, Environment: &v1alpha1.Environment{}, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}}},
 			ChartFS:       &xfs.FSMock{},
 			SkipReadCalls: true,
 			ExpectedErr:   `hydrating values: hydrating object values: only ".Environment.Spec.Values." prefix is supported for object interpolation, but found: .Invalid.Prefix.Ref`,
@@ -128,7 +137,7 @@ func TestValidateRelease(t *testing.T) {
 				Spec: v1alpha1.EnvironmentSpec{
 					Values: map[string]any{"hello": "world"},
 				},
-			}},
+			}, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}}},
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: "world" }`), nil },
 				DirNameFunc:  func() string { return "." },
@@ -141,7 +150,7 @@ func TestValidateRelease(t *testing.T) {
 				Spec: v1alpha1.EnvironmentSpec{
 					Values: map[string]any{"hello": "narnia"},
 				},
-			}},
+			}, Project: &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}}},
 			ChartFS: &xfs.FSMock{
 				ReadFileFunc: func(string) ([]byte, error) { return []byte(`#values: { hello: "world" }`), nil },
 				DirNameFunc:  func() string { return "." },
@@ -152,6 +161,7 @@ func TestValidateRelease(t *testing.T) {
 			Name: "contains locked todos",
 			Release: &v1alpha1.Release{
 				Environment: &v1alpha1.Environment{},
+				Project:     &v1alpha1.Project{Spec: v1alpha1.ProjectSpec{}},
 				File: &yml.File{Tree: func() *yaml.Node {
 					var node yaml.Node
 					_ = yaml.Unmarshal([]byte(`{ value: !lock TODO }`), &node)
