@@ -44,6 +44,8 @@ type ProjectSpec struct {
 
 	// ReleaseLinks is the map of project-level overrides and additions for release links defined in catalog configuration.
 	ReleaseLinks map[string]string `yaml:"releaseLinks,omitempty" json:"releaseLinks,omitempty"`
+
+	SkipPreReleaseCheck bool `yaml:"skipPreReleaseCheck,omitempty" json:"skipPreReleaseCheck,omitempty"`
 }
 
 type Project struct {

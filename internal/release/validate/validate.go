@@ -49,7 +49,7 @@ type ValidateReleaseParams struct {
 }
 
 func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
-	if !params.Release.Environment.Spec.Promotion.FromPullRequests {
+	if !params.Release.Environment.Spec.Promotion.FromPullRequests && !params.Release.Project.Spec.SkipPreReleaseCheck {
 		version := "v" + params.Release.Spec.Version
 		if semver.Prerelease(version)+semver.Build(version) != "" {
 			return fmt.Errorf("invalid version: prerelease branches not allowed: %s", params.Release.Spec.Version)
