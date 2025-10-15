@@ -1,3 +1,11 @@
+## [0.71.0](https://github.com/nestoca/joy/compare/v0.70.0...v0.71.0) (2025-10-15)
+
+
+### Features
+
+* **PL-4041:** actually use namespace ([1465d1e](https://github.com/nestoca/joy/commit/1465d1e2ceab7be40601a013a146f207b0a82079))
+* **PL-4041:** fix tests ([e754365](https://github.com/nestoca/joy/commit/e754365fbce93010d94f61ade74698a61894169e))
+
 ## [0.70.0](https://github.com/nestoca/joy/compare/v0.69.0...v0.70.0) (2025-10-15)
 
 
