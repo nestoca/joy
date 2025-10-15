@@ -1,3 +1,10 @@
+## [0.70.0](https://github.com/nestoca/joy/compare/v0.69.0...v0.70.0) (2025-10-15)
+
+
+### Features
+
+* **PL-4041:** allow to `skipPreReleaseCheck` ([7cbddcc](https://github.com/nestoca/joy/commit/7cbddcc4bb7210b163c75b5a6dea05f8e509cdf8))
+
 ## [0.69.0](https://github.com/nestoca/joy/compare/v0.68.0...v0.69.0) (2025-10-08)
 
 
