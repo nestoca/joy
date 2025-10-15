@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -48,6 +49,7 @@ func Render(ctx context.Context, params RenderParams) (string, error) {
 		ReleaseName: params.Release.Name,
 		ChartPath:   params.Chart.DirName(),
 		Values:      values,
+		Namespace:   cmp.Or(params.Release.Spec.Namespace, params.Release.Environment.Spec.Namespace, "default"),
 	}
 
 	return params.Helm.Render(ctx, opts)

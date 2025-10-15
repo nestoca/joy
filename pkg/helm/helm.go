@@ -2,6 +2,7 @@ package helm
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"os/exec"
@@ -77,6 +78,7 @@ type RenderOpts struct {
 	ReleaseName string
 	Values      map[string]any
 	ChartPath   string
+	Namespace   string
 }
 
 func (cli CLI) Render(ctx context.Context, opts RenderOpts) (result string, err error) {
@@ -96,7 +98,7 @@ func (cli CLI) Render(ctx context.Context, opts RenderOpts) (result string, err 
 
 	opts.ChartPath = strings.TrimPrefix(opts.ChartPath, "file://")
 
-	args := []string{"template", opts.ReleaseName, opts.ChartPath, "--values", "-", "--skip-tests"}
+	args := []string{"template", opts.ReleaseName, opts.ChartPath, "--values", "-", "--skip-tests", "--namespace", cmp.Or(opts.Namespace, "default")}
 
 	if cli.Debug {
 		args = append(args, "--debug")
