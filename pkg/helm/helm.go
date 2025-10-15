@@ -76,9 +76,9 @@ func (cli CLI) Pull(ctx context.Context, opts PullOptions) error {
 
 type RenderOpts struct {
 	ReleaseName string
+	Namespace   string
 	Values      map[string]any
 	ChartPath   string
-	Namespace   string
 }
 
 func (cli CLI) Render(ctx context.Context, opts RenderOpts) (result string, err error) {

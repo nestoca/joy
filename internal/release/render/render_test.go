@@ -71,6 +71,7 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
+								Namespace:   "default",
 								Values:      map[string]any{},
 								ChartPath:   "path/to/chart",
 							},
@@ -104,6 +105,7 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
+								Namespace:   "default",
 								Values: map[string]any{
 									"corsOrigins": []any{"origin1.com", "origin2.com"},
 									"env":         "env",
@@ -138,6 +140,7 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
+								Namespace:   "default",
 								Values: map[string]any{
 									"test": map[string]any{
 										"mapping": "v9.9.9",
@@ -170,6 +173,7 @@ func TestRenderRelease(t *testing.T) {
 							t,
 							helm.RenderOpts{
 								ReleaseName: "release",
+								Namespace:   "default",
 								Values: map[string]any{
 									"test": map[string]any{
 										"mapping": "v9.9.9",
