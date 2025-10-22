@@ -1,3 +1,10 @@
+## [0.72.0](https://github.com/nestoca/joy/compare/v0.71.0...v0.72.0) (2025-10-22)
+
+
+### Features
+
+* **PL-4074:** Apply secure defaults on chart template ([#229](https://github.com/nestoca/joy/issues/229)) ([88f4172](https://github.com/nestoca/joy/commit/88f41724ed21a303acd98d84b6f821aa5a40fd03))
+
 ## [0.71.0](https://github.com/nestoca/joy/compare/v0.70.0...v0.71.0) (2025-10-15)
 
 
