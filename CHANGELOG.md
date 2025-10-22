@@ -1,3 +1,10 @@
+## [0.72.1](https://github.com/nestoca/joy/compare/v0.72.0...v0.72.1) (2025-10-22)
+
+
+### Bug Fixes
+
+* **PL-4074:** refactor capabilities.drop list ([#230](https://github.com/nestoca/joy/issues/230)) ([8a937c0](https://github.com/nestoca/joy/commit/8a937c0637333c8d7cc6cbf40ea6836de11092be))
+
 ## [0.72.0](https://github.com/nestoca/joy/compare/v0.71.0...v0.72.0) (2025-10-22)
 
 
