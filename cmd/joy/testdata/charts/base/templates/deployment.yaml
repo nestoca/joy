@@ -1,18 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: { { .Values.name } }
+  name: {{ .Values.name }}
 spec:
   replicas: 2
   template:
     spec:
       containers:
-        - name: { { .Values.name } }
+        - name: {{ .Values.name }}
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
+          resources:
+            limits:
+              cpu: 1
+              memory: 500Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
