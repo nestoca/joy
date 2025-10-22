@@ -1,16 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.name }}
+  name: { { .Values.name } }
 spec:
   replicas: 2
   template:
     spec:
       containers:
-        - name: {{ .Values.name }}
+        - name: { { .Values.name } }
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
-          
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10000
+            runAsGroup: 10000
+            fsGroup: 10000
+            seccompProfile:
+              type: RuntimeDefault
