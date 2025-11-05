@@ -1,3 +1,10 @@
+## [0.73.0](https://github.com/nestoca/joy/compare/v0.72.1...v0.73.0) (2025-11-05)
+
+
+### Features
+
+* **PL-4109:** add option to skip release rendering during validation ([1cc90f4](https://github.com/nestoca/joy/commit/1cc90f4c4adb09c64703875de9eb9cb0c900a880))
+
 ## [0.72.1](https://github.com/nestoca/joy/compare/v0.72.0...v0.72.1) (2025-10-22)
 
 
