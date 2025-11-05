@@ -18,12 +18,18 @@ type ValidateParams struct {
 	Releases   []*v1alpha1.Release
 	Helm       helm.PullRenderer
 	ChartCache helm.ChartCache
+	NoRender   bool
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
 	var errs []error
 	for _, release := range params.Releases {
-		chart, err := params.ChartCache.GetReleaseChartFS(ctx, release)
+		chart, err := func() (*helm.ChartFS, error) {
+			if params.NoRender {
+				return nil, nil
+			}
+			return params.ChartCache.GetReleaseChartFS(ctx, release)
+		}()
 		if err != nil {
 			return fmt.Errorf("getting release chart: %w", err)
 		}
@@ -60,15 +66,16 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 		return errors.New("contains locked TODO")
 	}
 
+	if params.Chart == nil {
+		return nil
+	}
+
 	renderOpts := render.RenderParams{
 		Release: params.Release,
 		Chart:   params.Chart,
 		Helm:    params.Helm,
 	}
 
-	if _, err := render.Render(ctx, renderOpts); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := render.Render(ctx, renderOpts)
+	return err
 }
