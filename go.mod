@@ -2,7 +2,7 @@ module github.com/nestoca/joy
 
 go 1.23.0
 
-toolchain go1.24.1
+toolchain go1.24.2
 
 require (
 	cuelang.org/go v0.14.0
