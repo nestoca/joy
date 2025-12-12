@@ -31,6 +31,7 @@ type PerformOpts struct {
 	templateVariables   map[string]string
 	infoProvider        info.Provider
 	linksProvider       links.Provider
+	reviewers           []string
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -140,7 +141,8 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		prBody = prLines[1]
 	}
 
-	reviewers := getReviewers(info)
+	inferredReviewers := getReviewers(info)
+	reviewers := MergeUnique(inferredReviewers, opts.reviewers)
 
 	if opts.dryRun || opts.localOnly {
 		p.printf("ℹ️ %s: skipping creation of pull request:\n%s\n%s\nReviewers:\n%s\nLabels:\n%s\n",
@@ -208,6 +210,20 @@ func getReviewers(info *PromotionInfo) []string {
 	}
 	sort.Strings(reviewers)
 	return reviewers
+}
+
+func MergeUnique[T comparable](a, b []T) []T {
+	seen := make(map[T]struct{})
+	result := make([]T, 0, len(a)+len(b))
+
+	for _, v := range append(a, b...) {
+		if _, ok := seen[v]; !ok {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+
+	return result
 }
 
 func getBranchName(info *PromotionInfo) string {

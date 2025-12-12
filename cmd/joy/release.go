@@ -146,6 +146,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	var all, keepPrerelease bool
 	var omit []string
 	var templateVars []string
+	var reviewers []string
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [releases]",
@@ -228,6 +229,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 				DryRun:               dryRun,
 				LocalOnly:            localOnly,
 				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
+				Reviewers:            reviewers,
 			}
 
 			_, err = promoter.Promote(opts)
@@ -248,6 +250,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	cmd.Flags().BoolVar(&all, "all", false, "Select all releases")
 	cmd.Flags().BoolVar(&keepPrerelease, "keep-prerelease", false, "Do not promote releases that are prereleases in target env")
 	cmd.Flags().StringSliceVar(&omit, "omit", nil, "Releases to omit from promotion")
+	cmd.Flags().StringSliceVar(&reviewers, "reviewers", nil, "Additional reviewers to add to the PR (can be specified multiple times)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 
 	params.PreRunConfigs.PullCatalog(cmd)
