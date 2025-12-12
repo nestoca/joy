@@ -1,3 +1,10 @@
+## [0.74.0](https://github.com/nestoca/joy/compare/v0.73.0...v0.74.0) (2025-12-12)
+
+
+### Features
+
+* **PL-4288:** allow to pass extra reviwers on promote ([82c73b6](https://github.com/nestoca/joy/commit/82c73b63087f769389d389c6e597d3a307e6fa03))
+
 ## [0.73.0](https://github.com/nestoca/joy/compare/v0.72.1...v0.73.0) (2025-11-05)
 
 
