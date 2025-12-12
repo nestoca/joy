@@ -72,6 +72,9 @@ type Opts struct {
 	LocalOnly bool
 
 	MaxColumnWidth int
+
+	// Reviewers are additional reviewers to add to the PR
+	Reviewers []string
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -177,6 +180,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		templateVariables:   p.TemplateVariables,
 		infoProvider:        p.InfoProvider,
 		linksProvider:       p.LinksProvider,
+		reviewers:           opts.Reviewers,
 	}
 
 	if opts.NoPrompt {
