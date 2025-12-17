@@ -410,7 +410,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 			var errs []error
 			for _, env := range environments {
 				if !slices.Contains(knownEnvironments, env) {
-					errs = append(errs, fmt.Errorf(env))
+					errs = append(errs, fmt.Errorf("%s", env))
 				}
 			}
 
@@ -461,7 +461,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 
 			for _, releaseItem := range releases {
 				if !slices.Contains(knownReleases, releaseItem) {
-					errs = append(errs, fmt.Errorf(releaseItem))
+					errs = append(errs, fmt.Errorf("%s", releaseItem))
 				}
 			}
 
