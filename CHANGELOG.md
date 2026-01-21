@@ -1,3 +1,10 @@
+## [0.75.0](https://github.com/nestoca/joy/compare/v0.74.1...v0.75.0) (2026-01-21)
+
+
+### Features
+
+* **PL-4395:** support lock tag on release version during build promote ([136fbe2](https://github.com/nestoca/joy/commit/136fbe2c29758383ba5844766e3935890bf0fd90))
+
 ## [0.74.1](https://github.com/nestoca/joy/compare/v0.74.0...v0.74.1) (2025-12-17)
 
 ## [0.74.0](https://github.com/nestoca/joy/compare/v0.73.0...v0.74.0) (2025-12-12)
