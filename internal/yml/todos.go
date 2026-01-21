@@ -7,7 +7,7 @@ func HasLockedTodos(node *yaml.Node) bool {
 }
 
 func hasLockedTodos(node *yaml.Node, locked bool) bool {
-	locked = locked || isLocked(node)
+	locked = locked || IsLocked(node)
 
 	switch node.Kind {
 	case yaml.DocumentNode, yaml.MappingNode, yaml.SequenceNode:

@@ -37,7 +37,7 @@ func Merge(dst, src *yaml.Node) *yaml.Node {
 func merge(dst, src *yaml.Node) *yaml.Node {
 	// If destination is locked, it does not matter what source is.
 	// If destination exists but source is locked, disregard source.
-	if isLocked(dst) || (dst != nil && isLocked(src)) || isLocal(dst) || isLocal(src) {
+	if IsLocked(dst) || (dst != nil && IsLocked(src)) || IsLocal(dst) || IsLocal(src) {
 		return dst
 	}
 
@@ -136,7 +136,7 @@ func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
 		return nil
 	}
 
-	locked = locked || isLocked(node)
+	locked = locked || IsLocked(node)
 
 	switch node.Kind {
 	case yaml.ScalarNode:
@@ -156,11 +156,11 @@ func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
 	return node
 }
 
-func isLocked(node *yaml.Node) bool {
+func IsLocked(node *yaml.Node) bool {
 	return node != nil && node.Tag == "!lock"
 }
 
-func isLocal(node *yaml.Node) bool {
+func IsLocal(node *yaml.Node) bool {
 	return node != nil && node.Tag == "!local"
 }
 
@@ -216,7 +216,7 @@ func firstNonNil(nodes ...*yaml.Node) *yaml.Node {
 }
 
 func purgeLocalContent(node *yaml.Node) *yaml.Node {
-	if node == nil || isLocal(node) {
+	if node == nil || IsLocal(node) {
 		return nil
 	}
 
@@ -226,14 +226,14 @@ func purgeLocalContent(node *yaml.Node) *yaml.Node {
 	switch node.Kind {
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
-			if isLocal(node.Content[i+1]) {
+			if IsLocal(node.Content[i+1]) {
 				continue
 			}
 			copy.Content = append(copy.Content, node.Content[i], purgeLocalContent(node.Content[i+1]))
 		}
 	case yaml.SequenceNode:
 		for _, item := range node.Content {
-			if isLocal(item) {
+			if IsLocal(item) {
 				continue
 			}
 			copy.Content = append(copy.Content, purgeLocalContent(item))
