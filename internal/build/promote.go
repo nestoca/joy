@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -27,16 +28,29 @@ func Promote(opts Opts) error {
 		}
 	}
 
-	promotionCount := 0
+	var releases []*v1alpha1.Release
 	for _, crossRelease := range opts.Catalog.Releases.Items {
 		release := crossRelease.Releases[0]
 		if release == nil || release.Spec.Project != opts.Project {
 			continue
 		}
+		releases = append(releases, release)
+	}
 
+	if len(releases) == 0 {
+		return fmt.Errorf("no releases found for project %s", opts.Project)
+	}
+
+	promotionCount := 0
+	for _, release := range releases {
 		versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
 		if err != nil {
 			return fmt.Errorf("release %s has no version property: %w", release.Name, err)
+		}
+
+		if yml.IsLocked(versionNode) {
+			fmt.Printf("⚠️ Skipping promotion of release %s: version is locked\n", style.Resource(release.Name))
+			continue
 		}
 
 		versionNode.Value = opts.Version
@@ -68,8 +82,10 @@ func Promote(opts Opts) error {
 	}
 
 	if promotionCount == 0 {
-		return fmt.Errorf("no releases found for project %s", opts.Project)
+		fmt.Println("⚠️ No releases were promoted")
+		return nil
 	}
+
 	plural := ""
 	if promotionCount > 1 {
 		plural = "s"
@@ -80,5 +96,6 @@ func Promote(opts Opts) error {
 	} else {
 		fmt.Printf("🍺 Promoted %d release%s of project %s in environment %s to version %s\n", promotionCount, plural, style.Resource(opts.Project), style.Resource(opts.Environment), style.Version(opts.Version))
 	}
+
 	return nil
 }
