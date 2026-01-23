@@ -1,3 +1,10 @@
+## [0.76.0](https://github.com/nestoca/joy/compare/v0.75.0...v0.76.0) (2026-01-23)
+
+
+### Features
+
+* **PL-4381:** expose render function via pkg/joy ([a13d9fa](https://github.com/nestoca/joy/commit/a13d9fae16f409e5e4c451e55eda22f87fc09057))
+
 ## [0.75.0](https://github.com/nestoca/joy/compare/v0.74.1...v0.75.0) (2026-01-21)
 
 
