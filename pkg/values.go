@@ -7,9 +7,13 @@ import (
 )
 
 type (
-	IO = internal.IO
+	IO           = internal.IO
+	RenderParams = render.RenderParams
 )
 
-var ComputeReleaseValues = render.HydrateValues
+var (
+	ComputeReleaseValues = render.HydrateValues
+	Render               = render.Render
+)
 
 type YAMLFile = yml.File
