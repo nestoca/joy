@@ -538,10 +538,10 @@ func NewReleaseRenderCmd() *cobra.Command {
 									if errors.Is(err, io.EOF) {
 										break
 									}
-									return nil, fmt.Errorf("failed to decode values: %w", err)
+									return nil, fmt.Errorf("failed to decode values for release: %s: %w", releaseIdentifier, err)
 								}
 								if err := encoder.Encode(elem); err != nil {
-									return nil, fmt.Errorf("failed to encode values: %w", err)
+									return nil, fmt.Errorf("failed to encode values for release: %s: %w", releaseIdentifier, err)
 								}
 							}
 							result = builder.String()
