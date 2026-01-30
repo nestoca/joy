@@ -1,3 +1,10 @@
+## [0.76.1](https://github.com/nestoca/joy/compare/v0.76.0...v0.76.1) (2026-01-30)
+
+
+### Bug Fixes
+
+* improve error message on failed renders ([6888982](https://github.com/nestoca/joy/commit/68889820377ea89f390b9ac5e843d8fdfa81fa01))
+
 ## [0.76.0](https://github.com/nestoca/joy/compare/v0.75.0...v0.76.0) (2026-01-23)
 
 
