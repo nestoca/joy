@@ -1,3 +1,10 @@
+## [0.76.2](https://github.com/nestoca/joy/compare/v0.76.1...v0.76.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* **PL-4576:** more aggressive retries ([ec54f3f](https://github.com/nestoca/joy/commit/ec54f3fb0319f109dce719a1fee07b921d1cc45f))
+
 ## [0.76.1](https://github.com/nestoca/joy/compare/v0.76.0...v0.76.1) (2026-01-30)
 
 
