@@ -12,6 +12,7 @@ import (
 
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/retry"
 	"github.com/nestoca/joy/internal/style"
 )
 
@@ -182,7 +183,7 @@ func Push(dir string, args ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err := retry.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("pushing changes: %w", err)
 	}
@@ -192,7 +193,7 @@ func Push(dir string, args ...string) error {
 func PushNewBranch(dir, name string) error {
 	// Set upstream to origin
 	cmd := exec.Command("git", "-C", dir, "push", "-u", "origin", name)
-	output, err := cmd.CombinedOutput()
+	output, err := retry.RunWithCombinedOutput(cmd)
 	if err != nil {
 		return fmt.Errorf("pushing new branch %s: %s", name, string(output))
 	}
@@ -204,7 +205,7 @@ func Pull(dir string, args ...string) error {
 	cmd := exec.Command("git", args...)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err := retry.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("pulling changes: %w", err)
 	}
@@ -290,7 +291,7 @@ func GetCurrentCommit(dir string) (string, error) {
 func Fetch(dir string) error {
 	cmd := exec.Command("git", "fetch")
 	cmd.Dir = dir
-	output, err := cmd.CombinedOutput()
+	output, err := retry.RunWithCombinedOutput(cmd)
 	if err != nil {
 		return fmt.Errorf("error: %s", string(output))
 	}
@@ -301,7 +302,7 @@ func Fetch(dir string) error {
 func FetchTags(dir string) error {
 	cmd := exec.Command("git", "fetch", "--tags")
 	cmd.Dir = dir
-	output, err := cmd.CombinedOutput()
+	output, err := retry.RunWithCombinedOutput(cmd)
 	if err != nil {
 		return fmt.Errorf("error: %s", string(output))
 	}
