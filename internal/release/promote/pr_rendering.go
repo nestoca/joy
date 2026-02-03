@@ -5,13 +5,13 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/retry"
 )
 
 type ChangeType string
@@ -131,21 +131,15 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 		return &releaseInfo, nil
 	}
 
-	var projectDir string
-	attempts := 0
-	const retryLimit = 3
-	for {
-		attempts++
-		projectDir, err = opts.infoProvider.GetProjectSourceDir(project)
-		if err == nil {
-			break
-		}
-		if attempts == retryLimit {
-			fmt.Printf("⚠️ Failed to clone %s repository after %d attempts: %v\n", repository, attempts, err)
-			releaseInfo.Error = fmt.Errorf("getting project source dir: %w", err)
-			return &releaseInfo, nil
-		}
-		time.Sleep(5 * time.Second)
+	projectDir, err := retry.Retriable(func() (string, error) {
+		return opts.infoProvider.GetProjectSourceDir(project)
+	})
+
+	if err != nil {
+		// We still want to continue if there is failure
+		fmt.Printf("⚠️ Failed to clone %s repository attempts: %v\n", repository, err)
+		releaseInfo.Error = fmt.Errorf("getting project source dir: %w", err)
+		return &releaseInfo, nil
 	}
 
 	commitsMetadata, err := opts.infoProvider.GetCommitsMetadata(projectDir, olderTag, newerTag)

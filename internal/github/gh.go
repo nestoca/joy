@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/nestoca/joy/internal/dependencies"
+	"github.com/nestoca/joy/internal/retry"
 	"github.com/nestoca/joy/internal/style"
 )
 
@@ -49,7 +50,7 @@ func ExecuteAndGetOutput(workDir string, args ...string) (string, error) {
 	cmd := exec.Command("gh", args...)
 	cmd.Dir = workDir
 
-	output, err := cmd.CombinedOutput()
+	output, err := retry.RunWithCombinedOutput(cmd)
 	if err != nil {
 		return "", fmt.Errorf("running gh command with args %q: %w: %q", strings.Join(args, " "), err, output)
 	}
