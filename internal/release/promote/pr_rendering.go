@@ -134,7 +134,6 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 	projectDir, err := retry.Retriable(func() (string, error) {
 		return opts.infoProvider.GetProjectSourceDir(project)
 	})
-
 	if err != nil {
 		// We still want to continue if there is failure
 		fmt.Printf("⚠️ Failed to clone %s repository attempts: %v\n", repository, err)
