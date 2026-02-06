@@ -37,6 +37,8 @@ func Retriable[T any](fn func() (T, error)) (T, error) {
 
 func RunWithCombinedOutput(cmd *exec.Cmd) ([]byte, error) {
 	return Retriable(func() ([]byte, error) {
+		cmd.Process = nil
+		cmd.ProcessState = nil
 		var b bytes.Buffer
 		cmd.Stdout = &b
 		cmd.Stderr = &b
@@ -47,6 +49,8 @@ func RunWithCombinedOutput(cmd *exec.Cmd) ([]byte, error) {
 
 func Run(cmd *exec.Cmd) error {
 	return retriable(func() error {
+		cmd.Process = nil
+		cmd.ProcessState = nil
 		return cmd.Run()
 	})
 }
