@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,7 +36,13 @@ func Retriable[T any](fn func() (T, error)) (T, error) {
 }
 
 func RunWithCombinedOutput(cmd *exec.Cmd) ([]byte, error) {
-	return Retriable(func() ([]byte, error) { return cmd.CombinedOutput() })
+	return Retriable(func() ([]byte, error) {
+		var b bytes.Buffer
+		cmd.Stdout = &b
+		cmd.Stderr = &b
+		err := cmd.Run()
+		return b.Bytes(), err
+	})
 }
 
 func Run(cmd *exec.Cmd) error {
