@@ -1,3 +1,11 @@
+## [0.76.3](https://github.com/nestoca/joy/compare/v0.76.2...v0.76.3) (2026-02-06)
+
+
+### Bug Fixes
+
+* **PL-4612:** always remap stderr/out ([9479b10](https://github.com/nestoca/joy/commit/9479b10cfb9fc6070acd8523b85ecf6fee059ff4))
+* **PL-4612:** clear previous process on retry ([58be14e](https://github.com/nestoca/joy/commit/58be14e590d12c0879a5090726ef487317140d86))
+
 ## [0.76.2](https://github.com/nestoca/joy/compare/v0.76.1...v0.76.2) (2026-02-03)
 
 
