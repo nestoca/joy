@@ -139,7 +139,6 @@ sensitive secret
 which comprises
 multiple lines
 
-
 🔒 Sealed secret:
 AgAWCq7OKWq+eabiqCwccMr0ll9e07Rwc1iW7itKyc1AzQlLmjrr1UK/VHP8ALWAWODSrJ8E8WVs4qvTjUdLVpbLRZVVBajYUAUXCxeVtk
 QciuWsl5tfuWl4yxZdeBuTIsy/DHdK37STmRFB7yJeqqozPG+VyiJEb/to+jEpp7hzTkyk1GrPOz3Rtw4RUcwHD1lGtBdlanIDTd6B76Ju
