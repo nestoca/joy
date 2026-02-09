@@ -81,7 +81,8 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	}
 
 	for _, reviewer := range params.Reviewers {
-		if strings.HasSuffix(reviewer, "[bot]") {
+		// Bots cannot be requested as reviewers (GitHub returns "not found")
+		if strings.HasSuffix(reviewer, "[bot]") || reviewer == "nestobot" {
 			continue
 		}
 		args = append(args, "--reviewer", reviewer)

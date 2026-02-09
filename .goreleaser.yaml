@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
 project_name: joy
 builds:
   - dir: cmd/joy
@@ -10,12 +11,13 @@ builds:
     ldflags:
       - -X "main.version=v{{ trimprefix .Version "v" }}"
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     wrap_in_directory: false
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
@@ -26,7 +28,7 @@ changelog:
       - "^ci"
 brews:
   - name: joy
-    tap:
+    repository:
       owner: nestoca
       name: homebrew-public
     homepage: "https://github.com/nestoca/joy"
