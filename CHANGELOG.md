@@ -1,3 +1,10 @@
+## [0.77.0](https://github.com/nestoca/joy/compare/v0.76.3...v0.77.0) (2026-02-09)
+
+
+### Features
+
+* **PL-4613:** upgrade to goreleaser v2 ([#242](https://github.com/nestoca/joy/issues/242)) ([2bf0929](https://github.com/nestoca/joy/commit/2bf092934bd691bc7362e0b7b6f1413582e36c03))
+
 ## [0.76.3](https://github.com/nestoca/joy/compare/v0.76.2...v0.76.3) (2026-02-06)
 
 
