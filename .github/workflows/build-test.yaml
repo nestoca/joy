@@ -149,9 +149,9 @@ jobs:
 
       - name: Release new CLI version
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
-          version: ~> v1
+          version: ~> v2
           args: release --clean --release-notes "${{ runner.temp }}/CHANGELOG.md"
         env:
           GITHUB_TOKEN: ${{ steps.generate-joy-ci-token.outputs.token }}
