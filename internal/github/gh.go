@@ -47,10 +47,11 @@ func ExecuteAndGetOutput(workDir string, args ...string) (string, error) {
 		return "", err
 	}
 
-	cmd := exec.Command("gh", args...)
-	cmd.Dir = workDir
-
-	output, err := retry.RunWithCombinedOutput(cmd)
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("gh", args...)
+		cmd.Dir = workDir
+		return cmd
+	})
 	if err != nil {
 		return "", fmt.Errorf("running gh command with args %q: %w: %q", strings.Join(args, " "), err, output)
 	}
