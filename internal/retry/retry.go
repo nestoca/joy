@@ -1,7 +1,6 @@
 package retry
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,7 +10,7 @@ import (
 func retriable(fn func() error) error {
 	var err error
 	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		err = fn()
 		if err == nil {
 			return nil
@@ -35,22 +34,10 @@ func Retriable[T any](fn func() (T, error)) (T, error) {
 	return result, err
 }
 
-func RunWithCombinedOutput(cmd *exec.Cmd) ([]byte, error) {
-	return Retriable(func() ([]byte, error) {
-		cmd.Process = nil
-		cmd.ProcessState = nil
-		var b bytes.Buffer
-		cmd.Stdout = &b
-		cmd.Stderr = &b
-		err := cmd.Run()
-		return b.Bytes(), err
-	})
+func RunWithCombinedOutput(cmd func() *exec.Cmd) ([]byte, error) {
+	return Retriable(func() ([]byte, error) { return cmd().CombinedOutput() })
 }
 
-func Run(cmd *exec.Cmd) error {
-	return retriable(func() error {
-		cmd.Process = nil
-		cmd.ProcessState = nil
-		return cmd.Run()
-	})
+func Run(cmd func() *exec.Cmd) error {
+	return retriable(func() error { return cmd().Run() })
 }

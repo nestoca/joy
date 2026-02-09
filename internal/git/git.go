@@ -179,11 +179,13 @@ func Commit(dir, message string) error {
 
 func Push(dir string, args ...string) error {
 	args = append([]string{"-C", dir, "push"}, args...)
-	cmd := exec.Command("git", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := retry.Run(cmd)
+	err := retry.Run(func() *exec.Cmd {
+		cmd := exec.Command("git", args...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd
+	})
 	if err != nil {
 		return fmt.Errorf("pushing changes: %w", err)
 	}
@@ -192,8 +194,9 @@ func Push(dir string, args ...string) error {
 
 func PushNewBranch(dir, name string) error {
 	// Set upstream to origin
-	cmd := exec.Command("git", "-C", dir, "push", "-u", "origin", name)
-	output, err := retry.RunWithCombinedOutput(cmd)
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		return exec.Command("git", "-C", dir, "push", "-u", "origin", name)
+	})
 	if err != nil {
 		return fmt.Errorf("pushing new branch %s: %s", name, string(output))
 	}
@@ -202,10 +205,12 @@ func PushNewBranch(dir, name string) error {
 
 func Pull(dir string, args ...string) error {
 	args = append([]string{"-C", dir, "pull"}, args...)
-	cmd := exec.Command("git", args...)
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	err := retry.Run(cmd)
+	err := retry.Run(func() *exec.Cmd {
+		cmd := exec.Command("git", args...)
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+		return cmd
+	})
 	if err != nil {
 		return fmt.Errorf("pulling changes: %w", err)
 	}
@@ -289,20 +294,23 @@ func GetCurrentCommit(dir string) (string, error) {
 }
 
 func Fetch(dir string) error {
-	cmd := exec.Command("git", "fetch")
-	cmd.Dir = dir
-	output, err := retry.RunWithCombinedOutput(cmd)
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("git", "fetch")
+		cmd.Dir = dir
+		return cmd
+	})
 	if err != nil {
 		return fmt.Errorf("error: %s", string(output))
 	}
-
 	return nil
 }
 
 func FetchTags(dir string) error {
-	cmd := exec.Command("git", "fetch", "--tags")
-	cmd.Dir = dir
-	output, err := retry.RunWithCombinedOutput(cmd)
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("git", "fetch", "--tags")
+		cmd.Dir = dir
+		return cmd
+	})
 	if err != nil {
 		return fmt.Errorf("error: %s", string(output))
 	}
