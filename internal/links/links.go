@@ -239,7 +239,7 @@ func selectLinkUrl(links map[string]string) (string, error) {
 
 	// Transform allows to show only link name after user confirms selection,
 	// instead of the full string with link name and URL.
-	transform := func(ans interface{}) interface{} {
+	transform := func(ans any) any {
 		answer := ans.(core.OptionAnswer)
 		answer.Value = linkNames[answer.Index]
 		return answer

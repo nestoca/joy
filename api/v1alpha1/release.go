@@ -56,13 +56,13 @@ type ReleaseSpec struct {
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// Chart is the chart that the release is based on.
-	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart,omitempty"`
+	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart"`
 
 	// Namespace is the namespace that the release is deployed to.
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 
 	// Values are the values to use to render the chart.
-	Values map[string]interface{} `yaml:"values,omitempty" json:"values,omitempty"`
+	Values map[string]any `yaml:"values,omitempty" json:"values,omitempty"`
 
 	// Links is the map of release-level overrides and additions for release links defined in project and/or catalog configuration.
 	Links map[string]string `yaml:"links,omitempty" json:"links,omitempty"`
@@ -76,10 +76,10 @@ type Release struct {
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// ReleaseMetadata is the metadata of the release.
-	ReleaseMetadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	ReleaseMetadata `yaml:"metadata,omitempty" json:"metadata"`
 
 	// Spec is the spec of the release.
-	Spec ReleaseSpec `yaml:"spec,omitempty" json:"spec,omitempty"`
+	Spec ReleaseSpec `yaml:"spec,omitempty" json:"spec"`
 
 	// File represents the in-memory yaml file of the release.
 	File *yml.File `yaml:"-" json:"-"`

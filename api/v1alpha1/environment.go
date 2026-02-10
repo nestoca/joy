@@ -35,7 +35,7 @@ type EnvironmentSpec struct {
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
 
 	// Promotion controls the promotion of releases to this environment.
-	Promotion Promotion `yaml:"promotion,omitempty" json:"promotion,omitempty"`
+	Promotion Promotion `yaml:"promotion,omitempty" json:"promotion"`
 
 	// Cluster is the name of environment's cluster.
 	Cluster string `yaml:"cluster,omitempty" json:"cluster,omitempty"`
@@ -68,10 +68,10 @@ type Environment struct {
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// EnvironmentMetadata is the metadata of the environment.
-	EnvironmentMetadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	EnvironmentMetadata `yaml:"metadata,omitempty" json:"metadata"`
 
 	// Spec is the spec of the environment.
-	Spec EnvironmentSpec `yaml:"spec,omitempty" json:"spec,omitempty"`
+	Spec EnvironmentSpec `yaml:"spec,omitempty" json:"spec"`
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-" json:"-"`
@@ -144,10 +144,5 @@ func GetEnvironmentsByNames(environments []*Environment, names []string) []*Envi
 }
 
 func (e Environment) IsPromotableTo(targetEnv *Environment) bool {
-	for _, source := range targetEnv.Spec.Promotion.FromEnvironments {
-		if source == e.Name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(targetEnv.Spec.Promotion.FromEnvironments, e.Name)
 }

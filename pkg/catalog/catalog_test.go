@@ -20,7 +20,7 @@ func TestCatalogLoadE2E(t *testing.T) {
 		{
 			Name:   "broken environment chart ref",
 			Folder: "broken-chart-ref-environment",
-			Error:  "validating environments: testing: error: validating chart references: unknown ref: missing-ref",
+			Error:  "validating environments: testing: validating chart references: unknown ref: missing-ref",
 		},
 		{
 			Name:   "broken release chart ref",

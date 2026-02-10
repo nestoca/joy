@@ -6,10 +6,10 @@ import (
 )
 
 func getIndentSize(content string) int {
-	lines := strings.Split(content, "\n")
+	lines := strings.SplitSeq(content, "\n")
 
 	// Find the first non-empty line with indentation
-	for _, line := range lines {
+	for line := range lines {
 		trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
 		if len(trimmed) > 0 && line[0] == ' ' {
 			indentSize := 0

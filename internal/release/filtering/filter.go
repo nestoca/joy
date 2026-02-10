@@ -1,6 +1,7 @@
 package filtering
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -21,12 +22,7 @@ func NewNamePatternFilter(pattern string) *NamePatternFilter {
 }
 
 func (f *NamePatternFilter) Match(rel *v1alpha1.Release) bool {
-	for _, name := range f.ReleaseNames {
-		if rel.Name == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.ReleaseNames, rel.Name)
 }
 
 type SpecificReleasesFilter struct {
@@ -40,12 +36,7 @@ func NewSpecificReleasesFilter(releaseNames []string) *SpecificReleasesFilter {
 }
 
 func (f *SpecificReleasesFilter) Match(rel *v1alpha1.Release) bool {
-	for _, name := range f.ReleaseNames {
-		if rel.Name == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.ReleaseNames, rel.Name)
 }
 
 type OwnerFilter struct {
