@@ -93,7 +93,7 @@ func (i *InteractivePromptProvider) SelectReleases(list cross.ReleaseList, maxCo
 
 	// Transform allows to show only release name identifiers after user confirms selection,
 	// instead of the full colorized, tabbed release name and versions string.
-	transform := func(ans interface{}) interface{} {
+	transform := func(ans any) any {
 		answers := ans.([]core.OptionAnswer)
 		for i := range answers {
 			answers[i].Value = list.Items[answers[i].Index].Name
@@ -284,8 +284,8 @@ func (i *InteractivePromptProvider) printDiff(before, after *yml.File) error {
 
 func formatDiff(diff string) string {
 	var coloredDiff strings.Builder
-	lines := strings.Split(diff, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(diff, "\n")
+	for line := range lines {
 		if strings.HasPrefix(line, "+++") ||
 			strings.HasPrefix(line, "---") ||
 			strings.HasPrefix(line, "@@") {

@@ -25,7 +25,7 @@ func TestValidateAgainstSchema(t *testing.T) {
 			Name:   "is invalid",
 			Schema: cuecontext.New().CompileString(`string`),
 			Input:  3.14159265,
-			Err:    "error: conflicting values string and 3.14159265 (mismatched types string and float)",
+			Err:    "conflicting values 3.14159265 and string (mismatched types float and string)",
 		},
 	}
 

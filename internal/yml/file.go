@@ -78,7 +78,7 @@ func NewFileFromTree(filePath string, indent int, node *yaml.Node) (*File, error
 	}, nil
 }
 
-func NewFileFromObject(filePath string, indent int, obj interface{}) (*File, error) {
+func NewFileFromObject(filePath string, indent int, obj any) (*File, error) {
 	buf := &bytes.Buffer{}
 	encoder := yaml.NewEncoder(buf)
 	encoder.SetIndent(indent)

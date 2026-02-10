@@ -71,7 +71,7 @@ func GetUncommittedChangesWithOpts(dir string, opts UncommittedChangesOptions) (
 	}
 
 	var result []string
-	for _, value := range strings.Split(trimmed, "\n") {
+	for value := range strings.SplitSeq(trimmed, "\n") {
 		if opts.SkipUntrackedFiles && strings.HasPrefix(value, "??") {
 			continue
 		}
@@ -226,7 +226,7 @@ func Diff(dir string, ref string) ([]string, error) {
 	}
 
 	var result []string
-	for _, value := range strings.Split(string(output), "\n") {
+	for value := range strings.SplitSeq(string(output), "\n") {
 		if value == "" {
 			continue
 		}

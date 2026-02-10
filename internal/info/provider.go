@@ -131,8 +131,8 @@ func (p *defaultProvider) GetCommitsMetadata(dir, from, to string) ([]*CommitMet
 	}
 
 	var commits []*CommitMetadata
-	commitItems := strings.Split(string(output), "\n---END---\n")
-	for _, commitItem := range commitItems {
+	commitItems := strings.SplitSeq(string(output), "\n---END---\n")
+	for commitItem := range commitItems {
 		commitItem = strings.TrimSpace(commitItem)
 		if commitItem == "" {
 			continue

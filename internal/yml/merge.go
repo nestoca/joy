@@ -86,7 +86,7 @@ func mergeSeq(dst, src *yaml.Node) *yaml.Node {
 		content []*yaml.Node
 	)
 
-	for i := 0; i < maxLen; i++ {
+	for i := range maxLen {
 		if value := merge(at(dst, i), at(src, i)); value != nil {
 			content = append(content, value)
 		}
