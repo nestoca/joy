@@ -42,6 +42,7 @@ This command requires kubectl cli to be installed: https://kubernetes.io/docs/ta
 
 func NewSecretSealCmd() *cobra.Command {
 	var env string
+	var noPrompt bool
 	cmd := &cobra.Command{
 		Use:   "seal",
 		Short: "Encrypt secret",
@@ -65,6 +66,7 @@ The sealed secrets public certificate must also have been imported into the envi
 				Env:         env,
 				InputIsTTY:  term.IsTerminal(int(os.Stdin.Fd())),
 				OutputIsTTY: term.IsTerminal(int(os.Stdout.Fd())),
+				NoPrompt:    noPrompt,
 			}
 
 			if !opts.InputIsTTY && env == "" {
@@ -76,6 +78,7 @@ The sealed secrets public certificate must also have been imported into the envi
 	}
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment to seal secret in")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Run command without checks or prompts for input sanitization")
 
 	return cmd
 }

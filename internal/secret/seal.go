@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
+	"regexp"
 
 	"github.com/nestoca/survey/v2"
 
@@ -20,7 +20,10 @@ type SealOptions struct {
 	Env         string
 	InputIsTTY  bool
 	OutputIsTTY bool
+	NoPrompt    bool
 }
+
+var trailingSpace = regexp.MustCompile(`\s+$`)
 
 func Seal(cat *catalog.Catalog, opts SealOptions) error {
 	environment, err := getEnvironment(cat.Environments, opts.Env)
@@ -41,14 +44,44 @@ func Seal(cat *catalog.Catalog, opts SealOptions) error {
 	}
 	defer os.Remove(certFile)
 
-	secret, err := func() (io.Reader, error) {
+	secret, err := func() ([]byte, error) {
 		if opts.InputIsTTY {
 			return readFromTTY()
 		}
-		return os.Stdin, nil
+		return io.ReadAll(os.Stdin)
 	}()
 	if err != nil {
 		return err
+	}
+
+	if !opts.NoPrompt && trailingSpace.Match(secret) {
+		tty, err := func() (*os.File, error) {
+			if opts.InputIsTTY {
+				return os.Stdin, nil
+			}
+			// Does not support windows. Ru-roh.
+			return os.Open("/dev/tty")
+		}()
+		if err != nil {
+			return fmt.Errorf("failed to prompt input sanitization: could not recreate a tty: %w", err)
+		}
+
+		var trim bool
+		if err := survey.AskOne(
+			&survey.Confirm{
+				Message: "" +
+					"⚠️ The secret has trailing space characters.\n  " +
+					"If this is intentional skip ahead or use flag --no-prompt in future.\n  " +
+					"Do you wish to trim trailing space?",
+			},
+			&trim,
+			survey.WithStdio(tty, os.Stderr, os.Stderr),
+		); err != nil {
+			return fmt.Errorf("failed to prompt for input: %w", err)
+		}
+		if trim {
+			secret = trailingSpace.ReplaceAllLiteral(secret, nil)
+		}
 	}
 
 	output, err := seal(secret, certFile)
@@ -61,12 +94,13 @@ func Seal(cat *catalog.Catalog, opts SealOptions) error {
 		return nil
 	}
 
+	fmt.Printf("ℹ️ Input: %q\n", secret)
 	fmt.Println("🔒 Sealed secret:")
 	fmt.Println(style.Code(output))
 	return nil
 }
 
-func readFromTTY() (io.Reader, error) {
+func readFromTTY() ([]byte, error) {
 	// Temporarily tweak multiline question template to start editing on new line and also hide final answer
 	oldTemplate := survey.MultilineQuestionTemplate
 	survey.MultilineQuestionTemplate = `
@@ -93,11 +127,11 @@ func readFromTTY() (io.Reader, error) {
 		return nil, fmt.Errorf("prompting for secret: %w", err)
 	}
 
-	return strings.NewReader(strings.TrimSpace(secret)), nil
+	return []byte(secret), nil
 }
 
 // Seal secret by running `kubeseal --raw --scope cluster-wide --cert <cert>`
-func seal(r io.Reader, certFile string) (string, error) {
+func seal(data []byte, certFile string) (string, error) {
 	// Seal secret by running `kubeseal --raw --scope cluster-wide --cert <cert>`
 	cmd := exec.Command("kubeseal",
 		"--raw",
@@ -106,7 +140,7 @@ func seal(r io.Reader, certFile string) (string, error) {
 
 	var buffer bytes.Buffer
 
-	cmd.Stdin = r
+	cmd.Stdin = bytes.NewReader(data)
 	cmd.Stdout = &buffer
 
 	if err := cmd.Run(); err != nil {
