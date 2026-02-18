@@ -1,3 +1,10 @@
+## [0.78.0](https://github.com/nestoca/joy/compare/v0.77.1...v0.78.0) (2026-02-18)
+
+
+### Features
+
+* **PL-4896:** trailing space detection for joy secret seal ([1b3ba0e](https://github.com/nestoca/joy/commit/1b3ba0e2c42e5ebf74eef5cb362c3b670092d4f2))
+
 ## [0.77.1](https://github.com/nestoca/joy/compare/v0.77.0...v0.77.1) (2026-02-09)
 
 ## [0.77.0](https://github.com/nestoca/joy/compare/v0.76.3...v0.77.0) (2026-02-09)
