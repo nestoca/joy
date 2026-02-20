@@ -1,8 +1,6 @@
 package yml
 
 import (
-	"slices"
-
 	"gopkg.in/yaml.v3"
 )
 
@@ -190,10 +188,12 @@ func keysOf(node *yaml.Node) []string {
 
 func dedup(values []string) []string {
 	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{})
 	for _, value := range values {
-		if slices.Contains(result, value) {
+		if _, ok := seen[value]; ok {
 			continue
 		}
+		seen[value] = struct{}{}
 		result = append(result, value)
 	}
 	return result
