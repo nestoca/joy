@@ -11,6 +11,7 @@ import (
 	"github.com/nestoca/survey/v2"
 
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/retry"
 	"github.com/nestoca/joy/internal/style"
@@ -316,4 +317,52 @@ func FetchTags(dir string) error {
 	}
 
 	return nil
+}
+
+// CreateWorktree creates a worktree within joy's cache with the given name at the given ref.
+// It attempts a best effort removal of the worktree if it exists prior to running this command.
+func CreateWorktree(of, name, ref string) (string, error) {
+	cache, err := config.CachePath()
+	if err != nil {
+		return "", fmt.Errorf("getting cache path: %w", err)
+	}
+	path := filepath.Join(cache, "worktrees", name)
+
+	// Clear any previously existing worktree for this name.
+	rm := exec.Command("git", "worktree", "remove", path)
+	rm.Dir = of
+	_ = rm.Run() // best effort run
+
+	cmd := exec.Command("git", "worktree", "add", path, ref)
+	cmd.Dir = of
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("%w: %s", err, output)
+	}
+	return path, nil
+}
+
+func RemoveWorktree(of, path string) error {
+	cmd := exec.Command("git", "worktree", "remove", path)
+	cmd.Dir = of
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%w: %s", err, output)
+	}
+	return nil
+}
+
+// RevParse performs git rev-parse for a given revision.
+// If the argument is ambiguous, like that of a branch that has never been checked out, we try the origin revision.
+func RevParse(of, ref string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", ref)
+	cmd.Dir = of
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if !strings.HasPrefix(ref, "origin/") && strings.Contains(string(output), "ambiguous argument") {
+			if output, err := RevParse(of, "origin/"+ref); err == nil {
+				return strings.TrimSpace(string(output)), nil
+			}
+		}
+		return "", fmt.Errorf("%w: %s", err, output)
+	}
+	return strings.TrimSpace(string(output)), nil
 }

@@ -311,86 +311,65 @@ func NewReleaseRenderCmd() *cobra.Command {
 			cfg := config.FromContext(cmd.Context())
 
 			uniq := func(values []string) []string {
-				dedup := map[string]struct{}{}
+				seen := map[string]struct{}{}
+				result := []string{}
 				for _, value := range values {
-					dedup[value] = struct{}{}
-				}
-				var result []string
-				for key := range dedup {
-					result = append(result, key)
+					if value == "" {
+						continue
+					}
+					if _, ok := seen[value]; ok {
+						continue
+					}
+					seen[value] = struct{}{}
+					result = append(result, value)
 				}
 				slices.Sort(result)
 				return result
 			}
 
-			useRef := func(ref string) (restore func() error, err error) {
+			setupWorktree := func(name, ref string) (path string, restore func() error, err error) {
 				if ref == "" {
-					return func() error { return nil }, nil
+					return cfg.CatalogDir, func() error { return nil }, nil
 				}
-
-				var restoreFuncs []func() error
-
-				// Stash does not stash untracked files so we do not want a dirty state unless it is stashable
-				dirty, err := git.IsDirty(cfg.CatalogDir, git.UncommittedChangesOptions{SkipUntrackedFiles: true})
+				sha, err := git.RevParse(cfg.CatalogDir, ref)
 				if err != nil {
-					return nil, fmt.Errorf("checking if catalog is in dirty state: %w", err)
+					return "", nil, fmt.Errorf("cannot rev-parse: %w", err)
 				}
-
-				if dirty {
-					if err := git.Stash(cfg.CatalogDir); err != nil {
-						return nil, fmt.Errorf("stashing catalog: %w", err)
-					}
-					restoreFuncs = append(restoreFuncs, func() error {
-						if err := git.StashApply(cfg.CatalogDir); err != nil {
-							return fmt.Errorf("applying stash: %w", err)
-						}
-						return nil
-					})
+				worktree, err := git.CreateWorktree(cfg.CatalogDir, name, sha)
+				if err != nil {
+					return "", nil, err
 				}
-
-				if err := git.Checkout(cfg.CatalogDir, ref); err != nil {
-					return nil, fmt.Errorf("checking out: %s: %w", ref, err)
-				}
-				restoreFuncs = append(restoreFuncs, func() error {
-					if err := git.SwitchBack(cfg.CatalogDir); err != nil {
-						return fmt.Errorf("switching git back to previous branch: %w", err)
-					}
-					return nil
-				})
-
-				return func() error {
-					slices.Reverse(restoreFuncs)
-					errs := make([]error, len(restoreFuncs))
-					for i, fn := range restoreFuncs {
-						errs[i] = fn()
-					}
-					return xerr.MultiErrFrom("restoring refs", errs...)
-				}, nil
+				return worktree, func() error { return git.RemoveWorktree(cfg.CatalogDir, worktree) }, nil
 			}
 
-			knownEnvironments, err := func() (envs []string, err error) {
-				for _, ref := range uniq([]string{gitRef, diffRef}) {
-					restore, err := useRef(ref)
-					if err != nil {
-						return nil, fmt.Errorf("using ref: %s: %w", ref, err)
-					}
-					defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
+			diffTree, teardown, err := setupWorktree("diffRef", diffRef)
+			if err != nil {
+				return fmt.Errorf("setting up worktree for diff: %w", err)
+			}
+			defer func(teardown func() error) { err = xerr.Join(err, teardown()) }(teardown)
 
+			gitTree, teardown, err := setupWorktree("gitRef", gitRef)
+			if err != nil {
+				return fmt.Errorf("setting up worktree for ref: %w", err)
+			}
+			defer func(teardown func() error) { err = xerr.Join(err, teardown()) }(teardown)
+
+			trees := uniq([]string{diffTree, gitTree})
+
+			knownEnvironments, err := func() (envs []string, err error) {
+				for _, path := range trees {
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
+					cfg, err := config.Load(cmd.Context(), "", path)
 					if err != nil {
 						return nil, fmt.Errorf("loading config: %w", err)
 					}
-
-					cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
+					cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
 					if err != nil {
 						return nil, fmt.Errorf("loading catalog: %w", err)
 					}
-
 					envs = append(envs, cat.GetEnvironmentNames()...)
 				}
-
 				return uniq(envs), nil
 			}()
 			if err != nil {
@@ -419,30 +398,20 @@ func NewReleaseRenderCmd() *cobra.Command {
 			}
 
 			knownReleases, err := func() (releases []string, err error) {
-				for _, ref := range uniq([]string{gitRef, diffRef}) {
-					restore, err := useRef(ref)
-					if err != nil {
-						return nil, fmt.Errorf("using ref: %s: %w", ref, err)
-					}
-					defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
-
+				for _, path := range trees {
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
+					cfg, err := config.Load(cmd.Context(), "", path)
 					if err != nil {
 						return nil, fmt.Errorf("loading config: %w", err)
 					}
-
-					cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
+					cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
 					if err != nil {
 						return nil, fmt.Errorf("loading catalog: %w", err)
 					}
-
 					cat.WithEnvironments(environments)
-
 					releases = append(releases, cat.GetReleaseNames()...)
 				}
-
 				return uniq(releases), nil
 			}()
 			if err != nil {
@@ -469,23 +438,17 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return err
 			}
 
-			renderRef := func(ref string) (result map[string]string, err error) {
-				restore, err := useRef(ref)
-				if err != nil {
-					return nil, fmt.Errorf("using ref: %s: %w", ref, err)
-				}
-				defer func() { err = xerr.MultiErrFrom("", err, restore()) }()
-
+			render := func(path string) (result map[string]string, err error) {
 				// In this case we cannot use the config or catalog loaded from the context
 				// Since we need to reload at whatever git reference we are at.
-				cfg, err := config.Load(cmd.Context(), "", cfg.CatalogDir)
+				cfg, err := config.Load(cmd.Context(), "", path)
 				if err != nil {
 					return nil, fmt.Errorf("loading config: %w", err)
 				}
 
-				cat, err := catalog.Load(cmd.Context(), cfg.CatalogDir, cfg.KnownChartRefs())
+				cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
 				if err != nil {
-					return nil, fmt.Errorf("loading catalog: %w", err)
+					return nil, fmt.Errorf("loading catalog (%s): %w", path, err)
 				}
 
 				cat.WithEnvironments(environments)
@@ -561,12 +524,10 @@ func NewReleaseRenderCmd() *cobra.Command {
 						dedup[key] = struct{}{}
 					}
 				}
-
 				var keys []string
 				for key := range dedup {
 					keys = append(keys, key)
 				}
-
 				slices.Sort(keys)
 				return keys
 			}
@@ -592,7 +553,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return strings.Join(lines, "\n")
 			}
 
-			gitRefResult, err := renderRef(gitRef)
+			gitRefResult, err := render(gitTree)
 			if err != nil {
 				return err
 			}
@@ -604,7 +565,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 				return nil
 			}
 
-			diffRefResult, err := renderRef(diffRef)
+			diffRefResult, err := render(diffTree)
 			if err != nil {
 				return err
 			}
