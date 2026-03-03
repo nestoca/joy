@@ -148,6 +148,18 @@ type Releases struct {
 	Selected []string `yaml:"selected,omitempty"`
 }
 
+func CachePath() (string, error) {
+	home := os.Getenv("XDG_CACHE_HOME")
+	if home != "" {
+		return filepath.Join(home, "joy"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("getting user homedir: %w", err)
+	}
+	return filepath.Join(home, ".cache", "joy"), nil
+}
+
 // Load loads config from given configDir (or user home if not specified) and
 // optionally overrides loaded config's catalog directory with given catalogDir,
 // defaulting to ~/.joy if not specified.
@@ -155,36 +167,30 @@ func Load(ctx context.Context, configDir, catalogDir string) (*Config, error) {
 	_, span := observability.StartTrace(ctx, "load_config")
 	defer span.End()
 
+	cache, err := CachePath()
+	if err != nil {
+		return nil, fmt.Errorf("getting cache path: %w", err)
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("getting home directory: %w", err)
+		return nil, fmt.Errorf("getting user homedir: %w", err)
 	}
-
-	rootCache := os.Getenv("XDG_CACHE_HOME")
-	if rootCache == "" {
-		rootCache = filepath.Join(homeDir, ".cache")
-	}
-
-	if configDir == "" {
-		configDir = homeDir
-	}
-
-	joyrcPath := filepath.Join(configDir, JoyrcFile)
 
 	cfg := Config{
-		JoyCache: filepath.Join(rootCache, "joy"),
+		JoyCache: cache,
 		User: User{
-			FilePath: joyrcPath,
+			FilePath: filepath.Join(cmp.Or(configDir, homeDir), JoyrcFile),
 		},
 	}
 
-	if err := LoadFile(joyrcPath, &cfg.User); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("loading user config %s: %w", joyrcPath, err)
+	if err := LoadFile(cfg.FilePath, &cfg.User); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("loading user config %s: %w", cfg.FilePath, err)
 	}
 
-	cfg.User.CatalogDir = cmp.Or(catalogDir, cfg.User.CatalogDir, filepath.Join(homeDir, JoyDefaultDir))
+	cfg.CatalogDir = cmp.Or(catalogDir, cfg.CatalogDir, filepath.Join(homeDir, JoyDefaultDir))
 
-	catalogConfigPath := filepath.Join(cfg.User.CatalogDir, CatalogConfigFile)
+	catalogConfigPath := filepath.Join(cfg.CatalogDir, CatalogConfigFile)
 
 	if err := LoadFile(catalogConfigPath, &cfg.Catalog); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("loading catalog config %s: %w", catalogConfigPath, err)

@@ -134,7 +134,7 @@ func TestMainRun(t *testing.T) {
 		{
 			name: "load catalog from default user home location",
 			params: &TestRunParams{
-				omitDirFlags: true,
+				omitDirFlags: false,
 			},
 			setupFunc: func(t *testing.T, tc *TestCase, catalogDir string) {
 				homeDir := filepath.Dir(catalogDir)

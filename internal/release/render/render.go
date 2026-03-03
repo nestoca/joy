@@ -19,11 +19,7 @@ import (
 	"github.com/davidmdm/x/xerr"
 	"gopkg.in/yaml.v3"
 
-	"github.com/nestoca/survey/v2"
-
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/environment"
-	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
@@ -53,69 +49,6 @@ func Render(ctx context.Context, params RenderParams) (string, error) {
 	}
 
 	return params.Helm.Render(ctx, opts)
-}
-
-func getEnvironment(environments []*v1alpha1.Environment, name string) (*v1alpha1.Environment, error) {
-	if name == "" {
-		return environment.SelectSingle(environments, nil, "Select environment")
-	}
-
-	selectedEnv := environment.FindByName(environments, name)
-	if selectedEnv == nil {
-		return nil, NotFoundError(fmt.Sprintf("not found: %s", name))
-	}
-
-	return selectedEnv, nil
-}
-
-func getRelease(releases []*cross.Release, name, env string) (*v1alpha1.Release, error) {
-	if name == "" {
-		return getReleaseViaPrompt(releases, env)
-	}
-
-	for _, crossRelease := range releases {
-		if crossRelease.Name != name {
-			continue
-		}
-		for _, release := range crossRelease.Releases {
-			if release == nil {
-				continue
-			}
-			if release.Environment.Name == env {
-				return release, nil
-			}
-		}
-		return nil, NotFoundError(fmt.Sprintf("not found within environment %s: %s", env, name))
-	}
-
-	return nil, NotFoundError(fmt.Sprintf("not found: %s", name))
-}
-
-func getReleaseViaPrompt(releases []*cross.Release, env string) (*v1alpha1.Release, error) {
-	var (
-		candidateNames    []string
-		candidateReleases []*v1alpha1.Release
-	)
-
-	for _, crossRelease := range releases {
-		for _, release := range crossRelease.Releases {
-			if release == nil {
-				continue
-			}
-			if release.Environment.Name == env {
-				candidateNames = append(candidateNames, release.Name)
-				candidateReleases = append(candidateReleases, release)
-				break
-			}
-		}
-	}
-
-	var idx int
-	if err := survey.AskOne(&survey.Select{Message: "Select release", Options: candidateNames, PageSize: 20}, &idx); err != nil {
-		return nil, fmt.Errorf("failed prompt: %w", err)
-	}
-
-	return candidateReleases[idx], nil
 }
 
 func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]any, error) {

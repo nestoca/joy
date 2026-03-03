@@ -28,6 +28,7 @@ func TestReleaseRender(t *testing.T) {
 
 	require.NoError(t, os.RemoveAll(testCatalogPath))
 
+	t.Log(testCatalogPath)
 	clone := exec.Command("git", "clone", testCatalogURL, testCatalogPath)
 	clone.Stdout = os.Stdout
 	clone.Stderr = os.Stderr
