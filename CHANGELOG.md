@@ -1,3 +1,10 @@
+## [0.79.0](https://github.com/nestoca/joy/compare/v0.78.2...v0.79.0) (2026-03-04)
+
+
+### Features
+
+* **PL-5035:** use worktree implementation for release render diffs ([6d03eb7](https://github.com/nestoca/joy/commit/6d03eb724804182bba1497b389af498957360668))
+
 ## [0.78.2](https://github.com/nestoca/joy/compare/v0.78.1...v0.78.2) (2026-02-20)
 
 ## [0.78.1](https://github.com/nestoca/joy/compare/v0.78.0...v0.78.1) (2026-02-19)
