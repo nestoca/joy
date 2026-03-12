@@ -25,7 +25,7 @@ func EnsureCleanAndUpToDateWorkingCopy(catalogDir string, out io.Writer) error {
 	if err := Checkout(catalogDir, defaultBranch); err != nil {
 		return fmt.Errorf("checking out default branch: %w", err)
 	}
-	_, _ = fmt.Fprintf(out, "ℹ️ Catalog: checking out %s branch\n", style.Code(defaultBranch))
+	_, _ = fmt.Fprintf(out, "ℹ️  Catalog: checking out %s branch\n", style.Code(defaultBranch))
 
 	if err := Pull(catalogDir); err != nil {
 		return fmt.Errorf("pulling changes: %w", err)

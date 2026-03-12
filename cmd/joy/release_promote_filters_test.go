@@ -38,6 +38,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 		Args         []string
 		Releases     []TestCrossRelease
 		Err          string
+		WarnContains string
 		Expectations func(t *testing.T, files []*yml.File)
 	}{
 		{
@@ -60,6 +61,53 @@ func TestReleasePromoteFilters(t *testing.T) {
 
 				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
 				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+			},
+		},
+		{
+			Name: "with comma-separated selection",
+			Args: []string{"alpha,beta"},
+			Releases: []TestCrossRelease{
+				{
+					Name:   "alpha",
+					Source: &TestFile{Path: "alpha-source.yaml", Content: "{spec: {version: 1.2.3}}"},
+					Target: &TestFile{Path: "alpha-target.yaml", Content: "{spec: {version: 1.0.0}}"},
+				},
+				{
+					Name:   "beta",
+					Source: &TestFile{Path: "beta-source.yaml", Content: "{spec: {version: 3.2.1}}"},
+					Target: &TestFile{Path: "beta-target.yaml", Content: "{spec: {version: 3.0.0}}"},
+				},
+			},
+			Expectations: func(t *testing.T, files []*yml.File) {
+				require.Len(t, files, 2)
+				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "beta-target.yaml", filepath.Base(files[1].Path))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].Yaml))
+			},
+		},
+		{
+			Name:         "with space-separated selection emits deprecation warning",
+			Args:         []string{"alpha", "beta"},
+			WarnContains: "passing releases as space-separated arguments is deprecated",
+			Releases: []TestCrossRelease{
+				{
+					Name:   "alpha",
+					Source: &TestFile{Path: "alpha-source.yaml", Content: "{spec: {version: 1.2.3}}"},
+					Target: &TestFile{Path: "alpha-target.yaml", Content: "{spec: {version: 1.0.0}}"},
+				},
+				{
+					Name:   "beta",
+					Source: &TestFile{Path: "beta-source.yaml", Content: "{spec: {version: 3.2.1}}"},
+					Target: &TestFile{Path: "beta-target.yaml", Content: "{spec: {version: 3.0.0}}"},
+				},
+			},
+			Expectations: func(t *testing.T, files []*yml.File) {
+				require.Len(t, files, 2)
+				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "beta-target.yaml", filepath.Base(files[1].Path))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].Yaml))
 			},
 		},
 		{
@@ -292,6 +340,10 @@ func TestReleasePromoteFilters(t *testing.T) {
 			}
 
 			require.NoError(t, cmd.ExecuteContext(ctx))
+
+			if tc.WarnContains != "" {
+				require.Contains(t, buf.String(), tc.WarnContains)
+			}
 
 			var files []*yml.File
 			for _, call := range writer.WriteFileCalls() {

@@ -149,9 +149,20 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	var reviewers []string
 
 	cmd := &cobra.Command{
-		Use:     "promote [flags] [releases]",
+		Use:     "promote [flags] [release1,release2...]",
 		Aliases: []string{"prom", "p"},
 		Short:   "Promote releases across environments",
+		Example: `  # Interactive
+  joy release promote
+
+  # Single release
+  joy release promote my-release --source staging --target prod
+
+  # Multiple releases (comma-separated, preferred)
+  joy release promote release-a,release-b --source staging --target prod
+
+  # All releases
+  joy release promote --all --source staging --target prod`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if autoMerge && draft {
 				return fmt.Errorf("flags --auto-merge and --draft cannot be used together")
@@ -171,6 +182,15 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
+			if len(releases) > 1 {
+				fmt.Fprintln(cmd.ErrOrStderr(), color.InYellow("⚠️  Warning: passing releases as space-separated arguments is deprecated, use a single comma-separated argument instead (e.g. release-a,release-b)"))
+			}
+			var expandedReleases []string
+			for _, r := range releases {
+				expandedReleases = append(expandedReleases, strings.Split(r, ",")...)
+			}
+			releases = expandedReleases
+
 			cfg := config.FromContext(cmd.Context())
 			cat := catalog.FromContext(cmd.Context())
 
