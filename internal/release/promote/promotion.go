@@ -81,11 +81,11 @@ type Opts struct {
 // returning its URL if any.
 func (p *Promotion) Promote(opts Opts) (string, error) {
 	if opts.DryRun {
-		p.println("ℹ️ Dry-run mode enabled: No changes will be made.")
+		p.println("ℹ️  Dry-run mode enabled: No changes will be made.")
 	}
 
 	if opts.LocalOnly {
-		p.println("ℹ️ Local-only mode enabled: The local repo will be modified, but not committed. No pull request will be created.")
+		p.println("ℹ️  Local-only mode enabled: The local repo will be modified, but not committed. No pull request will be created.")
 	}
 
 	// Prompt user to select source environment
