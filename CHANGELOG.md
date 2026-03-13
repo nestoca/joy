@@ -1,3 +1,10 @@
+## [0.80.0](https://github.com/nestoca/joy/compare/v0.79.0...v0.80.0) (2026-03-13)
+
+
+### Features
+
+* **PL-4457:** standardize release promote command argument style ([#248](https://github.com/nestoca/joy/issues/248)) ([f6c376c](https://github.com/nestoca/joy/commit/f6c376cf519bfa1e28ad175cb8f51621665a163c))
+
 ## [0.79.0](https://github.com/nestoca/joy/compare/v0.78.2...v0.79.0) (2026-03-04)
 
 
