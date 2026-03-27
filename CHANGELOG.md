@@ -1,3 +1,10 @@
+## [0.81.0](https://github.com/nestoca/joy/compare/v0.80.0...v0.81.0) (2026-03-27)
+
+
+### Features
+
+* **PL-5209:** pin external action ([903a525](https://github.com/nestoca/joy/commit/903a525597d9e32d41ddb3d114dc9a5c4a3d8050))
+
 ## [0.80.0](https://github.com/nestoca/joy/compare/v0.79.0...v0.80.0) (2026-03-13)
 
 
