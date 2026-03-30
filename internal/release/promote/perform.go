@@ -71,6 +71,10 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 			}
 		}
 
+		if opts.localOnly {
+			continue
+		}
+
 		p.printf("🧬 Collecting information about release %s...\n", style.Resource(crossRelease.Name))
 		releaseInfo, err := getReleaseInfo(crossRelease, sourceRelease, targetRelease, opts)
 		if err != nil {
@@ -88,6 +92,10 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	if len(promotedFiles) == 0 {
 		p.println("🤷 Nothing to promote!")
+		return "", nil
+	}
+
+	if opts.localOnly {
 		return "", nil
 	}
 

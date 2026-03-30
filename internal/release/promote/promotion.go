@@ -183,7 +183,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		reviewers:           opts.Reviewers,
 	}
 
-	if opts.NoPrompt {
+	if opts.NoPrompt || opts.LocalOnly {
 		return p.perform(performParams)
 	}
 
