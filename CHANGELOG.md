@@ -1,3 +1,10 @@
+## [0.81.1](https://github.com/nestoca/joy/compare/v0.81.0...v0.81.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **PL-5229:** joy rel prom with --local-only should only create a local diff and exit ([acaf478](https://github.com/nestoca/joy/commit/acaf4789ddc0090e90d92de36889843196e9feaf))
+
 ## [0.81.0](https://github.com/nestoca/joy/compare/v0.80.0...v0.81.0) (2026-03-27)
 
 
