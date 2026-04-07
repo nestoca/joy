@@ -125,7 +125,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&commaSeparatedEnvs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
-	cmd.Flags().StringVarP(&owners, "owners", "O", "", "List releases by owners (comma-separated, defaults to all)")
+	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.Flags().BoolVar(&onlySelection, "only-selection", false, "only render selected items (default for table output)")
