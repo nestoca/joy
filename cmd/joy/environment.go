@@ -9,9 +9,9 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/environment"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
-	"github.com/nestoca/joy/internal/output"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -32,7 +32,7 @@ func NewEnvironmentCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 }
 
 func NewEnvironmentListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
-	var format output.Format
+	var format formatting.Format
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List environments and their owners",
@@ -45,7 +45,7 @@ func NewEnvironmentListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 			return environment.Render(cat, cmd.OutOrStdout(), format)
 		},
 	}
-	output.AddFormatFlag(cmd, &format)
+	formatting.AddFormatFlag(cmd, &format)
 	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }

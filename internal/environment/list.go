@@ -6,23 +6,22 @@ import (
 	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-
-	"github.com/nestoca/joy/internal/output"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func Render(cat *catalog.Catalog, writer io.Writer, format output.Format) error {
+func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) error {
 	switch format {
-	case output.FormatJson:
-		return output.RenderJson(writer, cat.Environments)
-	case output.FormatYaml:
-		return output.RenderYaml(writer, cat.Environments)
-	case output.FormatNames:
-		return output.RenderNames(writer, cat.Environments)
-	case output.FormatTable:
+	case formatting.FormatJson:
+		return formatting.RenderJson(writer, cat.Environments)
+	case formatting.FormatYaml:
+		return formatting.RenderYaml(writer, cat.Environments)
+	case formatting.FormatNames:
+		return formatting.RenderNames(writer, cat.Environments)
+	case formatting.FormatTable:
 		return renderTable(cat, writer)
 	default:
-		return fmt.Errorf("unsupported output format: %s", format)
+		return fmt.Errorf("unsupported format: %s", format)
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/output"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -119,7 +119,7 @@ func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	return out
 }
 
-func Render(writer io.Writer, releaseList ReleaseList, format output.Format, maxColumnWidth int) error {
+func Render(writer io.Writer, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
 	getReleases := func() any {
 		if len(releaseList.Environments) == 1 {
 			return flatReleases(releaseList)
@@ -128,13 +128,13 @@ func Render(writer io.Writer, releaseList ReleaseList, format output.Format, max
 	}
 
 	switch format {
-	case output.FormatJson:
-		return output.RenderJson(writer, getReleases())
-	case output.FormatYaml:
-		return output.RenderYaml(writer, getReleases())
-	case output.FormatNames:
+	case formatting.FormatJson:
+		return formatting.RenderJson(writer, getReleases())
+	case formatting.FormatYaml:
+		return formatting.RenderYaml(writer, getReleases())
+	case formatting.FormatNames:
 		return renderNames(writer, releaseList)
-	case output.FormatTable:
+	case formatting.FormatTable:
 		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)

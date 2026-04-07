@@ -23,12 +23,12 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
-	"github.com/nestoca/joy/internal/output"
 	"github.com/nestoca/joy/internal/release"
 	"github.com/nestoca/joy/internal/release/filtering"
 	"github.com/nestoca/joy/internal/release/list"
@@ -65,7 +65,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	var releases, commaSeparatedEnvs, owners string
 	var narrow, wide bool
-	var format output.Format
+	var format formatting.Format
 	var onlySelection, ignoreSelection bool
 	cmd := &cobra.Command{
 		Use:     "list",
@@ -78,7 +78,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 
 			shouldFilterBySelection := func() bool {
 				// For table output, default is to filter by selection, unless --ignore-selection is set.
-				if format == output.FormatTable {
+				if format == formatting.FormatTable {
 					return !ignoreSelection
 				}
 				// For non-table output, default is to render all items, unless --only-selection is set.
@@ -131,7 +131,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.Flags().BoolVar(&onlySelection, "only-selection", false, "only render selected items (default for table output)")
 	cmd.Flags().BoolVar(&ignoreSelection, "ignore-selection", false, "ignore selection and render all items (default for non-table output)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
-	output.AddFormatFlag(cmd, &format)
+	formatting.AddFormatFlag(cmd, &format)
 
 	preRunConfigs.PullCatalog(cmd)
 
