@@ -204,7 +204,9 @@ func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment
 		style.AheadVersion("Ahead"),
 		style.InSyncVersion("In-Sync"),
 	})
-	fmt.Println(legend.Render())
+	if _, err := io.WriteString(writer, legend.Render()+"\n"); err != nil {
+		return fmt.Errorf("writing release list legend: %w", err)
+	}
 
 	return nil
 }

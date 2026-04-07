@@ -31,7 +31,8 @@ type Promotion struct {
 }
 
 type EnvironmentSpec struct {
-	// Order controls the display order of the environment.
+	// Order controls catalog ordering (lower values first).
+	// When two environments share the same Order, they are sorted alphabetically by Name.
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
 
 	// Promotion controls the promotion of releases to this environment.

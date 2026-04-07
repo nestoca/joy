@@ -1,0 +1,7 @@
+apiVersion: joy.nesto.ca/v1alpha1
+kind: Release
+metadata:
+  name: service1
+spec:
+  project: service1
+  version: 1.2.3

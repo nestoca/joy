@@ -252,6 +252,17 @@ func (c *Catalog) GetFilesByKind(kind string) []*yml.File {
 	return files
 }
 
+// sortEnvironmentsByOrderAndName sorts environments by ascending Order then Name.
+func sortEnvironmentsByOrderAndName(envs []*v1alpha1.Environment) {
+	sort.SliceStable(envs, func(i, j int) bool {
+		a, b := envs[i], envs[j]
+		if a.Spec.Order != b.Spec.Order {
+			return a.Spec.Order < b.Spec.Order
+		}
+		return a.Name < b.Name
+	})
+}
+
 func (c *Catalog) loadEnvironments(names []string, sortByOrder bool) ([]*v1alpha1.Environment, error) {
 	// Load all environment files
 	files := c.GetFilesByKind(v1alpha1.EnvironmentKind)
@@ -305,11 +316,8 @@ func (c *Catalog) loadEnvironments(names []string, sortByOrder bool) ([]*v1alpha
 		return nil, fmt.Errorf("environments not found: %s", strings.Join(remainingNames, ", "))
 	}
 
-	// Sort environments by order
 	if sortByOrder {
-		sort.Slice(envs, func(i, j int) bool {
-			return envs[i].Spec.Order < envs[j].Spec.Order
-		})
+		sortEnvironmentsByOrderAndName(envs)
 	}
 
 	return envs, nil
