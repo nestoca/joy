@@ -18,28 +18,6 @@ const (
 	FormatNames Format = "names"
 )
 
-func (f *Format) String() string {
-	if f == nil {
-		return ""
-	}
-	return string(*f)
-}
-
-func (f *Format) Set(value string) error {
-	format := Format(value)
-	switch format {
-	case FormatTable, FormatJson, FormatYaml, FormatNames:
-		*f = format
-		return nil
-	default:
-		return fmt.Errorf("invalid format %q (must be one of: table, json, yaml, names)", value)
-	}
-}
-
-func (f *Format) Type() string {
-	return "format"
-}
-
 func RenderJson(writer io.Writer, value any) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
@@ -63,6 +41,5 @@ func RenderNames[T NamedObject](writer io.Writer, items []T) error {
 
 // AddFormatFlag registers --format / -f for render format (table, json, yaml, names).
 func AddFormatFlag(cmd *cobra.Command, format *Format) {
-	cmd.Flags().VarP(format, "format", "f", "format (table, json, yaml, names; defaults to table)")
-	_ = cmd.Flags().Set("format", string(FormatTable))
+	cmd.Flags().StringVarP((*string)(format), "format", "f", string(FormatTable), "format (table, json, yaml, names; defaults to table)")
 }
