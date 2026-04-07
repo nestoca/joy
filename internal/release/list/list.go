@@ -176,17 +176,6 @@ func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment
 	}
 	t.AppendHeader(headers)
 
-	legend := table.NewWriter()
-	legend.SetStyle(table.StyleRounded)
-	legend.AppendRow(table.Row{
-		"Reference Environment: " + referenceEnvironment,
-		style.DirtyVersion("Pre-Release (PR)"),
-		style.BehindVersion("Behind"),
-		style.AheadVersion("Ahead"),
-		style.InSyncVersion("In-Sync"),
-	})
-	fmt.Println(legend.Render())
-
 	for _, release := range releaseList.CrossReleases {
 		row := table.Row{release.Name}
 		for _, version := range release.Releases {
@@ -205,6 +194,18 @@ func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment
 	if err != nil {
 		return fmt.Errorf("writing release list as table: %w", err)
 	}
+
+	legend := table.NewWriter()
+	legend.SetStyle(table.StyleRounded)
+	legend.AppendRow(table.Row{
+		"Reference Environment: " + referenceEnvironment,
+		style.DirtyVersion("Pre-Release (PR)"),
+		style.BehindVersion("Behind"),
+		style.AheadVersion("Ahead"),
+		style.InSyncVersion("In-Sync"),
+	})
+	fmt.Println(legend.Render())
+
 	return nil
 }
 
