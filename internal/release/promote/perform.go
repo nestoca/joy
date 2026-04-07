@@ -4,7 +4,8 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -190,34 +191,38 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 }
 
 func getReviewers(info *PromotionInfo) []string {
-	uniqueAuthors := make(map[string]bool)
+	uniqueAuthors := make(map[string]struct{})
 	for _, release := range info.Releases {
 		for _, owner := range release.Reviewers {
-			uniqueAuthors[owner] = true
+			uniqueAuthors[owner] = struct{}{}
 		}
 
 		// releaseInfo.Project may be nil if an error was encountered.
 		// therefore we need to check if the project exists before dereferencing it
 		if release.Project != nil {
 			for _, owner := range release.Project.Spec.Reviewers {
-				uniqueAuthors[owner] = true
+				uniqueAuthors[owner] = struct{}{}
 			}
 		}
 
 		for _, commit := range release.Commits {
-			uniqueAuthors[commit.GitHubAuthor] = true
+			uniqueAuthors[commit.GitHubAuthor] = struct{}{}
 		}
 	}
 
-	var reviewers []string
-	for reviewer := range uniqueAuthors {
-		if reviewer == "*" || reviewer == "github-actions[bot]" || reviewer == "invalid-email-address" || reviewer == "nestobot" {
-			continue
-		}
-		reviewers = append(reviewers, reviewer)
+	disallowedReviewers := []string{
+		"*",
+		"github-actions[bot]",
+		"invalid-email-address",
+		"nestobot",
+		"copilot",
+		"claude",
+		"cursor",
 	}
-	sort.Strings(reviewers)
-	return reviewers
+
+	return slices.DeleteFunc(slices.Sorted(maps.Keys(uniqueAuthors)), func(reviewer string) bool {
+		return slices.Contains(disallowedReviewers, strings.ToLower(reviewer))
+	})
 }
 
 func MergeUnique[T comparable](a, b []T) []T {
