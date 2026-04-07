@@ -98,7 +98,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 
 			if flat {
 				if format != output.FormatJson && format != output.FormatYaml {
-					return fmt.Errorf("--flat requires --output to be json or yaml")
+					return fmt.Errorf("--flat requires --format to be json or yaml")
 				}
 				if commaSeparatedEnvs == "" || len(environments) != 1 {
 					return fmt.Errorf("--flat requires --env to specify exactly one environment")
@@ -140,9 +140,9 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.Flags().BoolVar(&onlySelection, "only-selection", false, "only render selected items (default for table output)")
 	cmd.Flags().BoolVar(&ignoreSelection, "ignore-selection", false, "ignore selection and render all items (default for non-table output)")
-	cmd.Flags().BoolVarP(&flat, "flat", "f", false, "outputs flat list of releases, not grouped by environment (requires --output yaml|json and --env with single environment)")
+	cmd.Flags().BoolVar(&flat, "flat", false, "outputs flat list of releases, not grouped by environment (requires --format yaml|json and --env with single environment)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
-	output.AddOutputFlag(cmd, &format)
+	output.AddFormatFlag(cmd, &format)
 
 	preRunConfigs.PullCatalog(cmd)
 

@@ -44,7 +44,7 @@ func NewProjectListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 			return project.Render(cat, cmd.OutOrStdout(), format)
 		},
 	}
-	output.AddOutputFlag(cmd, &format)
+	output.AddFormatFlag(cmd, &format)
 	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }

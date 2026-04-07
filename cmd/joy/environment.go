@@ -45,7 +45,7 @@ func NewEnvironmentListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 			return environment.Render(cat, cmd.OutOrStdout(), format)
 		},
 	}
-	output.AddOutputFlag(cmd, &format)
+	output.AddFormatFlag(cmd, &format)
 	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }

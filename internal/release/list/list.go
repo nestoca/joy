@@ -137,7 +137,7 @@ func Render(writer io.Writer, releaseList ReleaseList, format output.Format, max
 	case output.FormatTable:
 		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
 	default:
-		return fmt.Errorf("unsupported output format: %s", format)
+		return fmt.Errorf("unsupported format: %s", format)
 	}
 }
 
