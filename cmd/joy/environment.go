@@ -11,6 +11,7 @@ import (
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
+	"github.com/nestoca/joy/internal/output"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -22,10 +23,30 @@ func NewEnvironmentCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 		Long:    `Manage environments, such as listing and selecting them.`,
 		GroupID: "core",
 	}
+	cmd.AddCommand(NewEnvironmentListCmd(preRunConfigs))
 	cmd.AddCommand(NewEnvironmentSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewEnvironmentLinksCmd())
 	cmd.AddCommand(NewEnvironmentOpenCmd())
 	cmd.AddCommand(NewEnvironmentSchemaCmd())
+	return cmd
+}
+
+func NewEnvironmentListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
+	var format output.Format
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List environments and their owners",
+		Aliases: []string{
+			"ls",
+		},
+		Long: `List environments and their owners.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cat := catalog.FromContext(cmd.Context())
+			return environment.Render(cat, cmd.OutOrStdout(), format)
+		},
+	}
+	output.AddOutputFlag(cmd, &format)
+	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }
 

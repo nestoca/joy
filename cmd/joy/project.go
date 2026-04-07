@@ -10,6 +10,7 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
+	"github.com/nestoca/joy/internal/output"
 	"github.com/nestoca/joy/internal/project"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -30,6 +31,7 @@ func NewProjectCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 }
 
 func NewProjectListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
+	var format output.Format
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List projects and their owners",
@@ -39,9 +41,10 @@ func NewProjectListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 		Long: `List projects and their owners.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
-			return project.List(cat)
+			return project.Render(cat, cmd.OutOrStdout(), format)
 		},
 	}
+	output.AddOutputFlag(cmd, &format)
 	preRunConfigs.PullCatalog(cmd)
 	return cmd
 }

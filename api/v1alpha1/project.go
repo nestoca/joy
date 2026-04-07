@@ -82,3 +82,7 @@ func NewProject(file *yml.File) (*Project, error) {
 	proj.File = file
 	return &proj, nil
 }
+
+func (project *Project) GetName() string {
+	return project.ProjectMetadata.Name
+}

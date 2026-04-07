@@ -1,4 +1,4 @@
-package project
+package environment
 
 import (
 	"fmt"
@@ -15,11 +15,11 @@ import (
 func Render(cat *catalog.Catalog, writer io.Writer, format output.Format) error {
 	switch format {
 	case output.FormatJson:
-		return output.RenderJson(writer, cat.Projects)
+		return output.RenderJson(writer, cat.Environments)
 	case output.FormatYaml:
-		return output.RenderYaml(writer, cat.Projects)
+		return output.RenderYaml(writer, cat.Environments)
 	case output.FormatNames:
-		return output.RenderNames(writer, cat.Projects)
+		return output.RenderNames(writer, cat.Environments)
 	case output.FormatTable:
 		return renderTable(cat, writer)
 	default:
@@ -35,9 +35,9 @@ func renderTable(cat *catalog.Catalog, writer io.Writer) error {
 	headers := []string{"NAME", "OWNERS"}
 	table.Header(headers)
 
-	for _, proj := range cat.Projects {
-		owners := strings.Join(proj.Spec.Owners, " ")
-		_ = table.Append([]string{proj.Name, owners})
+	for _, env := range cat.Environments {
+		owners := strings.Join(env.Spec.Owners, " ")
+		_ = table.Append([]string{env.Name, owners})
 	}
 
 	return table.Render()

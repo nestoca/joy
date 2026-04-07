@@ -97,6 +97,10 @@ func IsValidEnvironment(apiVersion, kind string) bool {
 	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == EnvironmentKind
 }
 
+func (e Environment) GetName() string {
+	return e.EnvironmentMetadata.Name
+}
+
 // NewEnvironment creates a new environment from given yaml file.
 func NewEnvironment(file *yml.File) (*Environment, error) {
 	var env Environment
