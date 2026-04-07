@@ -67,7 +67,6 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	var narrow, wide bool
 	var format output.Format
 	var onlySelection, ignoreSelection bool
-	var flat bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
@@ -96,15 +95,6 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				return cfg.Environments.Selected
 			}()
 
-			if flat {
-				if format != output.FormatJson && format != output.FormatYaml {
-					return fmt.Errorf("--flat requires --format to be json or yaml")
-				}
-				if commaSeparatedEnvs == "" || len(environments) != 1 {
-					return fmt.Errorf("--flat requires --env to specify exactly one environment")
-				}
-			}
-
 			if releases != "" {
 				return fmt.Errorf("--releases flag no longer supported, please specify comma-delimited list of releases as first positional argument")
 			}
@@ -130,7 +120,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				return fmt.Errorf("getting release list: %w", err)
 			}
 
-			return list.Render(cmd.OutOrStdout(), releaseList, format, cfg.ColumnWidths.Get(narrow, wide), flat)
+			return list.Render(cmd.OutOrStdout(), releaseList, format, cfg.ColumnWidths.Get(narrow, wide))
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated, defaults to configured selection or all)")
@@ -140,7 +130,6 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
 	cmd.Flags().BoolVar(&onlySelection, "only-selection", false, "only render selected items (default for table output)")
 	cmd.Flags().BoolVar(&ignoreSelection, "ignore-selection", false, "ignore selection and render all items (default for non-table output)")
-	cmd.Flags().BoolVar(&flat, "flat", false, "outputs flat list of releases, not grouped by environment (requires --format yaml|json and --env with single environment)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
 	output.AddFormatFlag(cmd, &format)
 

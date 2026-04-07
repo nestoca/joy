@@ -105,8 +105,8 @@ func releasesByEnvironment(releaseList ReleaseList) map[string][]*v1alpha1.Relea
 	return out
 }
 
-// flatReleases returns a flat list of releases, regardless of the environment.
-// Should only be used for flat output with a single environment.
+// flatReleases returns releases as a single slice (no grouping by environment).
+// Used for JSON/YAML formats when there is exactly one environment.
 func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	out := []*v1alpha1.Release{}
 	for _, cross := range releaseList.CrossReleases {
@@ -119,9 +119,9 @@ func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	return out
 }
 
-func Render(writer io.Writer, releaseList ReleaseList, format output.Format, maxColumnWidth int, flat bool) error {
+func Render(writer io.Writer, releaseList ReleaseList, format output.Format, maxColumnWidth int) error {
 	getReleases := func() any {
-		if flat {
+		if len(releaseList.Environments) == 1 {
 			return flatReleases(releaseList)
 		}
 		return releasesByEnvironment(releaseList)
