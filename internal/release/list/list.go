@@ -201,7 +201,7 @@ func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment
 	}
 
 	rendered := t.Render()
-	_, err := writer.Write([]byte(rendered))
+	_, err := io.WriteString(writer, rendered+"\n")
 	if err != nil {
 		return fmt.Errorf("writing release list as table: %w", err)
 	}

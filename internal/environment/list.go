@@ -5,8 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/olekukonko/tablewriter"
-	"github.com/olekukonko/tablewriter/tw"
+	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/nestoca/joy/internal/output"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -28,17 +27,20 @@ func Render(cat *catalog.Catalog, writer io.Writer, format output.Format) error 
 }
 
 func renderTable(cat *catalog.Catalog, writer io.Writer) error {
-	table := tablewriter.NewWriter(writer)
-	table.Configure(func(cfg *tablewriter.Config) {
-		cfg.Header.Alignment = tw.CellAlignment{Global: tw.AlignLeft}
-	})
-	headers := []string{"NAME", "OWNERS"}
-	table.Header(headers)
+	t := table.NewWriter()
+	t.SetStyle(table.StyleRounded)
+
+	t.AppendHeader(table.Row{"NAME", "OWNERS"})
 
 	for _, env := range cat.Environments {
 		owners := strings.Join(env.Spec.Owners, " ")
-		_ = table.Append([]string{env.Name, owners})
+		t.AppendRow(table.Row{env.Name, owners})
 	}
 
-	return table.Render()
+	rendered := t.Render()
+	_, err := io.WriteString(writer, rendered+"\n")
+	if err != nil {
+		return fmt.Errorf("writing environment list as table: %w", err)
+	}
+	return nil
 }
