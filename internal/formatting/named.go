@@ -1,5 +1,5 @@
 package formatting
 
-type NamedObject interface {
+type Named interface {
 	GetName() string
 }

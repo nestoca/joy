@@ -30,7 +30,7 @@ func RenderYaml(writer io.Writer, value any) error {
 	return encoder.Encode(value)
 }
 
-func RenderNames[T NamedObject](writer io.Writer, items []T) error {
+func RenderNames[T Named](writer io.Writer, items []T) error {
 	for _, item := range items {
 		if _, err := fmt.Fprintln(writer, item.GetName()); err != nil {
 			return err
