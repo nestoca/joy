@@ -1,3 +1,10 @@
+## [0.81.2](https://github.com/nestoca/joy/compare/v0.81.1...v0.81.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* **PL-5297:** disallow claude and copilot from being inferred reviewers for joy promotions ([d9667c0](https://github.com/nestoca/joy/commit/d9667c0d3962752cfe8501c4fad270cebc4d1f22))
+
 ## [0.81.1](https://github.com/nestoca/joy/compare/v0.81.0...v0.81.1) (2026-03-30)
 
 
