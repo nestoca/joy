@@ -114,7 +114,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 
 			cmd.SetContext(config.ToFlagsContext(cmd.Context(), &flags))
 
-			if cmd == setupCmd || cmd == diagnoseCmd || cmd == versionCmd {
+			if cmd == setupCmd || cmd == diagnoseCmd || cmd == versionCmd || shouldSkipCatalogLoad(cmd) {
 				return nil
 			}
 
@@ -160,6 +160,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(setupCmd)
 	cmd.AddCommand(diagnoseCmd)
 	cmd.AddCommand(NewExecuteCmd())
+	cmd.AddCommand(NewCatalogCmd())
 
 	return cmd
 }
