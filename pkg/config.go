@@ -2,8 +2,10 @@ package joy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 type (
@@ -16,4 +18,13 @@ type (
 // configuration found in its .joyrc
 func LoadConfigFromCatalog(ctx context.Context, catalogPath string) (*Config, error) {
 	return config.Load(ctx, "", catalogPath)
+}
+
+// LoadCatalog loads the catalog from a given path
+func LoadCatalog(ctx context.Context, path string) (*catalog.Catalog, error) {
+	cfg, err := LoadConfigFromCatalog(ctx, path)
+	if err != nil {
+		return nil, fmt.Errorf("could not load config: %w", err)
+	}
+	return catalog.Load(ctx, cfg.CatalogDir, cfg.KnownChartRefs())
 }
