@@ -120,7 +120,7 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				return fmt.Errorf("getting release list: %w", err)
 			}
 
-			return list.Render(cmd.OutOrStdout(), releaseList, format, cfg.ColumnWidths.Get(narrow, wide))
+			return list.Render(cmd.OutOrStdout(), cat.Dir, releaseList, format, cfg.ColumnWidths.Get(narrow, wide))
 		},
 	}
 	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated, defaults to configured selection or all)")

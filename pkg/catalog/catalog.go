@@ -29,6 +29,9 @@ type (
 )
 
 type Catalog struct {
+	// Dir is the absolute, clean path to the catalog root directory (set by Load).
+	Dir string
+
 	Environments []*v1alpha1.Environment
 	Releases     ReleaseList
 	Projects     []*v1alpha1.Project
@@ -68,7 +71,7 @@ func Load(ctx context.Context, dir string, validChartRefs []string) (*Catalog, e
 	}
 
 	// Load all matching files
-	c := &Catalog{}
+	c := &Catalog{Dir: dir}
 	for _, fileAsset := range fileAssets {
 		if ignoreMatcher != nil && ignoreMatcher.Match(fileAsset.Path) {
 			continue

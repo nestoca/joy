@@ -131,6 +131,24 @@ func TestList_Environments(t *testing.T) {
 		require.Contains(t, plain, "qa")
 		require.Contains(t, plain, "staging")
 	})
+
+	t.Run("rel-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, environment.Render(cat, &buf, formatting.FormatRelPaths))
+		require.Equal(t, []string{"qa/env.yaml", "staging/env.yaml"}, sortedNonEmptyLines(buf.String()))
+	})
+
+	t.Run("abs-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, environment.Render(cat, &buf, formatting.FormatAbsPaths))
+		root := getCatalogDir(t)
+		want := []string{
+			filepath.Join(root, "qa", "env.yaml"),
+			filepath.Join(root, "staging", "env.yaml"),
+		}
+		sort.Strings(want)
+		require.Equal(t, want, sortedNonEmptyLines(buf.String()))
+	})
 }
 
 func TestList_Projects(t *testing.T) {
@@ -196,6 +214,29 @@ func TestList_Projects(t *testing.T) {
 		require.Contains(t, plain, "service2")
 		require.Contains(t, plain, "service3")
 	})
+
+	t.Run("rel-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, project.Render(cat, &buf, formatting.FormatRelPaths))
+		require.Equal(t, []string{
+			"projects/service1.yaml",
+			"projects/service2.yaml",
+			"projects/service3.yaml",
+		}, sortedNonEmptyLines(buf.String()))
+	})
+
+	t.Run("abs-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, project.Render(cat, &buf, formatting.FormatAbsPaths))
+		root := getCatalogDir(t)
+		want := []string{
+			filepath.Join(root, "projects", "service1.yaml"),
+			filepath.Join(root, "projects", "service2.yaml"),
+			filepath.Join(root, "projects", "service3.yaml"),
+		}
+		sort.Strings(want)
+		require.Equal(t, want, sortedNonEmptyLines(buf.String()))
+	})
 }
 
 func TestList_Releases_SingleEnvironmentFlatJSON(t *testing.T) {
@@ -209,7 +250,7 @@ func TestList_Releases_SingleEnvironmentFlatJSON(t *testing.T) {
 
 	t.Run("json", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatJson, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatJson, 0))
 		trimmed := bytes.TrimSpace(buf.Bytes())
 		require.Equal(t, byte('['), trimmed[0], "single environment: JSON should be a top-level array, not grouped by env")
 		require.Equal(t, []string{"service1", "service3"}, releaseNamesFromFlatJSON(t, buf.String()))
@@ -217,7 +258,7 @@ func TestList_Releases_SingleEnvironmentFlatJSON(t *testing.T) {
 
 	t.Run("yaml", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatYaml, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatYaml, 0))
 		out := buf.String()
 		require.Contains(t, out, "name: service1")
 		require.Contains(t, out, "name: service3")
@@ -227,14 +268,35 @@ func TestList_Releases_SingleEnvironmentFlatJSON(t *testing.T) {
 
 	t.Run("names", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatNames, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatNames, 0))
 		// Names list only cross-releases that have a release in the selected environment(s).
 		require.Equal(t, []string{"service1", "service3"}, sortedNonEmptyLines(buf.String()))
 	})
 
+	t.Run("rel-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatRelPaths, 0))
+		require.Equal(t, []string{
+			"staging/releases/service1.yaml",
+			"staging/releases/service3.yaml",
+		}, sortedNonEmptyLines(buf.String()))
+	})
+
+	t.Run("abs-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatAbsPaths, 0))
+		root := getCatalogDir(t)
+		want := []string{
+			filepath.Join(root, "staging", "releases", "service1.yaml"),
+			filepath.Join(root, "staging", "releases", "service3.yaml"),
+		}
+		sort.Strings(want)
+		require.Equal(t, want, sortedNonEmptyLines(buf.String()))
+	})
+
 	t.Run("table", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatTable, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatTable, 0))
 		plain := stripansi.Strip(buf.String())
 		require.Contains(t, plain, "NAME")
 		require.Contains(t, plain, "STAGING")
@@ -257,7 +319,7 @@ func TestList_Releases_MultipleEnvironmentsGroupedJSON(t *testing.T) {
 
 	t.Run("json", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatJson, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatJson, 0))
 		trimmed := bytes.TrimSpace(buf.Bytes())
 		require.Equal(t, byte('{'), trimmed[0], "multiple environments: JSON should be a top-level object keyed by environment")
 		byEnv := releaseNamesByEnvFromJSON(t, buf.String())
@@ -267,7 +329,7 @@ func TestList_Releases_MultipleEnvironmentsGroupedJSON(t *testing.T) {
 
 	t.Run("yaml", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatYaml, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatYaml, 0))
 		out := buf.String()
 		// Grouped output uses map keys; assert both trees are present.
 		require.Contains(t, out, "qa:")
@@ -278,13 +340,38 @@ func TestList_Releases_MultipleEnvironmentsGroupedJSON(t *testing.T) {
 
 	t.Run("names", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatNames, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatNames, 0))
 		require.Equal(t, []string{"service1", "service2", "service3"}, sortedNonEmptyLines(buf.String()))
+	})
+
+	t.Run("rel-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatRelPaths, 0))
+		require.Equal(t, []string{
+			"qa/releases/service1.yaml",
+			"qa/releases/service2.yaml",
+			"staging/releases/service1.yaml",
+			"staging/releases/service3.yaml",
+		}, sortedNonEmptyLines(buf.String()))
+	})
+
+	t.Run("abs-paths", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatAbsPaths, 0))
+		root := getCatalogDir(t)
+		want := []string{
+			filepath.Join(root, "qa", "releases", "service1.yaml"),
+			filepath.Join(root, "qa", "releases", "service2.yaml"),
+			filepath.Join(root, "staging", "releases", "service1.yaml"),
+			filepath.Join(root, "staging", "releases", "service3.yaml"),
+		}
+		sort.Strings(want)
+		require.Equal(t, want, sortedNonEmptyLines(buf.String()))
 	})
 
 	t.Run("table", func(t *testing.T) {
 		var buf bytes.Buffer
-		require.NoError(t, list.Render(&buf, rl, formatting.FormatTable, 0))
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatTable, 0))
 		plain := stripansi.Strip(buf.String())
 		require.Contains(t, plain, "QA")
 		require.Contains(t, plain, "STAGING")

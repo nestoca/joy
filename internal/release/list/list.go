@@ -119,7 +119,7 @@ func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	return out
 }
 
-func Render(writer io.Writer, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
+func Render(writer io.Writer, catalogDir string, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
 	getReleases := func() any {
 		if len(releaseList.Environments) == 1 {
 			return flatReleases(releaseList)
@@ -134,11 +134,28 @@ func Render(writer io.Writer, releaseList ReleaseList, format formatting.Format,
 		return formatting.RenderYaml(writer, getReleases())
 	case formatting.FormatNames:
 		return renderNames(writer, releaseList)
+	case formatting.FormatRelPaths:
+		return formatting.RenderPathFormat(writer, catalogDir, false, releaseFilePaths(releaseList))
+	case formatting.FormatAbsPaths:
+		return formatting.RenderPathFormat(writer, catalogDir, true, releaseFilePaths(releaseList))
 	case formatting.FormatTable:
 		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func releaseFilePaths(releaseList ReleaseList) []string {
+	var paths []string
+	for _, cross := range releaseList.CrossReleases {
+		for _, rel := range cross.Releases {
+			if rel.Release == nil || rel.Release.File == nil {
+				continue
+			}
+			paths = append(paths, rel.Release.File.Path)
+		}
+	}
+	return paths
 }
 
 func renderNames(writer io.Writer, releaseList ReleaseList) error {

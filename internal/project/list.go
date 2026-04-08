@@ -19,11 +19,26 @@ func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) er
 		return formatting.RenderYaml(writer, cat.Projects)
 	case formatting.FormatNames:
 		return formatting.RenderNames(writer, cat.Projects)
+	case formatting.FormatRelPaths:
+		return formatting.RenderPathFormat(writer, cat.Dir, false, projectFilePaths(cat))
+	case formatting.FormatAbsPaths:
+		return formatting.RenderPathFormat(writer, cat.Dir, true, projectFilePaths(cat))
 	case formatting.FormatTable:
 		return renderTable(cat, writer)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func projectFilePaths(cat *catalog.Catalog) []string {
+	var paths []string
+	for _, proj := range cat.Projects {
+		if proj == nil || proj.File == nil {
+			continue
+		}
+		paths = append(paths, proj.File.Path)
+	}
+	return paths
 }
 
 func renderTable(cat *catalog.Catalog, writer io.Writer) error {
