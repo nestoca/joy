@@ -1,3 +1,10 @@
+## [0.82.0](https://github.com/nestoca/joy/compare/v0.81.3...v0.82.0) (2026-04-08)
+
+
+### Features
+
+* **PL-4155:** full programmatic outputs support in joy commands ([#253](https://github.com/nestoca/joy/issues/253)) ([67c2099](https://github.com/nestoca/joy/commit/67c20998414e394ac8ad99914b61a88ee6576d6a))
+
 ## [0.81.3](https://github.com/nestoca/joy/compare/v0.81.2...v0.81.3) (2026-04-07)
 
 
