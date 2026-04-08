@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/TwiN/go-color"
 	"github.com/nestoca/survey/v2"
@@ -49,6 +50,11 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.CalledAs() == "help" {
 				return nil
+			}
+
+			if ok, _ := strconv.ParseBool(os.Getenv("JOY_SKIP_CHECKS")); ok {
+				skipDevCheck = true
+				skipVersionCheck = true
 			}
 
 			if !skipDevCheck && (!semver.IsValid(version) || semver.Prerelease(version) != "") {

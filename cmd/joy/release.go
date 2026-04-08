@@ -23,6 +23,7 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/config"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
@@ -62,9 +63,10 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 }
 
 func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
-	var releases, envs, owners string
+	var releases, commaSeparatedEnvs, owners string
 	var narrow, wide bool
-	var jsonOutput bool
+	var format formatting.Format
+	var onlySelection, ignoreSelection bool
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
@@ -74,56 +76,62 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 			cfg := config.FromContext(cmd.Context())
 			cat := catalog.FromContext(cmd.Context())
 
+			shouldFilterBySelection := func() bool {
+				// For table output, default is to filter by selection, unless --ignore-selection is set.
+				if format == formatting.FormatTable {
+					return !ignoreSelection
+				}
+				// For non-table output, default is to render all items, unless --only-selection is set.
+				return onlySelection
+			}()
+
+			environments := func() []string {
+				if commaSeparatedEnvs != "" {
+					return strings.Split(commaSeparatedEnvs, ",")
+				}
+				if !shouldFilterBySelection {
+					return nil
+				}
+				return cfg.Environments.Selected
+			}()
+
 			if releases != "" {
 				return fmt.Errorf("--releases flag no longer supported, please specify comma-delimited list of releases as first positional argument")
 			}
 
+			// Filter releases
 			if len(args) > 0 {
 				releasePattern := args[0]
 				cat.WithReleaseFilter(filtering.NewNamePatternFilter(releasePattern))
-			} else if len(cfg.Releases.Selected) > 0 {
+			} else if len(cfg.Releases.Selected) > 0 && shouldFilterBySelection {
 				cat.WithReleaseFilter(filtering.NewSpecificReleasesFilter(cfg.Releases.Selected))
 			}
 
-			selectedEnvs := func() []string {
-				if envs == "" {
-					return cfg.Environments.Selected
-				}
-				return strings.Split(envs, ",")
-			}()
+			// Filter releases by owners
 			if owners != "" {
 				cat.WithReleaseFilter(filtering.NewOwnerFilter(owners))
 			}
 
 			releaseList, err := list.GetReleaseList(cat, list.Params{
-				SelectedEnvs:         selectedEnvs,
+				Environments:         environments,
 				ReferenceEnvironment: cfg.ReferenceEnvironment,
 			})
 			if err != nil {
 				return fmt.Errorf("getting release list: %w", err)
 			}
 
-			if jsonOutput {
-				output, err := list.FormatReleaseListAsJson(releaseList)
-				if err != nil {
-					return fmt.Errorf("formatting release list as JSON: %w", err)
-				}
-				fmt.Println(output)
-				return nil
-			}
-
-			output := list.FormatReleaseListAsTable(releaseList, cfg.ReferenceEnvironment, cfg.ColumnWidths.Get(narrow, wide))
-			fmt.Println(output)
-			return nil
+			return list.Render(cmd.OutOrStdout(), releaseList, format, cfg.ColumnWidths.Get(narrow, wide))
 		},
 	}
-	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated with wildcards, defaults to configured selection or all)")
-	cmd.Flags().StringVarP(&envs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
+	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated, defaults to configured selection or all)")
+	cmd.Flags().StringVarP(&commaSeparatedEnvs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
 	cmd.Flags().BoolVarP(&wide, "wide", "w", false, "Use wide columns mode")
-	cmd.Flags().BoolVarP(&jsonOutput, "json", "j", false, "Output as JSON")
+	cmd.Flags().BoolVar(&onlySelection, "only-selection", false, "only render selected items (default for table output)")
+	cmd.Flags().BoolVar(&ignoreSelection, "ignore-selection", false, "ignore selection and render all items (default for non-table output)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
+	formatting.AddFormatFlag(cmd, &format)
 
 	preRunConfigs.PullCatalog(cmd)
 

@@ -1,8 +1,8 @@
 package list
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 
@@ -10,12 +10,13 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
 type Params struct {
-	SelectedEnvs         []string
+	Environments         []string
 	ReferenceEnvironment string
 }
 
@@ -52,7 +53,7 @@ func GetReleaseList(cat *catalog.Catalog, params Params) (ReleaseList, error) {
 
 	var selectedEnvIndices []int
 	for i, env := range cat.Releases.Environments {
-		if len(params.SelectedEnvs) > 0 && !slices.Contains(params.SelectedEnvs, env.Name) {
+		if len(params.Environments) > 0 && !slices.Contains(params.Environments, env.Name) {
 			continue
 		}
 		selectedEnvIndices = append(selectedEnvIndices, i)
@@ -91,7 +92,81 @@ func GetReleaseList(cat *catalog.Catalog, params Params) (ReleaseList, error) {
 	return releaseList, nil
 }
 
-func FormatReleaseListAsTable(releaseList ReleaseList, referenceEnvironment string, maxColumnWidth int) string {
+// releasesByEnvironment groups releases by environment.
+func releasesByEnvironment(releaseList ReleaseList) map[string][]*v1alpha1.Release {
+	out := make(map[string][]*v1alpha1.Release)
+	for _, cross := range releaseList.CrossReleases {
+		for _, rel := range cross.Releases {
+			if rel.Release != nil {
+				out[rel.Environment] = append(out[rel.Environment], rel.Release)
+			}
+		}
+	}
+	return out
+}
+
+// flatReleases returns releases as a single slice (no grouping by environment).
+// Used for JSON/YAML formats when there is exactly one environment.
+func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
+	out := []*v1alpha1.Release{}
+	for _, cross := range releaseList.CrossReleases {
+		for _, rel := range cross.Releases {
+			if rel.Release != nil {
+				out = append(out, rel.Release)
+			}
+		}
+	}
+	return out
+}
+
+func Render(writer io.Writer, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
+	getReleases := func() any {
+		if len(releaseList.Environments) == 1 {
+			return flatReleases(releaseList)
+		}
+		return releasesByEnvironment(releaseList)
+	}
+
+	switch format {
+	case formatting.FormatJson:
+		return formatting.RenderJson(writer, getReleases())
+	case formatting.FormatYaml:
+		return formatting.RenderYaml(writer, getReleases())
+	case formatting.FormatNames:
+		return renderNames(writer, releaseList)
+	case formatting.FormatTable:
+		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+}
+
+func renderNames(writer io.Writer, releaseList ReleaseList) error {
+	uniqueNames := make(map[string]bool)
+	for _, crossRelease := range releaseList.CrossReleases {
+		for _, rel := range crossRelease.Releases {
+			if rel.Release != nil {
+				uniqueNames[rel.Release.Name] = true
+				break
+			}
+		}
+	}
+
+	names := make([]string, 0, len(uniqueNames))
+	for name := range uniqueNames {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	for _, name := range names {
+		if _, err := fmt.Fprintln(writer, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment string, maxColumnWidth int) error {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleRounded)
 
@@ -100,17 +175,6 @@ func FormatReleaseListAsTable(releaseList ReleaseList, referenceEnvironment stri
 		headers = append(headers, strings.ToUpper(env))
 	}
 	t.AppendHeader(headers)
-
-	legend := table.NewWriter()
-	legend.SetStyle(table.StyleRounded)
-	legend.AppendRow(table.Row{
-		"Reference Environment: " + referenceEnvironment,
-		style.DirtyVersion("Pre-Release (PR)"),
-		style.BehindVersion("Behind"),
-		style.AheadVersion("Ahead"),
-		style.InSyncVersion("In-Sync"),
-	})
-	fmt.Println(legend.Render())
 
 	for _, release := range releaseList.CrossReleases {
 		row := table.Row{release.Name}
@@ -125,15 +189,26 @@ func FormatReleaseListAsTable(releaseList ReleaseList, referenceEnvironment stri
 		t.AppendRow(row)
 	}
 
-	return t.Render()
-}
-
-func FormatReleaseListAsJson(releaseList ReleaseList) (string, error) {
-	b, err := json.MarshalIndent(releaseList, "", "  ")
+	rendered := t.Render()
+	_, err := io.WriteString(writer, rendered+"\n")
 	if err != nil {
-		return "", fmt.Errorf("marshalling output as JSON: %w", err)
+		return fmt.Errorf("writing release list as table: %w", err)
 	}
-	return string(b), nil
+
+	legend := table.NewWriter()
+	legend.SetStyle(table.StyleRounded)
+	legend.AppendRow(table.Row{
+		"Reference Environment: " + referenceEnvironment,
+		style.DirtyVersion("Pre-Release (PR)"),
+		style.BehindVersion("Behind"),
+		style.AheadVersion("Ahead"),
+		style.InSyncVersion("In-Sync"),
+	})
+	if _, err := io.WriteString(writer, legend.Render()+"\n"); err != nil {
+		return fmt.Errorf("writing release list legend: %w", err)
+	}
+
+	return nil
 }
 
 const (

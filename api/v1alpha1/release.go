@@ -115,6 +115,10 @@ func LoadRelease(file *yml.File) (*Release, error) {
 	return &rel, nil
 }
 
+func (release *Release) GetName() string {
+	return release.ReleaseMetadata.Name
+}
+
 func stripCustomTags(node *yaml.Node) *yaml.Node {
 	if slices.Contains(yml.CustomTags, node.Tag) {
 		node.Tag = ""

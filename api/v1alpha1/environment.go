@@ -31,7 +31,8 @@ type Promotion struct {
 }
 
 type EnvironmentSpec struct {
-	// Order controls the display order of the environment.
+	// Order controls catalog ordering (lower values first).
+	// When two environments share the same Order, they are sorted alphabetically by Name.
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
 
 	// Promotion controls the promotion of releases to this environment.
@@ -95,6 +96,10 @@ func (e Environment) Validate(validChartRefs []string) error {
 
 func IsValidEnvironment(apiVersion, kind string) bool {
 	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == EnvironmentKind
+}
+
+func (e Environment) GetName() string {
+	return e.EnvironmentMetadata.Name
 }
 
 // NewEnvironment creates a new environment from given yaml file.

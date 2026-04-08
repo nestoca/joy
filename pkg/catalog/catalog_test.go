@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/release/cross"
 )
@@ -45,6 +46,22 @@ func TestCatalogLoadE2E(t *testing.T) {
 			require.Contains(t, err.Error(), tc.Error)
 		})
 	}
+}
+
+func TestSortEnvironmentsByOrderAndName(t *testing.T) {
+	envs := []*v1alpha1.Environment{
+		{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "barn"}},
+		{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "apple"}, Spec: v1alpha1.EnvironmentSpec{Order: 2}},
+		{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "zebra"}, Spec: v1alpha1.EnvironmentSpec{Order: 1}},
+		{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "cat"}},
+	}
+	sortEnvironmentsByOrderAndName(envs)
+	got := make([]string, len(envs))
+	for i, e := range envs {
+		got[i] = e.Name
+	}
+	// Order 0: barn, cat; then zebra (1), apple (2).
+	require.Equal(t, []string{"barn", "cat", "zebra", "apple"}, got)
 }
 
 func TestFreeformEnvsAndReleasesLoading(t *testing.T) {
