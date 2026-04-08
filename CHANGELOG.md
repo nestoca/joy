@@ -1,3 +1,10 @@
+## [0.83.0](https://github.com/nestoca/joy/compare/v0.82.0...v0.83.0) (2026-04-08)
+
+
+### Features
+
+* **PL-4155:** remove redundant default value help text ([#255](https://github.com/nestoca/joy/issues/255)) ([58ee493](https://github.com/nestoca/joy/commit/58ee493c2ab2d785ca5e7f19f36c27462b00a2ce))
+
 ## [0.82.0](https://github.com/nestoca/joy/compare/v0.81.3...v0.82.0) (2026-04-08)
 
 
