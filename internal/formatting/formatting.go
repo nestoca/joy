@@ -41,5 +41,5 @@ func RenderNames[T Named](writer io.Writer, items []T) error {
 
 // AddFormatFlag registers --format / -f for render format (table, json, yaml, names).
 func AddFormatFlag(cmd *cobra.Command, format *Format) {
-	cmd.Flags().StringVarP((*string)(format), "format", "f", string(FormatTable), "format (table, json, yaml, names; defaults to table)")
+	cmd.Flags().StringVarP((*string)(format), "format", "f", string(FormatTable), "output format, one of: table, json, yaml, names")
 }
