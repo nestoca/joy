@@ -1,3 +1,10 @@
+## [0.84.0](https://github.com/nestoca/joy/compare/v0.83.0...v0.84.0) (2026-04-09)
+
+
+### Features
+
+* add loadCatalog convenience to sdk ([d71feb2](https://github.com/nestoca/joy/commit/d71feb2a2aba4e5f2da71af30bfb74596102c7bc))
+
 ## [0.83.0](https://github.com/nestoca/joy/compare/v0.82.0...v0.83.0) (2026-04-08)
 
 
