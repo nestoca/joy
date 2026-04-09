@@ -34,6 +34,21 @@ func RenderYaml(writer io.Writer, value any) error {
 	return encoder.Encode(value)
 }
 
+// GetRelativeAndAbsolutePaths returns catalog-relative and clean absolute paths for given absolute catalog resource file path.
+func GetRelativeAndAbsolutePaths(absFilePath, catalogDir string) (relativePath, absolutePath string, err error) {
+	if absFilePath == "" {
+		return "", "", nil
+	}
+	if catalogDir == "" {
+		return "", "", fmt.Errorf("catalog directory is required for list metadata paths")
+	}
+	rel, err := filepath.Rel(catalogDir, absFilePath)
+	if err != nil {
+		return "", "", err
+	}
+	return rel, filepath.Clean(absFilePath), nil
+}
+
 func RenderNames[T Named](writer io.Writer, items []T) error {
 	for _, item := range items {
 		if _, err := fmt.Fprintln(writer, item.GetName()); err != nil {

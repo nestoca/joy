@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -13,9 +15,17 @@ import (
 func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) error {
 	switch format {
 	case formatting.FormatJson:
-		return formatting.RenderJson(writer, cat.Environments)
+		envs, err := environmentsWithPaths(cat)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderJson(writer, envs)
 	case formatting.FormatYaml:
-		return formatting.RenderYaml(writer, cat.Environments)
+		envs, err := environmentsWithPaths(cat)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderYaml(writer, envs)
 	case formatting.FormatNames:
 		return formatting.RenderNames(writer, cat.Environments)
 	case formatting.FormatRelPaths:
@@ -27,6 +37,28 @@ func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) er
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func environmentsWithPaths(cat *catalog.Catalog) ([]*v1alpha1.Environment, error) {
+	out := make([]*v1alpha1.Environment, len(cat.Environments))
+	for i, env := range cat.Environments {
+		if env == nil {
+			continue
+		}
+		e := *env
+		e.File = nil
+		e.Dir = ""
+		if env.File != nil {
+			rel, abs, err := formatting.GetRelativeAndAbsolutePaths(env.File.Path, cat.Dir)
+			if err != nil {
+				return nil, err
+			}
+			e.RelativePath = rel
+			e.AbsolutePath = abs
+		}
+		out[i] = &e
+	}
+	return out, nil
 }
 
 func environmentFilePaths(cat *catalog.Catalog) []string {

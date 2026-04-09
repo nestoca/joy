@@ -119,19 +119,68 @@ func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	return out
 }
 
-func Render(writer io.Writer, catalogDir string, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
-	getReleases := func() any {
-		if len(releaseList.Environments) == 1 {
-			return flatReleases(releaseList)
+func releasesWithPaths(catalogDir string, releaseList ReleaseList) (any, error) {
+	if len(releaseList.Environments) == 1 {
+		rels := flatReleases(releaseList)
+		out := make([]*v1alpha1.Release, 0, len(rels))
+		for _, rel := range rels {
+			cp, err := releaseWithPaths(rel, catalogDir)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, cp)
 		}
-		return releasesByEnvironment(releaseList)
+		return out, nil
 	}
+	src := releasesByEnvironment(releaseList)
+	dst := make(map[string][]*v1alpha1.Release, len(src))
+	for env, rels := range src {
+		var list []*v1alpha1.Release
+		for _, rel := range rels {
+			cp, err := releaseWithPaths(rel, catalogDir)
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, cp)
+		}
+		dst[env] = list
+	}
+	return dst, nil
+}
 
+func releaseWithPaths(rel *v1alpha1.Release, catalogDir string) (*v1alpha1.Release, error) {
+	if rel == nil {
+		return nil, nil
+	}
+	r := *rel
+	r.File = nil
+	r.Project = nil
+	r.Environment = nil
+	if rel.File != nil {
+		relPath, absPath, err := formatting.GetRelativeAndAbsolutePaths(rel.File.Path, catalogDir)
+		if err != nil {
+			return nil, err
+		}
+		r.RelativePath = relPath
+		r.AbsolutePath = absPath
+	}
+	return &r, nil
+}
+
+func Render(writer io.Writer, catalogDir string, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
 	switch format {
 	case formatting.FormatJson:
-		return formatting.RenderJson(writer, getReleases())
+		payload, err := releasesWithPaths(catalogDir, releaseList)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderJson(writer, payload)
 	case formatting.FormatYaml:
-		return formatting.RenderYaml(writer, getReleases())
+		payload, err := releasesWithPaths(catalogDir, releaseList)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderYaml(writer, payload)
 	case formatting.FormatNames:
 		return renderNames(writer, releaseList)
 	case formatting.FormatRelPaths:

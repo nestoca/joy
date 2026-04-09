@@ -98,4 +98,6 @@ package v1alpha1
 	name!: string
 	annotations?: [string]: string
 	labels?: [string]:      string
+	relativePath?:  string
+	absolutePath?: string
 }

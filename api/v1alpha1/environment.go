@@ -22,6 +22,12 @@ type EnvironmentMetadata struct {
 
 	// Annotations is the list of annotations for the environment.
 	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+
+	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
+	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`
+
+	// AbsolutePath is the absolute path to this resource's yaml file (set only for list JSON/YAML output).
+	AbsolutePath string `yaml:"absolutePath,omitempty" json:"absolutePath,omitempty"`
 }
 
 type Promotion struct {
