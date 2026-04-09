@@ -7,7 +7,6 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/pkg/catalog"
 )
@@ -15,23 +14,21 @@ import (
 func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) error {
 	switch format {
 	case formatting.FormatJson:
-		payload, err := projectsWithPaths(cat)
-		if err != nil {
-			return err
+		if err := addPathsToProjects(cat); err != nil {
+			return fmt.Errorf("adding paths to projects: %w", err)
 		}
-		return formatting.RenderJson(writer, payload)
+		return formatting.RenderJson(writer, cat.Projects)
 	case formatting.FormatYaml:
-		payload, err := projectsWithPaths(cat)
-		if err != nil {
-			return err
+		if err := addPathsToProjects(cat); err != nil {
+			return fmt.Errorf("adding paths to projects: %w", err)
 		}
-		return formatting.RenderYaml(writer, payload)
+		return formatting.RenderYaml(writer, cat.Projects)
 	case formatting.FormatNames:
 		return formatting.RenderNames(writer, cat.Projects)
 	case formatting.FormatRelPaths:
-		return formatting.RenderPathFormat(writer, cat.Dir, false, projectFilePaths(cat))
+		return formatting.RenderRelativePaths(writer, projectFilePaths(cat), cat.Dir)
 	case formatting.FormatAbsPaths:
-		return formatting.RenderPathFormat(writer, cat.Dir, true, projectFilePaths(cat))
+		return formatting.RenderAbsolutePaths(writer, projectFilePaths(cat))
 	case formatting.FormatTable:
 		return renderTable(cat, writer)
 	default:
@@ -39,25 +36,19 @@ func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) er
 	}
 }
 
-func projectsWithPaths(cat *catalog.Catalog) ([]*v1alpha1.Project, error) {
-	out := make([]*v1alpha1.Project, len(cat.Projects))
-	for i, proj := range cat.Projects {
-		if proj == nil {
+func addPathsToProjects(cat *catalog.Catalog) error {
+	for _, proj := range cat.Projects {
+		if proj == nil || proj.File == nil {
 			continue
 		}
-		p := *proj
-		p.File = nil
-		if proj.File != nil {
-			rel, abs, err := formatting.GetRelativeAndAbsolutePaths(proj.File.Path, cat.Dir)
-			if err != nil {
-				return nil, err
-			}
-			p.RelativePath = rel
-			p.AbsolutePath = abs
+		rel, abs, err := formatting.GetRelativeAndAbsolutePaths(proj.File.Path, cat.Dir)
+		if err != nil {
+			return err
 		}
-		out[i] = &p
+		proj.RelativePath = rel
+		proj.AbsolutePath = abs
 	}
-	return out, nil
+	return nil
 }
 
 func projectFilePaths(cat *catalog.Catalog) []string {

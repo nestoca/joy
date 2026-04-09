@@ -15,23 +15,23 @@ import (
 func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) error {
 	switch format {
 	case formatting.FormatJson:
-		envs, err := environmentsWithPaths(cat)
+		err := addPathsToEnvironments(cat.Environments, cat.Dir)
 		if err != nil {
-			return err
+			return fmt.Errorf("adding paths to environments: %w", err)
 		}
-		return formatting.RenderJson(writer, envs)
+		return formatting.RenderJson(writer, cat.Environments)
 	case formatting.FormatYaml:
-		envs, err := environmentsWithPaths(cat)
+		err := addPathsToEnvironments(cat.Environments, cat.Dir)
 		if err != nil {
-			return err
+			return fmt.Errorf("adding paths to environments: %w", err)
 		}
-		return formatting.RenderYaml(writer, envs)
+		return formatting.RenderYaml(writer, cat.Environments)
 	case formatting.FormatNames:
 		return formatting.RenderNames(writer, cat.Environments)
 	case formatting.FormatRelPaths:
-		return formatting.RenderPathFormat(writer, cat.Dir, false, environmentFilePaths(cat))
+		return formatting.RenderRelativePaths(writer, environmentFilePaths(cat.Environments), cat.Dir)
 	case formatting.FormatAbsPaths:
-		return formatting.RenderPathFormat(writer, cat.Dir, true, environmentFilePaths(cat))
+		return formatting.RenderAbsolutePaths(writer, environmentFilePaths(cat.Environments))
 	case formatting.FormatTable:
 		return renderTable(cat, writer)
 	default:
@@ -39,31 +39,24 @@ func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) er
 	}
 }
 
-func environmentsWithPaths(cat *catalog.Catalog) ([]*v1alpha1.Environment, error) {
-	out := make([]*v1alpha1.Environment, len(cat.Environments))
-	for i, env := range cat.Environments {
-		if env == nil {
+func addPathsToEnvironments(envs []*v1alpha1.Environment, catalogDir string) error {
+	for _, env := range envs {
+		if env == nil || env.File == nil {
 			continue
 		}
-		e := *env
-		e.File = nil
-		e.Dir = ""
-		if env.File != nil {
-			rel, abs, err := formatting.GetRelativeAndAbsolutePaths(env.File.Path, cat.Dir)
-			if err != nil {
-				return nil, err
-			}
-			e.RelativePath = rel
-			e.AbsolutePath = abs
+		rel, abs, err := formatting.GetRelativeAndAbsolutePaths(env.File.Path, catalogDir)
+		if err != nil {
+			return err
 		}
-		out[i] = &e
+		env.RelativePath = rel
+		env.AbsolutePath = abs
 	}
-	return out, nil
+	return nil
 }
 
-func environmentFilePaths(cat *catalog.Catalog) []string {
+func environmentFilePaths(envs []*v1alpha1.Environment) []string {
 	var paths []string
-	for _, env := range cat.Environments {
+	for _, env := range envs {
 		if env == nil || env.File == nil {
 			continue
 		}

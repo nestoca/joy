@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"slices"
 
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v3"
@@ -58,46 +57,24 @@ func RenderNames[T Named](writer io.Writer, items []T) error {
 	return nil
 }
 
-// PathOutputLines converts absolute file paths to either absolute or catalog-relative
-// paths, deduplicates, and returns them sorted. catalogDir must be the absolute
-// catalog root when useAbs is false.
-func PathOutputLines(catalogDir string, useAbs bool, absFilePaths []string) ([]string, error) {
-	uniq := make(map[string]struct{})
-	for _, p := range absFilePaths {
-		if p == "" {
-			continue
+// RenderRelativePaths writes all paths as catalog-relative paths on different lines.
+func RenderRelativePaths(writer io.Writer, absFilePaths []string, catalogDir string) error {
+	for _, path := range absFilePaths {
+		rel, err := filepath.Rel(catalogDir, path)
+		if err != nil {
+			return fmt.Errorf("getting relative path for %s: %w", path, err)
 		}
-		uniq[p] = struct{}{}
-	}
-	out := make([]string, 0, len(uniq))
-	for p := range uniq {
-		var line string
-		var err error
-		if useAbs {
-			line = p
-		} else {
-			if catalogDir == "" {
-				return nil, fmt.Errorf("catalog directory is required for rel-paths output")
-			}
-			line, err = filepath.Rel(catalogDir, p)
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", p, err)
-			}
+		if _, err := fmt.Fprintln(writer, rel); err != nil {
+			return err
 		}
-		out = append(out, line)
 	}
-	slices.Sort(out)
-	return out, nil
+	return nil
 }
 
-// RenderPathFormat writes one path per line (sorted, deduplicated).
-func RenderPathFormat(writer io.Writer, catalogDir string, useAbs bool, absFilePaths []string) error {
-	lines, err := PathOutputLines(catalogDir, useAbs, absFilePaths)
-	if err != nil {
-		return err
-	}
-	for _, line := range lines {
-		if _, err := fmt.Fprintln(writer, line); err != nil {
+// RenderAbsolutePaths writes all paths as absolute paths on different lines.
+func RenderAbsolutePaths(writer io.Writer, absFilePaths []string) error {
+	for _, path := range absFilePaths {
+		if _, err := fmt.Fprintln(writer, path); err != nil {
 			return err
 		}
 	}

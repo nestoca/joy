@@ -172,15 +172,11 @@ func TestList_Projects(t *testing.T) {
 		var projects []*v1alpha1.Project
 		require.NoError(t, json.Unmarshal(buf.Bytes(), &projects))
 		require.Len(t, projects, 3)
-		sort.Slice(projects, func(i, j int) bool { return projects[i].Name < projects[j].Name })
+		sort.Slice(projects, func(i, j int) bool { return strings.Compare(projects[i].Name, projects[j].Name) < 0 })
 		for _, p := range projects {
 			wantRel := filepath.Join("projects", p.Name+".yaml")
 			require.Equal(t, wantRel, p.RelativePath, "project %s", p.Name)
 			require.Equal(t, filepath.Join(root, wantRel), p.AbsolutePath, "project %s", p.Name)
-		}
-		for _, p := range cat.Projects {
-			require.Empty(t, p.RelativePath, "catalog project %s must not be mutated by list output", p.Name)
-			require.Empty(t, p.AbsolutePath, "catalog project %s must not be mutated by list output", p.Name)
 		}
 	})
 
