@@ -119,26 +119,88 @@ func flatReleases(releaseList ReleaseList) []*v1alpha1.Release {
 	return out
 }
 
-func Render(writer io.Writer, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
-	getReleases := func() any {
-		if len(releaseList.Environments) == 1 {
-			return flatReleases(releaseList)
+func flatOrGroupedReleasesWithPaths(catalogDir string, releaseList ReleaseList) (any, error) {
+	if len(releaseList.Environments) == 1 {
+		rels := flatReleases(releaseList)
+		out := make([]*v1alpha1.Release, 0, len(rels))
+		for _, rel := range rels {
+			if rel == nil || rel.File == nil {
+				continue
+			}
+			if err := addPathsToRelease(rel, catalogDir); err != nil {
+				return nil, err
+			}
+			out = append(out, rel)
 		}
-		return releasesByEnvironment(releaseList)
+		return out, nil
 	}
 
+	src := releasesByEnvironment(releaseList)
+	dst := make(map[string][]*v1alpha1.Release, len(src))
+	for env, rels := range src {
+		list := make([]*v1alpha1.Release, 0, len(rels))
+		for _, rel := range rels {
+			if rel == nil || rel.File == nil {
+				continue
+			}
+			if err := addPathsToRelease(rel, catalogDir); err != nil {
+				return nil, err
+			}
+			list = append(list, rel)
+		}
+		dst[env] = list
+	}
+	return dst, nil
+}
+
+func addPathsToRelease(rel *v1alpha1.Release, catalogDir string) error {
+	relPath, absPath, err := formatting.GetRelativeAndAbsolutePaths(rel.File.Path, catalogDir)
+	if err != nil {
+		return fmt.Errorf("adding paths to release: %w", err)
+	}
+	rel.RelativePath = relPath
+	rel.AbsolutePath = absPath
+	return nil
+}
+
+func Render(writer io.Writer, catalogDir string, releaseList ReleaseList, format formatting.Format, maxColumnWidth int) error {
 	switch format {
 	case formatting.FormatJson:
-		return formatting.RenderJson(writer, getReleases())
+		releases, err := flatOrGroupedReleasesWithPaths(catalogDir, releaseList)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderJson(writer, releases)
 	case formatting.FormatYaml:
-		return formatting.RenderYaml(writer, getReleases())
+		releases, err := flatOrGroupedReleasesWithPaths(catalogDir, releaseList)
+		if err != nil {
+			return err
+		}
+		return formatting.RenderYaml(writer, releases)
 	case formatting.FormatNames:
 		return renderNames(writer, releaseList)
+	case formatting.FormatRelPaths:
+		return formatting.RenderRelativePaths(writer, releaseFilePaths(releaseList), catalogDir)
+	case formatting.FormatAbsPaths:
+		return formatting.RenderAbsolutePaths(writer, releaseFilePaths(releaseList))
 	case formatting.FormatTable:
 		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
+}
+
+func releaseFilePaths(releaseList ReleaseList) []string {
+	var paths []string
+	for _, cross := range releaseList.CrossReleases {
+		for _, rel := range cross.Releases {
+			if rel.Release == nil || rel.Release.File == nil {
+				continue
+			}
+			paths = append(paths, rel.Release.File.Path)
+		}
+	}
+	return paths
 }
 
 func renderNames(writer io.Writer, releaseList ReleaseList) error {
