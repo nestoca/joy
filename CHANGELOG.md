@@ -1,3 +1,10 @@
+## [0.85.0](https://github.com/nestoca/joy/compare/v0.84.0...v0.85.0) (2026-04-10)
+
+
+### Features
+
+* **PL-4155:** add relative and absolute paths output formats and metadata ([#257](https://github.com/nestoca/joy/issues/257)) ([9f75f6e](https://github.com/nestoca/joy/commit/9f75f6e61e9b1f684097336db0c5610747145728))
+
 ## [0.84.0](https://github.com/nestoca/joy/compare/v0.83.0...v0.84.0) (2026-04-09)
 
 
