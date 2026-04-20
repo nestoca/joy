@@ -1,3 +1,10 @@
+## [0.85.1](https://github.com/nestoca/joy/compare/v0.85.0...v0.85.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-git/go-git/v5 to v5.18.0 [security] ([#258](https://github.com/nestoca/joy/issues/258)) ([66f3ef3](https://github.com/nestoca/joy/commit/66f3ef38a7aa26598e9f2689a467093aad5481c9))
+
 ## [0.85.0](https://github.com/nestoca/joy/compare/v0.84.0...v0.85.0) (2026-04-10)
 
 
