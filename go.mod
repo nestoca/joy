@@ -9,7 +9,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/davidmdm/x/xerr v0.0.6
 	github.com/davidmdm/x/xfs v0.0.5
-	github.com/go-git/go-git/v5 v5.17.1
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
