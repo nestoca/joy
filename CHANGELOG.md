@@ -1,3 +1,10 @@
+## [0.85.2](https://github.com/nestoca/joy/compare/v0.85.1...v0.85.2) (2026-04-28)
+
+
+### Bug Fixes
+
+* **PL-5476:** handle empty output from `gh label list --json` to prevent JSON unmarshal errors ([#259](https://github.com/nestoca/joy/issues/259)) ([ea03277](https://github.com/nestoca/joy/commit/ea03277f3612231c58d1eac83f904dea92399ec1))
+
 ## [0.85.1](https://github.com/nestoca/joy/compare/v0.85.0...v0.85.1) (2026-04-20)
 
 
