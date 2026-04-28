@@ -1,6 +1,7 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -214,9 +215,14 @@ func (p *PullRequestProvider) createLabels(labels ...string) error {
 		return fmt.Errorf("listing labels: %s", output)
 	}
 
+	// `gh label list --json` returns empty output when the repo has no labels,
+	// which is not valid JSON and would fail to unmarshal.
+	output = bytes.TrimSpace(output)
 	var existingLabels []label
-	if err := json.Unmarshal(output, &existingLabels); err != nil {
-		return fmt.Errorf("unmarshaling label list: %w", err)
+	if len(output) > 0 {
+		if err := json.Unmarshal(output, &existingLabels); err != nil {
+			return fmt.Errorf("unmarshaling label list: %w", err)
+		}
 	}
 	existingLabelSet := make(map[string]bool)
 	for _, existingLabel := range existingLabels {
