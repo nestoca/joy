@@ -1,3 +1,10 @@
+## [0.85.3](https://github.com/nestoca/joy/compare/v0.85.2...v0.85.3) (2026-04-29)
+
+
+### Bug Fixes
+
+* **deps:** update module go.opentelemetry.io/otel to v1.41.0 [security] ([4c305ce](https://github.com/nestoca/joy/commit/4c305cedf4ada2d5d0d90e0b4e06cfc577e3be22))
+
 ## [0.85.2](https://github.com/nestoca/joy/compare/v0.85.1...v0.85.2) (2026-04-28)
 
 
