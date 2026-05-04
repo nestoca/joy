@@ -164,13 +164,13 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
   joy release promote
 
   # Single release
-  joy release promote my-release --source staging --target prod
+  joy release promote my-release --source staging --target production
 
   # Multiple releases (comma-separated, preferred)
-  joy release promote release-a,release-b --source staging --target prod
+  joy release promote release-a,release-b --source staging --target production
 
   # All releases
-  joy release promote --all --source staging --target prod`,
+  joy release promote --all --source staging --target production`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if autoMerge && draft {
 				return fmt.Errorf("flags --auto-merge and --draft cannot be used together")
