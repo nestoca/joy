@@ -219,7 +219,7 @@ loop:
 				p.println(style.SecondaryInfo("--- " + crossRelease.Name))
 				source, target := at(crossRelease.Releases, sourceEnvIndex), at(crossRelease.Releases, targetEnvIndex)
 
-				info, err := getReleaseInfo(crossRelease, source, target, performParams)
+				info, err := getReleaseInfo(crossRelease, source, target, performParams, opts.TargetEnv.Name)
 				if err != nil {
 					p.printf("error getting release information %s: %v\n", crossRelease.Name, err)
 					continue
