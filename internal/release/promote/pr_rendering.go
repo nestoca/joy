@@ -36,7 +36,7 @@ type ReleaseInfo struct {
 	ValuesChanged       bool
 	ChangeType          ChangeType
 	Commits             []*CommitInfo
-	RelatedPullRequests []info.PullRequest
+	RelatedPullRequests []*info.PullRequest
 	Error               error
 }
 
@@ -64,7 +64,7 @@ type CommitInfo struct {
 	ShortMessage string
 }
 
-func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts, targetEnvironmentName string) (*ReleaseInfo, error) {
+func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) (*ReleaseInfo, error) {
 	project := sourceRelease.Project
 	changeType := ChangeTypeUpgrade
 	if targetRelease != nil {
@@ -172,7 +172,7 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 		})
 	}
 
-	releaseInfo.RelatedPullRequests, err = opts.infoProvider.ListRelatedPullRequests(targetRelease)
+	releaseInfo.RelatedPullRequests, err = opts.infoProvider.GetRelatedPullRequests(targetRelease)
 	if err != nil {
 		return nil, fmt.Errorf("listing related pull requests for release %s: %w", sourceRelease.Name, err)
 	}

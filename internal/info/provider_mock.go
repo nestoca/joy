@@ -33,7 +33,7 @@ var _ Provider = &ProviderMock{}
 //			GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
 //				panic("mock out the GetReleaseGitTag method")
 //			},
-//			ListRelatedPullRequestsFunc: func(release *v1alpha1.Release) ([]PullRequest, error) {
+//			ListRelatedPullRequestsFunc: func(release *v1alpha1.Release) ([]*PullRequest, error) {
 //				panic("mock out the ListRelatedPullRequests method")
 //			},
 //		}
@@ -59,7 +59,7 @@ type ProviderMock struct {
 	GetReleaseGitTagFunc func(release *v1alpha1.Release) (string, error)
 
 	// ListRelatedPullRequestsFunc mocks the ListRelatedPullRequests method.
-	ListRelatedPullRequestsFunc func(release *v1alpha1.Release) ([]PullRequest, error)
+	ListRelatedPullRequestsFunc func(release *v1alpha1.Release) ([]*PullRequest, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -306,7 +306,7 @@ func (mock *ProviderMock) GetReleaseGitTagCalls() []struct {
 }
 
 // ListRelatedPullRequests calls ListRelatedPullRequestsFunc.
-func (mock *ProviderMock) ListRelatedPullRequests(release *v1alpha1.Release) ([]PullRequest, error) {
+func (mock *ProviderMock) GetRelatedPullRequests(release *v1alpha1.Release) ([]*PullRequest, error) {
 	callInfo := struct {
 		Release *v1alpha1.Release
 	}{
@@ -317,7 +317,7 @@ func (mock *ProviderMock) ListRelatedPullRequests(release *v1alpha1.Release) ([]
 	mock.lockListRelatedPullRequests.Unlock()
 	if mock.ListRelatedPullRequestsFunc == nil {
 		var (
-			pullRequestsOut []PullRequest
+			pullRequestsOut []*PullRequest
 			errOut          error
 		)
 		return pullRequestsOut, errOut
