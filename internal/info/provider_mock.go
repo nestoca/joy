@@ -4,9 +4,8 @@
 package info
 
 import (
+	"github.com/nestoca/joy/api/v1alpha1"
 	"sync"
-
-	v1alpha1 "github.com/nestoca/joy/api/v1alpha1"
 )
 
 // Ensure, that ProviderMock does implement Provider.
@@ -34,6 +33,9 @@ var _ Provider = &ProviderMock{}
 //			GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
 //				panic("mock out the GetReleaseGitTag method")
 //			},
+//			ListRelatedPullRequestsFunc: func(release *v1alpha1.Release) ([]PullRequest, error) {
+//				panic("mock out the ListRelatedPullRequests method")
+//			},
 //		}
 //
 //		// use mockedProvider in code that requires Provider
@@ -55,6 +57,9 @@ type ProviderMock struct {
 
 	// GetReleaseGitTagFunc mocks the GetReleaseGitTag method.
 	GetReleaseGitTagFunc func(release *v1alpha1.Release) (string, error)
+
+	// ListRelatedPullRequestsFunc mocks the ListRelatedPullRequests method.
+	ListRelatedPullRequestsFunc func(release *v1alpha1.Release) ([]PullRequest, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -91,12 +96,18 @@ type ProviderMock struct {
 			// Release is the release argument value.
 			Release *v1alpha1.Release
 		}
+		// ListRelatedPullRequests holds details about calls to the ListRelatedPullRequests method.
+		ListRelatedPullRequests []struct {
+			// Release is the release argument value.
+			Release *v1alpha1.Release
+		}
 	}
 	lockGetCommitsGitHubAuthors sync.RWMutex
 	lockGetCommitsMetadata      sync.RWMutex
 	lockGetProjectRepository    sync.RWMutex
 	lockGetProjectSourceDir     sync.RWMutex
 	lockGetReleaseGitTag        sync.RWMutex
+	lockListRelatedPullRequests sync.RWMutex
 }
 
 // GetCommitsGitHubAuthors calls GetCommitsGitHubAuthorsFunc.
@@ -291,5 +302,41 @@ func (mock *ProviderMock) GetReleaseGitTagCalls() []struct {
 	mock.lockGetReleaseGitTag.RLock()
 	calls = mock.calls.GetReleaseGitTag
 	mock.lockGetReleaseGitTag.RUnlock()
+	return calls
+}
+
+// ListRelatedPullRequests calls ListRelatedPullRequestsFunc.
+func (mock *ProviderMock) ListRelatedPullRequests(release *v1alpha1.Release) ([]PullRequest, error) {
+	callInfo := struct {
+		Release *v1alpha1.Release
+	}{
+		Release: release,
+	}
+	mock.lockListRelatedPullRequests.Lock()
+	mock.calls.ListRelatedPullRequests = append(mock.calls.ListRelatedPullRequests, callInfo)
+	mock.lockListRelatedPullRequests.Unlock()
+	if mock.ListRelatedPullRequestsFunc == nil {
+		var (
+			pullRequestsOut []PullRequest
+			errOut          error
+		)
+		return pullRequestsOut, errOut
+	}
+	return mock.ListRelatedPullRequestsFunc(release)
+}
+
+// ListRelatedPullRequestsCalls gets all the calls that were made to ListRelatedPullRequests.
+// Check the length with:
+//
+//	len(mockedProvider.ListRelatedPullRequestsCalls())
+func (mock *ProviderMock) ListRelatedPullRequestsCalls() []struct {
+	Release *v1alpha1.Release
+} {
+	var calls []struct {
+		Release *v1alpha1.Release
+	}
+	mock.lockListRelatedPullRequests.RLock()
+	calls = mock.calls.ListRelatedPullRequests
+	mock.lockListRelatedPullRequests.RUnlock()
 	return calls
 }

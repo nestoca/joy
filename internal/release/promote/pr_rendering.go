@@ -10,6 +10,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/retry"
 )
@@ -23,19 +24,20 @@ const (
 )
 
 type ReleaseInfo struct {
-	Name          string
-	Project       *v1alpha1.Project
-	Reviewers     []string
-	Repository    string
-	Source        EnvironmentReleaseInfo
-	Target        EnvironmentReleaseInfo
-	OlderGitTag   string
-	NewerGitTag   string
-	IsPrerelease  bool
-	ValuesChanged bool
-	ChangeType    ChangeType
-	Commits       []*CommitInfo
-	Error         error
+	Name                string
+	Project             *v1alpha1.Project
+	Reviewers           []string
+	Repository          string
+	Source              EnvironmentReleaseInfo
+	Target              EnvironmentReleaseInfo
+	OlderGitTag         string
+	NewerGitTag         string
+	IsPrerelease        bool
+	ValuesChanged       bool
+	ChangeType          ChangeType
+	Commits             []*CommitInfo
+	RelatedPullRequests []info.PullRequest
+	Error               error
 }
 
 type EnvironmentReleaseInfo struct {
@@ -62,7 +64,7 @@ type CommitInfo struct {
 	ShortMessage string
 }
 
-func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts) (*ReleaseInfo, error) {
+func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1.Release, opts PerformOpts, targetEnvironmentName string) (*ReleaseInfo, error) {
 	project := sourceRelease.Project
 	changeType := ChangeTypeUpgrade
 	if targetRelease != nil {
@@ -170,6 +172,10 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 		})
 	}
 
+	releaseInfo.RelatedPullRequests, err = opts.infoProvider.ListRelatedPullRequests(targetRelease)
+	if err != nil {
+		return nil, fmt.Errorf("listing related pull requests for release %s: %w", sourceRelease.Name, err)
+	}
 	return &releaseInfo, nil
 }
 

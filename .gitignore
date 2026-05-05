@@ -31,3 +31,5 @@ reports
 go.work
 
 **/.DS_Store
+.claude/*/shared
+.cursor/*/shared
