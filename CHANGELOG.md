@@ -1,3 +1,11 @@
+## [0.86.0](https://github.com/nestoca/joy/compare/v0.85.4...v0.86.0) (2026-05-05)
+
+
+### Features
+
+* **PL-5551:** cleanup code ([1b676c3](https://github.com/nestoca/joy/commit/1b676c35f2f4a86b6494d48c64c4ec2427b2a2c4))
+* **PL-5551:** joy promote, list related open PRs ([fb46d07](https://github.com/nestoca/joy/commit/fb46d077e17b1d006b5243a059bcae3cc4ec1a9b))
+
 ## [0.85.4](https://github.com/nestoca/joy/compare/v0.85.3...v0.85.4) (2026-05-04)
 
 ## [0.85.3](https://github.com/nestoca/joy/compare/v0.85.2...v0.85.3) (2026-04-29)
