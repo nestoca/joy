@@ -131,7 +131,7 @@ func TestGetReleaseInfo(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			actual, err := getReleaseInfo(tc.Cross, tc.Source, tc.Target, tc.Opts, "")
+			actual, err := getReleaseInfo(tc.Cross, tc.Source, tc.Target, tc.Opts)
 			tc.Expectations(t, actual, err)
 		})
 	}

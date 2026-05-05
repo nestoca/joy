@@ -25,7 +25,7 @@ type Provider interface {
 	GetCommitsMetadata(projectDir, fromTag, toTag string) ([]*CommitMetadata, error)
 	GetCommitsGitHubAuthors(project *v1alpha1.Project, fromTag, toTag string) (map[string]string, error)
 	GetReleaseGitTag(release *v1alpha1.Release) (string, error)
-	ListRelatedPullRequests(release *v1alpha1.Release) ([]PullRequest, error)
+	GetRelatedPullRequests(release *v1alpha1.Release) ([]*PullRequest, error)
 }
 
 type CommitMetadata struct {
@@ -159,12 +159,12 @@ func (p *defaultProvider) GetCommitsMetadata(dir, from, to string) ([]*CommitMet
 	return commits, nil
 }
 
-func (p *defaultProvider) ListRelatedPullRequests(release *v1alpha1.Release) ([]PullRequest, error) {
+func (p *defaultProvider) GetRelatedPullRequests(release *v1alpha1.Release) ([]*PullRequest, error) {
 	output, err := github.ExecuteAndGetOutput(filepath.Dir(release.File.Path), "pr", "list", "--label", "environment:"+release.Environment.Name, "--label", "release:"+release.Name, "--json", "number")
 	if err != nil {
 		return nil, err
 	}
-	var prs []PullRequest
+	var prs []*PullRequest
 	if err := json.Unmarshal([]byte(output), &prs); err != nil {
 		return nil, fmt.Errorf("parsing pr list output: %w", err)
 	}
