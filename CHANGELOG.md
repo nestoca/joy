@@ -1,3 +1,10 @@
+## [0.87.0](https://github.com/nestoca/joy/compare/v0.86.0...v0.87.0) (2026-05-07)
+
+
+### Features
+
+* **PL-5613:** add org-local tag ([ee310da](https://github.com/nestoca/joy/commit/ee310da81476b0ffaaa5f3599b0de9c74c9c6e9f))
+
 ## [0.86.0](https://github.com/nestoca/joy/compare/v0.85.4...v0.86.0) (2026-05-05)
 
 
