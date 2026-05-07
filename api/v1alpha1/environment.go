@@ -37,6 +37,9 @@ type Promotion struct {
 }
 
 type EnvironmentSpec struct {
+	// Organization is the org this environment belongs to. This feature helps us define org-local content.
+	Organization string `yaml:"organization,omitempty" json:"organization,omitempty"`
+
 	// Order controls catalog ordering (lower values first).
 	// When two environments share the same Order, they are sorted alphabetically by Name.
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
@@ -94,7 +97,8 @@ func (e Environment) Validate(validChartRefs []string) error {
 			errs = append(errs, fmt.Errorf("unknown ref: %s", ref))
 		}
 	}
-	return xerr.MultiErrOrderedFrom("",
+	return xerr.MultiErrOrderedFrom(
+		"",
 		internal.ValidateAgainstSchema(schemas.Environment, e.File.Tree),
 		xerr.MultiErrOrderedFrom("validating chart references", errs...),
 	)

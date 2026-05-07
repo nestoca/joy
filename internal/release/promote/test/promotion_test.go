@@ -3,10 +3,13 @@ package promote_test
 import (
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -268,6 +271,56 @@ func TestPromotion(t *testing.T) {
 			pullRequestTemplate: simplePullRequestTemplate,
 			expectedPromoted:    true,
 		},
+		{
+			name: "org-local",
+			opts: newOpts(),
+			setup: func(args setupArgs) func(t *testing.T) {
+				args.opts.SourceEnv.Spec.Organization = "bar"
+				args.opts.TargetEnv.Spec.Organization = "foo"
+
+				args.opts.Catalog.Releases.Items = args.opts.Catalog.Releases.Items[:1]
+				args.opts.Catalog.Releases.Items[0].Releases[sourceEnvIndex] = newRelease(
+					"release1",
+					`spec: { key: value, potato: !org-local mashed }`,
+					sourceEnvName,
+				)
+
+				args.opts.Catalog.Releases.Items[0].Releases[targetEnvIndex] = newRelease("release1", `spec: {}`, sourceEnvName)
+
+				args.promptProvider.SelectReleasesFunc = func(list cross.ReleaseList, maxColumnWidth int) (cross.ReleaseList, error) {
+					return list, nil
+				}
+				args.promptProvider.SelectPromotionActionFunc = func() (string, error) {
+					return promote.CreatePR, nil
+				}
+
+				args.yamlWriter.WriteFileFunc = func(file *yml.File) error {
+					return nil
+				}
+
+				args.prProvider.CreateFunc = func(createParams pr.CreateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
+
+				setupDefaultMockInfoProvider(args.infoProvider)
+
+				return func(t *testing.T) {
+					calls := args.yamlWriter.WriteFileCalls()
+					require.Len(t, calls, 1)
+
+					var resource struct {
+						Spec map[string]any `yaml:"spec"`
+					}
+					require.NoError(t, yaml.Unmarshal(calls[0].File.Yaml, &resource))
+					require.Equal(t, []string{"key"}, slices.Collect(maps.Keys(resource.Spec)))
+				}
+			},
+			commitTemplate:          simpleCommitTemplate,
+			pullRequestTemplate:     simplePullRequestTemplate,
+			pullRequestLinkTemplate: "",
+			expectedErrorMessage:    "",
+			expectedPromoted:        true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -374,7 +427,7 @@ metadata:
 		name, specYaml)
 	file, err := yml.NewFile("/dummy/environments/"+envName+"/releases/release.yaml", []byte(yaml))
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%v: %s", err, yaml))
 	}
 	return file
 }
