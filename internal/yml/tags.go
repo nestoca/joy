@@ -12,6 +12,6 @@ var StandardTags = []string{
 	"!!merge",
 }
 
-var CustomTags = []string{"!lock", "!local"}
+var CustomTags = []string{"!lock", "!local", "!org-local"}
 
 var KnownTags = append(StandardTags, CustomTags...)

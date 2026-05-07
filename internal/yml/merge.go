@@ -4,7 +4,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Merge(dst, src *yaml.Node) *yaml.Node {
+func Merge(dst, src *yaml.Node, sameOrg bool) *yaml.Node {
 	dst, src = Clone(dst), Clone(src)
 
 	doc := func() *yaml.Node {
@@ -22,6 +22,10 @@ func Merge(dst, src *yaml.Node) *yaml.Node {
 	src = unwrapDocument(src)
 	src = markLockedValuesAsTodo(src, false)
 	src = purgeLocalContent(src)
+
+	if !sameOrg {
+		src = purgeOrgLocalContent(src)
+	}
 
 	result := merge(dst, src)
 	if result == nil {
@@ -162,6 +166,10 @@ func IsLocal(node *yaml.Node) bool {
 	return node != nil && node.Tag == "!local"
 }
 
+func IsOrgLocal(node *yaml.Node) bool {
+	return node != nil && node.Tag == "!org-local"
+}
+
 type KeyValuePair struct {
 	Key   *yaml.Node
 	Value *yaml.Node
@@ -216,7 +224,15 @@ func firstNonNil(nodes ...*yaml.Node) *yaml.Node {
 }
 
 func purgeLocalContent(node *yaml.Node) *yaml.Node {
-	if node == nil || IsLocal(node) {
+	return purgeNodes(node, IsLocal)
+}
+
+func purgeOrgLocalContent(node *yaml.Node) *yaml.Node {
+	return purgeNodes(node, IsOrgLocal)
+}
+
+func purgeNodes(node *yaml.Node, predicate func(*yaml.Node) bool) *yaml.Node {
+	if node == nil || predicate(node) {
 		return nil
 	}
 
@@ -226,17 +242,17 @@ func purgeLocalContent(node *yaml.Node) *yaml.Node {
 	switch node.Kind {
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
-			if IsLocal(node.Content[i+1]) {
+			if predicate(node.Content[i+1]) {
 				continue
 			}
-			copy.Content = append(copy.Content, node.Content[i], purgeLocalContent(node.Content[i+1]))
+			copy.Content = append(copy.Content, node.Content[i], purgeNodes(node.Content[i+1], predicate))
 		}
 	case yaml.SequenceNode:
 		for _, item := range node.Content {
-			if IsLocal(item) {
+			if predicate(item) {
 				continue
 			}
-			copy.Content = append(copy.Content, purgeLocalContent(item))
+			copy.Content = append(copy.Content, purgeNodes(item, predicate))
 		}
 	}
 

@@ -400,7 +400,7 @@ func testMerge(t *testing.T, testcase MergeCase) {
 	}
 
 	// Merge
-	result := Merge(dst, src)
+	result := Merge(dst, src, false)
 
 	// Marshal the result with custom indentation
 	var buf bytes.Buffer
@@ -450,7 +450,7 @@ e:
     k: TODO
 `
 	// Merge YAML nodes
-	mergedNode := Merge(nil, &sourceNode)
+	mergedNode := Merge(nil, &sourceNode, false)
 
 	// Marshal the merged result
 	var buf bytes.Buffer
@@ -525,7 +525,7 @@ func TestTodoMerge(t *testing.T) {
 			var dst yaml.Node
 			require.NoError(t, yaml.Unmarshal([]byte(tc.Dst), &dst))
 
-			result, err := yaml.Marshal(Merge(&dst, &src).Content[0])
+			result, err := yaml.Marshal(Merge(&dst, &src, false).Content[0])
 			require.NoError(t, err)
 
 			result = bytes.TrimSpace(result)
@@ -751,7 +751,7 @@ func TestYmlMerge(t *testing.T) {
 			require.NoError(t, yaml.Unmarshal([]byte(tc.Src), &src))
 			require.NoError(t, yaml.Unmarshal([]byte(tc.Dst), &dst))
 
-			actual, err := yaml.Marshal(Merge(&dst, &src))
+			actual, err := yaml.Marshal(Merge(&dst, &src, false))
 			require.NoError(t, err)
 
 			actual = bytes.TrimSpace(actual)
@@ -761,11 +761,28 @@ func TestYmlMerge(t *testing.T) {
 			var result yaml.Node
 			require.NoError(t, yaml.Unmarshal(actual, &result))
 
-			check, err := yaml.Marshal(Merge(&result, &src))
+			check, err := yaml.Marshal(Merge(&result, &src, false))
 			require.NoError(t, err)
 
 			check = bytes.TrimSpace(check)
 			require.Equal(t, actual, check, "failed idempotency check")
 		})
 	}
+}
+
+func TestOrgLocalMerge(t *testing.T) {
+	var src, dst yaml.Node
+
+	require.NoError(t, yaml.Unmarshal([]byte(`{
+	  apple: bottom,
+	  jeans: !org-local boots,
+	}`), &src))
+
+	require.NoError(t, yaml.Unmarshal([]byte(`{}`), &dst))
+
+	result := Merge(&dst, &src, true)
+	require.Equal(t, "boots", FindNodeValueOrDefault(result, "jeans", "not-found"))
+
+	result = Merge(&dst, &src, false)
+	require.Equal(t, "not-found", FindNodeValueOrDefault(result, "jeans", "not-found"))
 }

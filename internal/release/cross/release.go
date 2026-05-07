@@ -39,12 +39,14 @@ func (r *Release) ComputePromotedFile(sourceEnv, targetEnv *v1alpha1.Environment
 		return nil
 	}
 
+	sameOrg := sourceEnv.Spec.Organization == targetEnv.Spec.Organization
+
 	// Do we have an existing target release?
 	var promotedFile *yml.File
 	var err error
 	if targetRelease != nil && targetRelease.File != nil {
 		// Promote source release to existing target
-		mergedTree := yml.Merge(targetRelease.File.Tree, sourceRelease.File.Tree)
+		mergedTree := yml.Merge(targetRelease.File.Tree, sourceRelease.File.Tree, sameOrg)
 		promotedFile, err = targetRelease.File.CopyWithNewTree(mergedTree)
 		if err != nil {
 			return fmt.Errorf("creating in-memory copy of target file using merged result: %w", err)
@@ -56,7 +58,7 @@ func (r *Release) ComputePromotedFile(sourceEnv, targetEnv *v1alpha1.Environment
 		}
 
 		// Promote source release to empty target
-		promoted := yml.Merge(nil, sourceRelease.File.Tree)
+		promoted := yml.Merge(nil, sourceRelease.File.Tree, sameOrg)
 		targetPath := filepath.Join(targetEnv.Dir, relativePath)
 
 		promotedFile, err = yml.NewFileFromTree(targetPath, sourceRelease.File.Indent, promoted)

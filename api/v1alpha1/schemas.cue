@@ -35,7 +35,8 @@ package v1alpha1
 	kind:       "Environment"
 	metadata!:  #metadata
 	spec: {
-		order?: number
+		organization?: string
+		order?:        number
 		promotion?: {
 			allowAutoMerge?:   bool
 			fromPullRequests?: bool
@@ -98,6 +99,6 @@ package v1alpha1
 	name!: string
 	annotations?: [string]: string
 	labels?: [string]:      string
-	relativePath?:  string
+	relativePath?: string
 	absolutePath?: string
 }
