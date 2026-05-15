@@ -63,7 +63,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 }
 
 func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
-	var releases, commaSeparatedEnvs, owners string
+	var commaSeparatedEnvs, owners string
 	var narrow, wide bool
 	var format formatting.Format
 	var onlySelection, ignoreSelection bool
@@ -95,10 +95,6 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 				return cfg.Environments.Selected
 			}()
 
-			if releases != "" {
-				return fmt.Errorf("--releases flag no longer supported, please specify comma-delimited list of releases as first positional argument")
-			}
-
 			// Filter releases
 			if len(args) > 0 {
 				releasePattern := args[0]
@@ -123,7 +119,6 @@ func NewReleaseListCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 			return list.Render(cmd.OutOrStdout(), cat.Dir, releaseList, format, cfg.ColumnWidths.Get(narrow, wide))
 		},
 	}
-	cmd.Flags().StringVarP(&releases, "releases", "r", "", "Releases to list (comma-separated, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&commaSeparatedEnvs, "env", "e", "", "environments to list (comma-separated, defaults to configured selection or all)")
 	cmd.Flags().StringVarP(&owners, "owners", "o", "", "List releases by owners (comma-separated, defaults to all)")
 	cmd.Flags().BoolVarP(&narrow, "narrow", "n", false, "Use narrow columns mode")
