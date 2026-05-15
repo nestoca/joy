@@ -1,3 +1,10 @@
+## [0.87.3](https://github.com/nestoca/joy/compare/v0.87.2...v0.87.3) (2026-05-15)
+
+
+### Bug Fixes
+
+* **PL-4460:** remove non-functional --releases flag from joy rel list ([6da4194](https://github.com/nestoca/joy/commit/6da4194ddc6bf5b39d5294778ede7bf28323730b))
+
 ## [0.87.2](https://github.com/nestoca/joy/compare/v0.87.1...v0.87.2) (2026-05-12)
 
 
