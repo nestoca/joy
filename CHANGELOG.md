@@ -1,3 +1,10 @@
+## [0.87.4](https://github.com/nestoca/joy/compare/v0.87.3...v0.87.4) (2026-05-19)
+
+
+### Bug Fixes
+
+* **ci:** update github workflows ([8e82fa7](https://github.com/nestoca/joy/commit/8e82fa7bd27eac72fdf8c15b6cea09a736ab584d))
+
 ## [0.87.3](https://github.com/nestoca/joy/compare/v0.87.2...v0.87.3) (2026-05-15)
 
 
