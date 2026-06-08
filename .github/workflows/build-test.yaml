@@ -115,7 +115,7 @@ jobs:
 
       - name: Generate changelog and tag release
         id: changelog
-        uses: nestoca/conventional-changelog-action@a27a4debeb9e6b0ff100a3a4c5ff9a5926587608 # releases/v4
+        uses: TriPSs/conventional-changelog-action@3c4970b6573374889b897403d2f1278c395ea0df # releases/v5
         with:
           preset: conventionalcommits # default is `angular` and does not support breaking changes of type feat!
           input-file: CHANGELOG.md
