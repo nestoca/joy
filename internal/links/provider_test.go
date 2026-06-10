@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/info"
@@ -35,9 +37,7 @@ func TestGetEnvironmentLinks(t *testing.T) {
 				Environment: config.EnvironmentTemplates{Links: tc.templates},
 			})
 			actual, err := provider.GetEnvironmentLinks(&v1alpha1.Environment{
-				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-					Name: "staging",
-				},
+				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}},
 			})
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, actual)
@@ -158,9 +158,7 @@ func TestGetReleaseLinks(t *testing.T) {
 	}
 
 	env := &v1alpha1.Environment{
-		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-			Name: "staging",
-		},
+		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}},
 	}
 	project := &v1alpha1.Project{
 		ProjectMetadata: v1alpha1.ProjectMetadata{
@@ -169,7 +167,7 @@ func TestGetReleaseLinks(t *testing.T) {
 	}
 	rel := &v1alpha1.Release{
 		ReleaseMetadata: v1alpha1.ReleaseMetadata{
-			Name: "my-release",
+			ObjectMeta: metav1.ObjectMeta{Name: "my-release"},
 		},
 		Environment: env,
 		Project:     project,

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
@@ -14,20 +15,13 @@ import (
 const ReleaseKind = "Release"
 
 type ReleaseMetadata struct {
-	// Name is the name of the release.
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
-
-	// Labels is the list of labels for the release.
-	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-
-	// Annotations is the list of annotations for the release.
-	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	metav1.ObjectMeta
 
 	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
-	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`
+	RelativePath string `yaml:"-" json:"-"`
 
 	// AbsolutePath is the absolute path to this resource's yaml file (set only for list JSON/YAML output).
-	AbsolutePath string `yaml:"absolutePath,omitempty" json:"absolutePath,omitempty"`
+	AbsolutePath string `yaml:"-" json:"-"`
 }
 
 type ReleaseChart struct {

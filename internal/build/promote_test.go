@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
@@ -14,7 +16,7 @@ import (
 func TestPromote(t *testing.T) {
 	var writer yml.WriterMock
 
-	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "staging"}}}
+	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}}}}
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: environments,
@@ -24,7 +26,7 @@ func TestPromote(t *testing.T) {
 					{
 						Releases: []*v1alpha1.Release{
 							{
-								ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "release1"},
+								ReleaseMetadata: v1alpha1.ReleaseMetadata{ObjectMeta: metav1.ObjectMeta{Name: "release1"}},
 								Spec:            v1alpha1.ReleaseSpec{Project: "promote-build"},
 								File:            makeFile(t, "{ spec: { version: 0.0.0 } }"),
 							},
@@ -49,7 +51,7 @@ func TestPromote(t *testing.T) {
 func TestPromoteLockedVersion(t *testing.T) {
 	var writer yml.WriterMock
 
-	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "staging"}}}
+	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}}}}
 	opts := Opts{
 		Catalog: &catalog.Catalog{
 			Environments: environments,
@@ -59,7 +61,7 @@ func TestPromoteLockedVersion(t *testing.T) {
 					{
 						Releases: []*v1alpha1.Release{
 							{
-								ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: "release1"},
+								ReleaseMetadata: v1alpha1.ReleaseMetadata{ObjectMeta: metav1.ObjectMeta{Name: "release1"}},
 								Spec:            v1alpha1.ReleaseSpec{Project: "promote-build"},
 								File:            makeFile(t, "{ spec: { version: !lock 0.0.0 } }"),
 							},
