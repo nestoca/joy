@@ -94,11 +94,12 @@ func getCatalogDir(ctx context.Context, configDir string, catalogDir string) (st
 		}
 
 		// Prompt user for catalog directory using survey (defaults to $HOME/.joy)
-		err = survey.AskOne(&survey.Input{
-			Message: "🎯 Where does (or should) your local catalog reside?",
-			Help:    "This is where we will clone your catalog repo, but only if it's not already there.",
-			Default: catalogDir,
-		},
+		err = survey.AskOne(
+			&survey.Input{
+				Message: "🎯 Where does (or should) your local catalog reside?",
+				Help:    "This is where we will clone your catalog repo, but only if it's not already there.",
+				Default: catalogDir,
+			},
 			&catalogDir,
 			survey.WithValidator(survey.Required),
 		)

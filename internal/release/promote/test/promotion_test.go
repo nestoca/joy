@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
@@ -374,9 +375,7 @@ func TestPromotion(t *testing.T) {
 
 func newEnvironment(name string, promotionSourceEnvs ...string) *v1alpha1.Environment {
 	return &v1alpha1.Environment{
-		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-			Name: name,
-		},
+		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: name}},
 		Spec: v1alpha1.EnvironmentSpec{
 			Promotion: v1alpha1.Promotion{
 				FromEnvironments: promotionSourceEnvs,
@@ -406,7 +405,7 @@ var dummyProject = &v1alpha1.Project{
 func newRelease(name, specYaml, envName string) *v1alpha1.Release {
 	return &v1alpha1.Release{
 		ReleaseMetadata: v1alpha1.ReleaseMetadata{
-			Name: name,
+			ObjectMeta: metav1.ObjectMeta{Name: name},
 		},
 		File:    newYamlFile(name, specYaml, envName),
 		Project: dummyProject,

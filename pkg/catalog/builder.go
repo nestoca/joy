@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
@@ -24,7 +25,7 @@ func NewBuilder(t *testing.T) Builder {
 
 func (b *Builder) AddEnvironment(name string, f func(e *v1alpha1.Environment)) *v1alpha1.Environment {
 	environment := v1alpha1.Environment{
-		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: name},
+		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: name}},
 	}
 	if f != nil {
 		f(&environment)
@@ -48,7 +49,7 @@ func (b *Builder) AddRelease(env *v1alpha1.Environment, project *v1alpha1.Projec
 	b.t.Helper()
 	rel := v1alpha1.Release{
 		ReleaseMetadata: v1alpha1.ReleaseMetadata{
-			Name: project.Name,
+			ObjectMeta: metav1.ObjectMeta{Name: project.Name},
 		},
 		Spec: v1alpha1.ReleaseSpec{
 			Project: project.Name,

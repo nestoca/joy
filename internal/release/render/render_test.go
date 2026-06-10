@@ -11,6 +11,7 @@ import (
 
 	"github.com/davidmdm/x/xfs"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
@@ -30,8 +31,8 @@ func TestRenderRelease(t *testing.T) {
 
 	buildRelease := func(env, name string) *v1alpha1.Release {
 		return &v1alpha1.Release{
-			ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: name},
-			Environment:     &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: env}},
+			ReleaseMetadata: v1alpha1.ReleaseMetadata{ObjectMeta: metav1.ObjectMeta{Name: name}},
+			Environment:     &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: env}}},
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 )
@@ -92,8 +93,12 @@ func TestRenderMessage(t *testing.T) {
 		},
 	}
 	info := &PromotionInfo{
-		SourceEnvironment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "staging"}},
-		TargetEnvironment: &v1alpha1.Environment{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "production"}},
+		SourceEnvironment: &v1alpha1.Environment{
+			EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}},
+		},
+		TargetEnvironment: &v1alpha1.Environment{
+			EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "production"}},
+		},
 		Releases: []*ReleaseInfo{
 			{
 				Name: "project1",
