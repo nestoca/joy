@@ -24,15 +24,25 @@ type ApplicationSpec struct {
 }
 
 type ApplicationSource struct {
-	RepoURL        string     `json:"repoURL"`
-	TargetRevision string     `json:"targetRevision"`
-	Chart          string     `json:"chart"`
-	Helm           SourceHelm `json:"helm"`
+	RepoURL        string          `json:"repoURL"`
+	TargetRevision string          `json:"targetRevision"`
+	Chart          string          `json:"chart"`
+	Helm           SourceHelm      `json:"helm"`
+	Directory      SourceDirectory `json:"directory,omitzero"`
 }
 
 type SourceHelm struct {
 	ReleaseName string `json:"releaseName"`
 	Values      string `json:"values"`
+}
+
+type SourceDirectory struct {
+	// Recurse specifies whether to scan a directory recursively for manifests
+	Recurse bool `json:"recurse,omitempty"`
+	// Exclude contains a glob pattern to match paths against that should be explicitly excluded from being used during manifest generation
+	Exclude string `json:"exclude,omitempty"`
+	// Include contains a glob pattern to match paths against that should be explicitly included during manifest generation
+	Include string `json:"include,omitempty"`
 }
 
 type ApplicationDestination struct {
