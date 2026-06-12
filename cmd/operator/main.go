@@ -85,6 +85,7 @@ func run() (err error) {
 	e := make(chan error, 2)
 
 	wg.Go(func() {
+		logger.Info("starting controller")
 		if err := controller.Run(ctx); err != nil {
 			e <- err
 		}
@@ -104,6 +105,7 @@ func run() (err error) {
 
 		serverErr := make(chan error)
 		go func() {
+			logger.Info("starting server")
 			if err := svr.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				serverErr <- err
 			}
