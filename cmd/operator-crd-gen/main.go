@@ -85,6 +85,8 @@ func run() error {
 			},
 		},
 	} {
+		crd.SetAnnotations(map[string]string{"helm.sh/resource-policy": "keep"})
+
 		raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&crd)
 		if err != nil {
 			return fmt.Errorf("failed to convert %s unstructured format: %w", crd.Name, err)
