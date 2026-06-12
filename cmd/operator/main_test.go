@@ -23,40 +23,26 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
-	if err := withStdio(exec.Command("kind", "delete", "cluster", "--name=joy-operator")).Run(); err != nil {
-		panic(err)
-	}
+	must(withStdio(exec.Command("kind", "delete", "cluster", "--name=joy-operator")).Run())
+	must(withStdio(exec.Command("kind", "create", "cluster", "--name=joy-operator")).Run())
+	must(withStdio(exec.Command("docker", "build", "--tag=joy-operator:test", "../..")).Run())
+	must(withStdio(exec.Command("kind", "load", "docker-image", "joy-operator:test", "--name=joy-operator")).Run())
 
-	if err := withStdio(exec.Command("kind", "create", "cluster", "--name=joy-operator")).Run(); err != nil {
-		panic(err)
-	}
+	must(
+		withStdio(
+			exec.Command(
+				"helm",
+				"install",
+				"joy-operator",
+				"../../chart",
+				"--set=image=joy-operator",
+				"--set=version=test",
+				"--set=argocd.namespace=default",
+			),
+		).Run(),
+	)
 
-	if err := withStdio(exec.Command("docker", "build", "--tag=joy-operator:test", "../..")).Run(); err != nil {
-		panic(err)
-	}
-
-	if err := withStdio(exec.Command("kind", "load", "docker-image", "joy-operator:test", "--name=joy-operator")).Run(); err != nil {
-		panic(err)
-	}
-
-	if err := withStdio(
-		exec.Command(
-			"helm",
-			"install",
-			"joy-operator",
-			"../../chart",
-			"--set=image=joy-operator",
-			"--set=version=test",
-			"--set=argocd.namespace=default",
-		),
-	).Run(); err != nil {
-		panic(err)
-	}
-
-	client, err := getKubeClient()
-	if err != nil {
-		panic(err)
-	}
+	client := must2(getKubeClient())
 
 	crdIntf := k8s.TypedInterface[apiextensionsv1.CustomResourceDefinition](client.Dynamic, schema.GroupVersionResource{
 		Group:    "apiextensions.k8s.io",
@@ -64,14 +50,12 @@ func TestMain(m *testing.M) {
 		Resource: "customresourcedefinitions",
 	})
 
-	if _, err := crdIntf.Apply(context.Background(), argocd.ApplicationCRD, metav1.ApplyOptions{FieldManager: "operator-tests"}); err != nil {
-		panic(err)
-	}
+	must2(crdIntf.Apply(context.Background(), argocd.ApplicationCRD, metav1.ApplyOptions{FieldManager: "operator-tests"}))
 
-	fmt.Println("waiting for application crd to become ready")
-	// TODO: when yoke exposes its WaitForReady function on the kubernetes client we could use that instead.
-	// For now we can use a lazy sleep style.
-	time.Sleep(2 * time.Second)
+	must(k8s.WaitForReady(context.Background(), client, argocd.ApplicationCRD, k8s.WaitOptions{
+		Timeout:  5 * time.Second,
+		Interval: 250 * time.Millisecond,
+	}))
 
 	os.Exit(m.Run())
 }
@@ -93,4 +77,15 @@ func getKubeClient() (*k8s.Client, error) {
 		return nil, fmt.Errorf("failed to construct kuberentes rest config: %w", err)
 	}
 	return k8s.NewClient(cfg)
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func must2[T any](value T, err error) T {
+	must(err)
+	return value
 }
