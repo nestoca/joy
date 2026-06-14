@@ -1,0 +1,130 @@
+{{- $release := .Release.Name -}}
+{{- $releaseNamespace := .Release.Namespace -}}
+
+---
+# Environments are cluster-scoped, so the operator needs cluster-wide access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $release }}-environments
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+rules:
+  - apiGroups: ["joy.nesto.ca"]
+    resources: ["environments"]
+    verbs: ["get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["joy.nesto.ca"]
+    resources: ["environments/status", "environments/finalizers"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $release }}-environments
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $release }}-environments
+subjects:
+  - kind: ServiceAccount
+    name: {{ $release }}
+    namespace: {{ $releaseNamespace }}
+---
+# Releases can be reconciled cluster-wide (default) or restricted to a list of
+# namespaces via .Values.rbac.releases.namespaces. The ClusterRole is reused
+# in either case; only the binding shape changes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $release }}-releases
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+rules:
+  - apiGroups: ["joy.nesto.ca"]
+    resources: ["releases"]
+    verbs: ["get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["joy.nesto.ca"]
+    resources: ["releases/status", "releases/finalizers"]
+    verbs: ["get", "update", "patch"]
+{{- if not .Values.rbac.releases.namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $release }}-releases
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $release }}-releases
+subjects:
+  - kind: ServiceAccount
+    name: {{ $release }}
+    namespace: {{ $releaseNamespace }}
+{{- else }}
+{{- range $ns := .Values.rbac.releases.namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $release }}-releases
+  namespace: {{ $ns }}
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $release }}-releases
+subjects:
+  - kind: ServiceAccount
+    name: {{ $release }}
+    namespace: {{ $releaseNamespace }}
+{{- end }}
+{{- end }}
+---
+# Argoproj Applications are managed only in the argocd namespace. We use a
+# ClusterRole bound via a RoleBinding scoped to that single namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $release }}-applications
+  namespace: {{ .Values.argocd.namespace }}
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $release }}-applications
+  namespace: {{ .Values.argocd.namespace }}
+  labels:
+    {{- if .Values.commonLabels }}
+    {{- toYaml .Values.commonLabels | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $release }}-applications
+subjects:
+  - kind: ServiceAccount
+    name: {{ $release }}
+    namespace: {{ $releaseNamespace }}

@@ -1,0 +1,31 @@
+image: oci://ghcr.io/joy-operator
+version: latest
+
+commonLabels: {}
+
+# RBAC settings. The operator needs:
+#   - cluster-wide access to environments.joy.nesto.ca (cluster-scoped CRD)
+#   - access to applications.argoproj.io in the argocd namespace
+#   - access to releases.joy.nesto.ca across configured namespaces
+rbac:
+  releases:
+    # Namespaces in which the operator may manage releases.joy.nesto.ca.
+    # Empty list = cluster-wide (ClusterRoleBinding). Otherwise one RoleBinding
+    # is created per namespace listed.
+    namespaces: []
+
+# Namespace where argoproj Applications live and are managed.
+argocd:
+  namespace: argocd
+
+resources: {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

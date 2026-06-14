@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/davidmdm/x/xerr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
@@ -14,14 +15,7 @@ import (
 const EnvironmentKind = "Environment"
 
 type EnvironmentMetadata struct {
-	// Name is the name of the environment.
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
-
-	// Labels is the list of labels for the environment.
-	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-
-	// Annotations is the list of annotations for the environment.
-	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	metav1.ObjectMeta `yaml:",inline"`
 
 	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
 	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`

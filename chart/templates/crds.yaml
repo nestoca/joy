@@ -1,0 +1,128 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: releases.joy.nesto.ca
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/resource-policy: keep
+spec:
+  group: joy.nesto.ca
+  names:
+    kind: Release
+    listKind: Releases
+    plural: releases
+    shortNames:
+      - rel
+    singular: release
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                chart:
+                  properties:
+                    mappings:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    name:
+                      type: string
+                    ref:
+                      type: string
+                    repoUrl:
+                      type: string
+                    version:
+                      type: string
+                  type: object
+                links:
+                  additionalProperties:
+                    type: string
+                  type: object
+                namespace:
+                  type: string
+                project:
+                  type: string
+                values:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                version:
+                  type: string
+              required:
+                - chart
+              type: object
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: environments.joy.nesto.ca
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/resource-policy: keep
+spec:
+  group: joy.nesto.ca
+  names:
+    kind: Environment
+    listKind: Environments
+    plural: environments
+    shortNames:
+      - env
+    singular: environment
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                chartVersions:
+                  additionalProperties:
+                    type: string
+                  type: object
+                cluster:
+                  type: string
+                namespace:
+                  type: string
+                order:
+                  type: integer
+                organization:
+                  type: string
+                owners:
+                  items:
+                    type: string
+                  type: array
+                promotion:
+                  properties:
+                    allowAutoMerge:
+                      type: boolean
+                    fromEnvironments:
+                      items:
+                        type: string
+                      type: array
+                    fromPullRequests:
+                      type: boolean
+                  type: object
+                sealedSecretsCert:
+                  type: string
+                values:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+              required:
+                - promotion
+              type: object
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true

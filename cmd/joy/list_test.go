@@ -105,13 +105,20 @@ func TestList_Environments(t *testing.T) {
 		var buf bytes.Buffer
 		require.NoError(t, environment.Render(cat, &buf, formatting.FormatJson))
 		require.Equal(t, []string{"qa", "staging"}, environmentNamesFromJSONInOrder(t, buf.String()))
-		var envs []*v1alpha1.Environment
+		type E struct {
+			Metadata struct {
+				Name         string `json:"name"`
+				RelativePath string `json:"relativePath"`
+				AbsolutePath string `json:"absolutePath"`
+			} `json:"metadata"`
+		}
+		var envs []E
 		require.NoError(t, json.Unmarshal(buf.Bytes(), &envs))
 		root := getCatalogDir(t)
 		for _, e := range envs {
-			wantRel := filepath.Join(e.Name, "env.yaml")
-			require.Equal(t, wantRel, e.RelativePath, "env %s", e.Name)
-			require.Equal(t, filepath.Join(root, wantRel), e.AbsolutePath, "env %s", e.Name)
+			wantRel := filepath.Join(e.Metadata.Name, "env.yaml")
+			require.Equal(t, wantRel, e.Metadata.RelativePath, "env %s", e.Metadata.Name)
+			require.Equal(t, filepath.Join(root, wantRel), e.Metadata.AbsolutePath, "env %s", e.Metadata.Name)
 		}
 	})
 
