@@ -18,10 +18,10 @@ type ReleaseMetadata struct {
 	metav1.ObjectMeta `yaml:",inline"`
 
 	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
-	RelativePath string `yaml:"-" json:"-"`
+	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`
 
 	// AbsolutePath is the absolute path to this resource's yaml file (set only for list JSON/YAML output).
-	AbsolutePath string `yaml:"-" json:"-"`
+	AbsolutePath string `yaml:"absolutePath,omitempty" json:"absolutePath,omitempty"`
 }
 
 type ReleaseChart struct {
