@@ -172,9 +172,11 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 		})
 	}
 
-	releaseInfo.RelatedPullRequests, err = opts.infoProvider.GetRelatedPullRequests(targetRelease)
-	if err != nil {
-		return nil, fmt.Errorf("listing related pull requests for release %s: %w", sourceRelease.Name, err)
+	if targetRelease != nil {
+		releaseInfo.RelatedPullRequests, err = opts.infoProvider.GetRelatedPullRequests(targetRelease)
+		if err != nil {
+			return nil, fmt.Errorf("listing related pull requests for release %s: %w", sourceRelease.Name, err)
+		}
 	}
 	return &releaseInfo, nil
 }
