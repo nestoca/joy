@@ -1,3 +1,11 @@
+## [0.87.10](https://github.com/nestoca/joy/compare/v0.87.9...v0.87.10) (2026-06-16)
+
+
+### Bug Fixes
+
+* **PL-6101:** use upstream TriPSs/conventional-changelog-action ([eaf9c60](https://github.com/nestoca/joy/commit/eaf9c6033df7934ee65992c90f11683daada0ad9))
+* **PL-6199:** guard target release get related pull requests ([717cccf](https://github.com/nestoca/joy/commit/717cccf35671efbf40d68cdaa00690821e2d02e2))
+
 ## [0.87.9](https://github.com/nestoca/joy/compare/v0.87.8...v0.87.9) (2026-06-03)
 
 ## [0.87.8](https://github.com/nestoca/joy/compare/v0.87.7...v0.87.8) (2026-06-01)
