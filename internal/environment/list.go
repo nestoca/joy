@@ -34,6 +34,8 @@ func Render(cat *catalog.Catalog, writer io.Writer, format formatting.Format) er
 		return formatting.RenderAbsolutePaths(writer, environmentFilePaths(cat.Environments))
 	case formatting.FormatTable:
 		return renderTable(cat, writer)
+	case formatting.FormatHTML:
+		return renderHTML(cat, writer)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
@@ -66,20 +68,27 @@ func environmentFilePaths(envs []*v1alpha1.Environment) []string {
 }
 
 func renderTable(cat *catalog.Catalog, writer io.Writer) error {
+	if _, err := io.WriteString(writer, buildEnvironmentTable(cat).Render()+"\n"); err != nil {
+		return fmt.Errorf("writing environment list as table: %w", err)
+	}
+	return nil
+}
+
+func renderHTML(cat *catalog.Catalog, writer io.Writer) error {
+	if _, err := io.WriteString(writer, buildEnvironmentTable(cat).RenderHTML()+"\n"); err != nil {
+		return fmt.Errorf("writing environment list as HTML: %w", err)
+	}
+	return nil
+}
+
+func buildEnvironmentTable(cat *catalog.Catalog) table.Writer {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleRounded)
-
 	t.AppendHeader(table.Row{"NAME", "OWNERS"})
 
 	for _, env := range cat.Environments {
 		owners := strings.Join(env.Spec.Owners, " ")
 		t.AppendRow(table.Row{env.Name, owners})
 	}
-
-	rendered := t.Render()
-	_, err := io.WriteString(writer, rendered+"\n")
-	if err != nil {
-		return fmt.Errorf("writing environment list as table: %w", err)
-	}
-	return nil
+	return t
 }

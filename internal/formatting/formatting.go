@@ -14,6 +14,7 @@ type Format string
 
 const (
 	FormatTable    Format = "table"
+	FormatHTML     Format = "html"
 	FormatJson     Format = "json"
 	FormatYaml     Format = "yaml"
 	FormatNames    Format = "names"
@@ -83,5 +84,5 @@ func RenderAbsolutePaths(writer io.Writer, absFilePaths []string) error {
 
 // AddFormatFlag registers --format / -f for render format (table, json, yaml, names, rel-paths, abs-paths).
 func AddFormatFlag(cmd *cobra.Command, format *Format) {
-	cmd.Flags().StringVarP((*string)(format), "format", "f", string(FormatTable), "output format, one of: table, json, yaml, names, rel-paths, abs-paths")
+	cmd.Flags().StringVarP((*string)(format), "format", "f", string(FormatTable), "output format, one of: table, html, json, yaml, names, rel-paths, abs-paths")
 }

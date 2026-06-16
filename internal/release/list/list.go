@@ -185,6 +185,8 @@ func Render(writer io.Writer, catalogDir string, releaseList ReleaseList, format
 		return formatting.RenderAbsolutePaths(writer, releaseFilePaths(releaseList))
 	case formatting.FormatTable:
 		return renderTable(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
+	case formatting.FormatHTML:
+		return renderHTML(writer, releaseList, releaseList.ReferenceEnvironment, maxColumnWidth)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
@@ -229,31 +231,8 @@ func renderNames(writer io.Writer, releaseList ReleaseList) error {
 }
 
 func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment string, maxColumnWidth int) error {
-	t := table.NewWriter()
-	t.SetStyle(table.StyleRounded)
-
-	headers := table.Row{"NAME"}
-	for _, env := range releaseList.Environments {
-		headers = append(headers, strings.ToUpper(env))
-	}
-	t.AppendHeader(headers)
-
-	for _, release := range releaseList.CrossReleases {
-		row := table.Row{release.Name}
-		for _, version := range release.Releases {
-			displayVersion := version.DisplayVersion
-			if maxColumnWidth != 0 && len(version.DisplayVersion) > maxColumnWidth {
-				displayVersion = displayVersion[:maxColumnWidth-3] + "..."
-			}
-			displayVersion = colorizeVersion(displayVersion, version.Status)
-			row = append(row, displayVersion)
-		}
-		t.AppendRow(row)
-	}
-
-	rendered := t.Render()
-	_, err := io.WriteString(writer, rendered+"\n")
-	if err != nil {
+	t := buildReleaseTable(releaseList, maxColumnWidth, true)
+	if _, err := io.WriteString(writer, t.Render()+"\n"); err != nil {
 		return fmt.Errorf("writing release list as table: %w", err)
 	}
 
@@ -271,6 +250,55 @@ func renderTable(writer io.Writer, releaseList ReleaseList, referenceEnvironment
 	}
 
 	return nil
+}
+
+func renderHTML(writer io.Writer, releaseList ReleaseList, referenceEnvironment string, maxColumnWidth int) error {
+	t := buildReleaseTable(releaseList, maxColumnWidth, false)
+	if _, err := io.WriteString(writer, t.RenderHTML()+"\n"); err != nil {
+		return fmt.Errorf("writing release list as HTML: %w", err)
+	}
+
+	legend := table.NewWriter()
+	legend.AppendRow(table.Row{
+		"Reference Environment: " + referenceEnvironment,
+		"Pre-Release (PR)",
+		"Behind",
+		"Ahead",
+		"In-Sync",
+	})
+	if _, err := io.WriteString(writer, legend.RenderHTML()+"\n"); err != nil {
+		return fmt.Errorf("writing release list legend as HTML: %w", err)
+	}
+
+	return nil
+}
+
+func buildReleaseTable(releaseList ReleaseList, maxColumnWidth int, colorize bool) table.Writer {
+	t := table.NewWriter()
+	t.SetStyle(table.StyleRounded)
+
+	headers := table.Row{"NAME"}
+	for _, env := range releaseList.Environments {
+		headers = append(headers, strings.ToUpper(env))
+	}
+	t.AppendHeader(headers)
+
+	for _, release := range releaseList.CrossReleases {
+		row := table.Row{release.Name}
+		for _, version := range release.Releases {
+			displayVersion := version.DisplayVersion
+			if maxColumnWidth != 0 && len(version.DisplayVersion) > maxColumnWidth {
+				displayVersion = displayVersion[:maxColumnWidth-3] + "..."
+			}
+			if colorize {
+				displayVersion = colorizeVersion(displayVersion, version.Status)
+			}
+			row = append(row, displayVersion)
+		}
+		t.AppendRow(row)
+	}
+
+	return t
 }
 
 const (

@@ -143,6 +143,19 @@ func TestList_Environments(t *testing.T) {
 		require.Contains(t, plain, "staging")
 	})
 
+	t.Run("html", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, environment.Render(cat, &buf, formatting.FormatHTML))
+		out := buf.String()
+		require.Contains(t, out, "<table")
+		require.Contains(t, out, "</table>")
+		require.Contains(t, out, "<th")
+		require.Contains(t, out, "NAME")
+		require.Contains(t, out, "OWNERS")
+		require.Contains(t, out, "qa")
+		require.Contains(t, out, "staging")
+	})
+
 	t.Run("rel-paths", func(t *testing.T) {
 		var buf bytes.Buffer
 		require.NoError(t, environment.Render(cat, &buf, formatting.FormatRelPaths))
@@ -207,6 +220,19 @@ func TestList_Projects(t *testing.T) {
 		require.Contains(t, plain, "service1")
 		require.Contains(t, plain, "service2")
 		require.Contains(t, plain, "service3")
+	})
+
+	t.Run("html", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, project.Render(cat, &buf, formatting.FormatHTML))
+		out := buf.String()
+		require.Contains(t, out, "<table")
+		require.Contains(t, out, "</table>")
+		require.Contains(t, out, "NAME")
+		require.Contains(t, out, "OWNERS")
+		require.Contains(t, out, "service1")
+		require.Contains(t, out, "service2")
+		require.Contains(t, out, "service3")
 	})
 
 	t.Run("rel-paths", func(t *testing.T) {
@@ -312,6 +338,22 @@ func TestList_Releases_SingleEnvironmentFlatJSON(t *testing.T) {
 		require.Contains(t, plain, "service3")
 		require.Contains(t, plain, "3.4.5")
 		require.Contains(t, plain, "Reference Environment:")
+	})
+
+	t.Run("html", func(t *testing.T) {
+		var buf bytes.Buffer
+		require.NoError(t, list.Render(&buf, cat.Dir, rl, formatting.FormatHTML, 0))
+		out := buf.String()
+		require.Contains(t, out, "<table")
+		require.Contains(t, out, "</table>")
+		require.Contains(t, out, "NAME")
+		require.Contains(t, out, "STAGING")
+		require.Contains(t, out, "service1")
+		require.Contains(t, out, "1.2.3")
+		require.Contains(t, out, "service3")
+		require.Contains(t, out, "3.4.5")
+		require.Contains(t, out, "Reference Environment:")
+		require.NotContains(t, out, "\x1b[", "HTML output should not contain ANSI escape sequences")
 	})
 }
 
