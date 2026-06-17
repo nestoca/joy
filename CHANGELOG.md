@@ -1,3 +1,10 @@
+## [0.89.0](https://github.com/nestoca/joy/compare/v0.88.1...v0.89.0) (2026-06-17)
+
+
+### Features
+
+* **PL-6131:** make Project CR operator compatible with apimachinery meta ([95510f3](https://github.com/nestoca/joy/commit/95510f346a3b6fb7d4fa4b1eb9fdfd9e26fd1469))
+
 ## [0.88.1](https://github.com/nestoca/joy/compare/v0.88.0...v0.88.1) (2026-06-17)
 
 ## [0.88.0](https://github.com/nestoca/joy/compare/v0.87.10...v0.88.0) (2026-06-17)
