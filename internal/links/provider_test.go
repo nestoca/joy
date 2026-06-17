@@ -78,9 +78,7 @@ func TestGetProjectLinks(t *testing.T) {
 	}
 
 	project := &v1alpha1.Project{
-		ProjectMetadata: v1alpha1.ProjectMetadata{
-			Name: "my-project",
-		},
+		ProjectMetadata: v1alpha1.ProjectMetadata{ObjectMeta: metav1.ObjectMeta{Name: "my-project"}},
 	}
 
 	for _, tc := range cases {
@@ -161,9 +159,7 @@ func TestGetReleaseLinks(t *testing.T) {
 		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}},
 	}
 	project := &v1alpha1.Project{
-		ProjectMetadata: v1alpha1.ProjectMetadata{
-			Name: "my-project",
-		},
+		ProjectMetadata: v1alpha1.ProjectMetadata{ObjectMeta: metav1.ObjectMeta{Name: "my-project"}},
 	}
 	rel := &v1alpha1.Release{
 		ReleaseMetadata: v1alpha1.ReleaseMetadata{

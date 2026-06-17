@@ -394,12 +394,8 @@ func newEnvironments() []*v1alpha1.Environment {
 }
 
 var dummyProject = &v1alpha1.Project{
-	ProjectMetadata: v1alpha1.ProjectMetadata{
-		Name: "project1",
-	},
-	Spec: v1alpha1.ProjectSpec{
-		Repository: "owner/project1",
-	},
+	ProjectMetadata: v1alpha1.ProjectMetadata{ObjectMeta: metav1.ObjectMeta{Name: "project1"}},
+	Spec:            v1alpha1.ProjectSpec{Repository: "owner/project1"},
 }
 
 func newRelease(name, specYaml, envName string) *v1alpha1.Release {
