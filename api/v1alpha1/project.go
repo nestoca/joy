@@ -11,7 +11,7 @@ import (
 const ProjectKind = "Project"
 
 type ProjectMetadata struct {
-	metav1.ObjectMeta `yaml:",inline" json:"metadata"`
+	metav1.ObjectMeta `yaml:",inline"`
 
 	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
 	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`
