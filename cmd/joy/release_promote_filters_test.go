@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
@@ -255,7 +256,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 					return nil
 				}
 				return &v1alpha1.Release{
-					ReleaseMetadata: v1alpha1.ReleaseMetadata{Name: release.Name},
+					ReleaseMetadata: v1alpha1.ReleaseMetadata{ObjectMeta: metav1.ObjectMeta{Name: release.Name}},
 					Environment:     env,
 					File:            makeFile(t, filepath.Join(env.Dir, file.Path), file.Content),
 					Project:         &v1alpha1.Project{},
@@ -268,11 +269,11 @@ func TestReleasePromoteFilters(t *testing.T) {
 			require.NoError(t, err)
 
 			source := &v1alpha1.Environment{
-				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "source"},
+				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "source"}},
 				Dir:                 filepath.Join(cwd, "source"),
 			}
 			target := &v1alpha1.Environment{
-				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "target"},
+				EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "target"}},
 				Spec: v1alpha1.EnvironmentSpec{
 					Promotion: v1alpha1.Promotion{
 						FromEnvironments: []string{source.Name},

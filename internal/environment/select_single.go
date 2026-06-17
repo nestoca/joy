@@ -29,11 +29,12 @@ func SelectSingle(environments []*v1alpha1.Environment, current *v1alpha1.Enviro
 	}
 
 	// Prompt user to select environment
-	err := survey.AskOne(&survey.Select{
-		Message: message,
-		Options: envNames,
-		Default: selectedIndex,
-	},
+	err := survey.AskOne(
+		&survey.Select{
+			Message: message,
+			Options: envNames,
+			Default: selectedIndex,
+		},
 		&selectedIndex,
 		survey.WithPageSize(10),
 		survey.WithValidator(survey.Required),

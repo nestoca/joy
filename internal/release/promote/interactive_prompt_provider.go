@@ -39,10 +39,11 @@ const (
 
 func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
 	var index int
-	err := survey.AskOne(&survey.Select{
-		Message: "Select source promotion environment",
-		Options: v1alpha1.GetEnvironmentNames(environments),
-	},
+	err := survey.AskOne(
+		&survey.Select{
+			Message: "Select source promotion environment",
+			Options: v1alpha1.GetEnvironmentNames(environments),
+		},
 		&index,
 		survey.WithPageSize(10),
 	)
@@ -54,10 +55,11 @@ func (i *InteractivePromptProvider) SelectSourceEnvironment(environments []*v1al
 
 func (i *InteractivePromptProvider) SelectTargetEnvironment(environments []*v1alpha1.Environment) (*v1alpha1.Environment, error) {
 	var index int
-	err := survey.AskOne(&survey.Select{
-		Message: "Select target promotion environment",
-		Options: v1alpha1.GetEnvironmentNames(environments),
-	},
+	err := survey.AskOne(
+		&survey.Select{
+			Message: "Select target promotion environment",
+			Options: v1alpha1.GetEnvironmentNames(environments),
+		},
 		&index,
 		survey.WithPageSize(10),
 	)
