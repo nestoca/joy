@@ -1,6 +1,7 @@
 package promote
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -125,6 +126,74 @@ func TestGetReleaseInfo(t *testing.T) {
 			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
 				require.NoError(t, err)
 				require.True(t, releaseInfo.ValuesChanged)
+			},
+		},
+		{
+			Name:  "GetCommitsMetadata failure preserves version and tag fields",
+			Cross: &cross.Release{},
+			Source: &v1alpha1.Release{
+				Project: &v1alpha1.Project{},
+				Spec:    v1alpha1.ReleaseSpec{Version: "1.0.1"},
+			},
+			Target: &v1alpha1.Release{
+				Spec: v1alpha1.ReleaseSpec{Version: "1.0.0"},
+			},
+			Opts: PerformOpts{
+				infoProvider: &info.ProviderMock{
+					GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
+						return "api/v" + release.Spec.Version, nil
+					},
+					GetProjectSourceDirFunc: func(_ *v1alpha1.Project) (string, error) {
+						return "/some/dir", nil
+					},
+					GetCommitsMetadataFunc: func(_, _, _ string) ([]*info.CommitMetadata, error) {
+						return nil, errors.New("fatal: ambiguous argument 'api/v1.0.0..api/v1.0.1'")
+					},
+				},
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.NotNil(t, releaseInfo)
+				require.Error(t, releaseInfo.Error)
+				require.Equal(t, "api/v1.0.1", releaseInfo.Source.GitTag)
+				require.Equal(t, "api/v1.0.0", releaseInfo.Target.GitTag)
+				require.Equal(t, "1.0.1", releaseInfo.Source.DisplayVersion)
+				require.Equal(t, "1.0.0", releaseInfo.Target.DisplayVersion)
+			},
+		},
+		{
+			Name:  "GetCommitsGitHubAuthors failure preserves version and tag fields",
+			Cross: &cross.Release{},
+			Source: &v1alpha1.Release{
+				Project: &v1alpha1.Project{},
+				Spec:    v1alpha1.ReleaseSpec{Version: "1.0.1"},
+			},
+			Target: &v1alpha1.Release{
+				Spec: v1alpha1.ReleaseSpec{Version: "1.0.0"},
+			},
+			Opts: PerformOpts{
+				infoProvider: &info.ProviderMock{
+					GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
+						return "api/v" + release.Spec.Version, nil
+					},
+					GetProjectSourceDirFunc: func(_ *v1alpha1.Project) (string, error) {
+						return "/some/dir", nil
+					},
+					GetCommitsGitHubAuthorsFunc: func(_ *v1alpha1.Project, _, _ string) (map[string]string, error) {
+						return nil, errors.New("getting commits GitHub authors: HTTP 422")
+					},
+				},
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.NotNil(t, releaseInfo)
+				require.Error(t, releaseInfo.Error)
+				require.Equal(t, "api/v1.0.1", releaseInfo.Source.GitTag)
+				require.Equal(t, "api/v1.0.0", releaseInfo.Target.GitTag)
+				require.Equal(t, "1.0.1", releaseInfo.Source.DisplayVersion)
+				require.Equal(t, "1.0.0", releaseInfo.Target.DisplayVersion)
 			},
 		},
 	}
