@@ -1,3 +1,10 @@
+## [0.88.0](https://github.com/nestoca/joy/compare/v0.87.10...v0.88.0) (2026-06-17)
+
+
+### Features
+
+* **PL-6131:** use apimachinery ObjectMeta for operator compatibility ([92d06ef](https://github.com/nestoca/joy/commit/92d06efd0ccb792f936a6c9e872ec3aa0f9862ef))
+
 ## [0.87.10](https://github.com/nestoca/joy/compare/v0.87.9...v0.87.10) (2026-06-16)
 
 
