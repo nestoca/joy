@@ -36,7 +36,7 @@ func (b *Builder) AddEnvironment(name string, f func(e *v1alpha1.Environment)) *
 
 func (b *Builder) AddProject(name string, f func(p *v1alpha1.Project)) *v1alpha1.Project {
 	project := v1alpha1.Project{
-		ProjectMetadata: v1alpha1.ProjectMetadata{Name: name},
+		ProjectMetadata: v1alpha1.ProjectMetadata{ObjectMeta: metav1.ObjectMeta{Name: name}},
 	}
 	if f != nil {
 		f(&project)

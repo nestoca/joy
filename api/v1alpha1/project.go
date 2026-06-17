@@ -5,19 +5,13 @@ import (
 
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ProjectKind = "Project"
 
 type ProjectMetadata struct {
-	// Name is the name of the project.
-	Name string `yaml:"name,omitempty" json:"name,omitempty"`
-
-	// Labels is the list of labels for the project.
-	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-
-	// Annotations is the list of annotations for the project.
-	Annotations map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+	metav1.ObjectMeta `yaml:",inline" json:"metadata"`
 
 	// RelativePath is the catalog-relative path to this resource's yaml file (set only for list JSON/YAML output).
 	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty"`
