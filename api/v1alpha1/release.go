@@ -56,7 +56,7 @@ type ReleaseSpec struct {
 	Version string `yaml:"version,omitempty" json:"version,omitempty"`
 
 	// Chart is the chart that the release is based on.
-	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart"`
+	Chart ReleaseChart `yaml:"chart,omitempty" json:"chart,omitzero"`
 
 	// Namespace is the namespace that the release is deployed to.
 	Namespace string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
