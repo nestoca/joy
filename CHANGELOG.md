@@ -1,3 +1,11 @@
+## [0.89.1](https://github.com/nestoca/joy/compare/v0.89.0...v0.89.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **PL-6131:** fix release.chart by making it optional for operator compat ([800d029](https://github.com/nestoca/joy/commit/800d029e8dcc3728282fd82d5b89d242490c8620))
+* **PL-6131:** remove json tag on embedded objectmeta in projects ([a98d7d4](https://github.com/nestoca/joy/commit/a98d7d4983d6f23e37a85a227ac308a27dda4ec4))
+
 ## [0.89.0](https://github.com/nestoca/joy/compare/v0.88.1...v0.89.0) (2026-06-17)
 
 
