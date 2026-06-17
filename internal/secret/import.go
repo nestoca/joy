@@ -98,10 +98,11 @@ func selectKubeContext() (string, error) {
 
 	// Prompt user to select a context
 	var selectedIndex int
-	err = survey.AskOne(&survey.Select{
-		Message: "Select kube context of cluster to fetch seal secrets certificate from",
-		Options: contexts,
-	},
+	err = survey.AskOne(
+		&survey.Select{
+			Message: "Select kube context of cluster to fetch seal secrets certificate from",
+			Options: contexts,
+		},
 		&selectedIndex,
 		survey.WithPageSize(10),
 		survey.WithValidator(survey.Required),

@@ -15,6 +15,7 @@ import (
 	"github.com/acarl005/stripansi"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
@@ -194,9 +195,9 @@ func TestViewGitLog(t *testing.T) {
 			cmd.SetArgs([]string{"--source=source", "--target=target", "test"})
 
 			environments := []*v1alpha1.Environment{
-				{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "source"}},
+				{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "source"}}},
 				{
-					EnvironmentMetadata: v1alpha1.EnvironmentMetadata{Name: "target"},
+					EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "target"}},
 					Spec: v1alpha1.EnvironmentSpec{
 						Promotion: v1alpha1.Promotion{
 							FromEnvironments: []string{"source"},

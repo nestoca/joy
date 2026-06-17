@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 )
@@ -11,7 +12,7 @@ import (
 func newEnvironment(name string, promotable bool) *v1alpha1.Environment {
 	return &v1alpha1.Environment{
 		EnvironmentMetadata: v1alpha1.EnvironmentMetadata{
-			Name: name,
+			ObjectMeta: metav1.ObjectMeta{Name: name},
 		},
 		Spec: v1alpha1.EnvironmentSpec{
 			Promotion: v1alpha1.Promotion{

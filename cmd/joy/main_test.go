@@ -37,7 +37,8 @@ func executeRun(t *testing.T, params TestRunParams, catalogDir string) (string, 
 		"--skip-dev-check",
 	}
 	if !params.omitDirFlags {
-		args = append(args,
+		args = append(
+			args,
 			"--catalog-dir", catalogDir,
 			"--config-dir", catalogDir,
 		)
