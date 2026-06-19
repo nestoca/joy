@@ -12,8 +12,6 @@ import (
 	"github.com/nestoca/joy/internal/yml"
 )
 
-const ReleaseKind = "Release"
-
 type ReleaseMetadata struct {
 	metav1.ObjectMeta `yaml:",inline"`
 

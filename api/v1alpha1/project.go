@@ -8,8 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const ProjectKind = "Project"
-
 type ProjectMetadata struct {
 	metav1.ObjectMeta `yaml:",inline"`
 
