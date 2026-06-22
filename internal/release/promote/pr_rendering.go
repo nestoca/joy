@@ -152,7 +152,7 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 	gitHubAuthors, err := opts.infoProvider.GetCommitsGitHubAuthors(project, olderTag, newerTag)
 	if err != nil {
 		releaseInfo.Error = fmt.Errorf("getting GitHub authors: %w", err)
-		return &releaseInfo, nil
+		gitHubAuthors = nil
 	}
 
 	releaseInfo.Reviewers = project.Spec.Reviewers

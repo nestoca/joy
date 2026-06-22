@@ -163,7 +163,7 @@ func TestGetReleaseInfo(t *testing.T) {
 			},
 		},
 		{
-			Name:  "GetCommitsGitHubAuthors failure preserves version and tag fields",
+			Name:  "GetCommitsGitHubAuthors failure preserves version, tag, and commit list",
 			Cross: &cross.Release{},
 			Source: &v1alpha1.Release{
 				Project: &v1alpha1.Project{},
@@ -180,6 +180,11 @@ func TestGetReleaseInfo(t *testing.T) {
 					GetProjectSourceDirFunc: func(_ *v1alpha1.Project) (string, error) {
 						return "/some/dir", nil
 					},
+					GetCommitsMetadataFunc: func(_, _, _ string) ([]*info.CommitMetadata, error) {
+						return []*info.CommitMetadata{
+							{Sha: "abc1234", Author: "Alice", Message: "feat: add thing"},
+						}, nil
+					},
 					GetCommitsGitHubAuthorsFunc: func(_ *v1alpha1.Project, _, _ string) (map[string]string, error) {
 						return nil, errors.New("getting commits GitHub authors: HTTP 422")
 					},
@@ -194,6 +199,10 @@ func TestGetReleaseInfo(t *testing.T) {
 				require.Equal(t, "api/v1.0.0", releaseInfo.Target.GitTag)
 				require.Equal(t, "1.0.1", releaseInfo.Source.DisplayVersion)
 				require.Equal(t, "1.0.0", releaseInfo.Target.DisplayVersion)
+				require.Len(t, releaseInfo.Commits, 1)
+				require.Equal(t, "abc1234", releaseInfo.Commits[0].Sha)
+				require.Equal(t, "Alice", releaseInfo.Commits[0].Author)
+				require.Empty(t, releaseInfo.Commits[0].GitHubAuthor)
 			},
 		},
 	}
