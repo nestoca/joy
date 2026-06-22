@@ -1,3 +1,10 @@
+## [0.90.1](https://github.com/nestoca/joy/compare/v0.90.0...v0.90.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **PL-5471:** preserve release info when commit metadata lookup fails ([#280](https://github.com/nestoca/joy/issues/280)) ([cb491f8](https://github.com/nestoca/joy/commit/cb491f8be12d341b5741d37690911a0f75b85962))
+
 ## [0.90.0](https://github.com/nestoca/joy/compare/v0.89.2...v0.90.0) (2026-06-22)
 
 
