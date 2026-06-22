@@ -786,3 +786,20 @@ func TestOrgLocalMerge(t *testing.T) {
 	result = Merge(&dst, &src, false)
 	require.Equal(t, "not-found", FindNodeValueOrDefault(result, "jeans", "not-found"))
 }
+
+func TestOrgLocalPlusLockMerge(t *testing.T) {
+	var src, dst yaml.Node
+
+	require.NoError(t, yaml.Unmarshal([]byte(`{
+	  apple: bottom,
+	  jeans: !org-local+lock boots,
+	}`), &src))
+
+	require.NoError(t, yaml.Unmarshal([]byte(`{}`), &dst))
+
+	result := Merge(&dst, &src, true)
+	require.Equal(t, "TODO", FindNodeValueOrDefault(result, "jeans", "not-found"))
+
+	result = Merge(&dst, &src, false)
+	require.Equal(t, "not-found", FindNodeValueOrDefault(result, "jeans", "not-found"))
+}
