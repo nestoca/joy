@@ -1,3 +1,10 @@
+## [0.90.0](https://github.com/nestoca/joy/compare/v0.89.2...v0.90.0) (2026-06-22)
+
+
+### Features
+
+* **PL-6433:** introduce org-local+lock tag ([dc17f63](https://github.com/nestoca/joy/commit/dc17f63e14667a05f3cc7fa5edd32397ae9bdb25))
+
 ## [0.89.2](https://github.com/nestoca/joy/compare/v0.89.1...v0.89.2) (2026-06-22)
 
 ## [0.89.1](https://github.com/nestoca/joy/compare/v0.89.0...v0.89.1) (2026-06-17)
