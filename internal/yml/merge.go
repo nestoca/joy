@@ -159,15 +159,15 @@ func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
 }
 
 func IsLocked(node *yaml.Node) bool {
-	return node != nil && node.Tag == "!lock"
+	return node != nil && (node.Tag == TagLock || node.Tag == TagOrgLocalPlusLock)
 }
 
 func IsLocal(node *yaml.Node) bool {
-	return node != nil && node.Tag == "!local"
+	return node != nil && node.Tag == TagLocal
 }
 
 func IsOrgLocal(node *yaml.Node) bool {
-	return node != nil && node.Tag == "!org-local"
+	return node != nil && (node.Tag == TagOrgLocal || node.Tag == TagOrgLocalPlusLock)
 }
 
 type KeyValuePair struct {
