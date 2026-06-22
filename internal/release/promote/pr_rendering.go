@@ -145,12 +145,14 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 
 	commitsMetadata, err := opts.infoProvider.GetCommitsMetadata(projectDir, olderTag, newerTag)
 	if err != nil {
-		return nil, fmt.Errorf("getting commits metadata: %w", err)
+		releaseInfo.Error = fmt.Errorf("getting commits metadata: %w", err)
+		return &releaseInfo, nil
 	}
 
 	gitHubAuthors, err := opts.infoProvider.GetCommitsGitHubAuthors(project, olderTag, newerTag)
 	if err != nil {
-		return nil, fmt.Errorf("getting GitHub authors: %w", err)
+		releaseInfo.Error = fmt.Errorf("getting GitHub authors: %w", err)
+		gitHubAuthors = nil
 	}
 
 	releaseInfo.Reviewers = project.Spec.Reviewers
