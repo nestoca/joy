@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>nestoca/renovate-config",
+    "github>nestoca/renovate-config:internal-docker",
+    "github>nestoca/renovate-config:monthly-internal-gomod-bumps",
+    "github>nestoca/renovate-config:self-exclusion(joy)"
+  ]
+}
