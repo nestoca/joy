@@ -1,3 +1,10 @@
+## [0.91.0](https://github.com/nestoca/joy/compare/v0.90.1...v0.91.0) (2026-07-08)
+
+
+### Features
+
+* **NEXUS-1447:** adopt shared renovate-config preset (slim extends-only) ([#285](https://github.com/nestoca/joy/issues/285)) ([198a9bf](https://github.com/nestoca/joy/commit/198a9bf38b7d22a8b7b189dce6171d0ad2a34804))
+
 ## [0.90.1](https://github.com/nestoca/joy/compare/v0.90.0...v0.90.1) (2026-06-22)
 
 
