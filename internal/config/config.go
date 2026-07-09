@@ -12,14 +12,16 @@ import (
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/observability"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
 const (
-	CatalogConfigFile = "joy.yaml"
-	JoyrcFile         = ".joyrc"
-	JoyDefaultDir     = ".joy"
+	CatalogConfigFile   = "joy.yaml"
+	CatalogResourceFile = "catalog.yaml"
+	JoyrcFile           = ".joyrc"
+	JoyDefaultDir       = ".joy"
 )
 
 type User struct {
@@ -190,10 +192,19 @@ func Load(ctx context.Context, configDir, catalogDir string) (*Config, error) {
 
 	cfg.CatalogDir = cmp.Or(catalogDir, cfg.CatalogDir, filepath.Join(homeDir, JoyDefaultDir))
 
-	catalogConfigPath := filepath.Join(cfg.CatalogDir, CatalogConfigFile)
+	catalogResourcePath := filepath.Join(cfg.CatalogDir, CatalogResourceFile)
+	var catalogResource v1alpha1.Catalog
+	if err := LoadFile(catalogResourcePath, &catalogResource); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("loading catalog resource %s: %w", catalogResourcePath, err)
+	}
 
+	catalogConfigPath := filepath.Join(cfg.CatalogDir, CatalogConfigFile)
 	if err := LoadFile(catalogConfigPath, &cfg.Catalog); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("loading catalog config %s: %w", catalogConfigPath, err)
+	}
+
+	if err := MergeCatalogResourceIntoCatalogConfig(&cfg.Catalog, &catalogResource); err != nil {
+		return nil, fmt.Errorf("merging catalog resource into catalog config: %w", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -201,6 +212,19 @@ func Load(ctx context.Context, configDir, catalogDir string) (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func MergeCatalogResourceIntoCatalogConfig(catalogConfig *Catalog, catalogResource *v1alpha1.Catalog) error {
+	if catalogConfig.Charts == nil {
+		catalogConfig.Charts = make(map[string]helm.Chart)
+	}
+	for key, chart := range catalogResource.Spec.Charts.Refs {
+		catalogConfig.Charts[key] = chart
+	}
+	if catalogResource.Spec.Charts.Default != "" {
+		catalogConfig.DefaultChartRef = catalogResource.Spec.Charts.Default
+	}
+	return nil
 }
 
 func (cfg Config) Validate() error {
