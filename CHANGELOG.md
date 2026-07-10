@@ -1,3 +1,10 @@
+## [0.92.0](https://github.com/nestoca/joy/compare/v0.91.0...v0.92.0) (2026-07-10)
+
+
+### Features
+
+* **PL-6287:** extract config to catalog ([#284](https://github.com/nestoca/joy/issues/284)) ([3c0c772](https://github.com/nestoca/joy/commit/3c0c772b4c144937f3a02a0d4cbc3ca3fc368e42))
+
 ## [0.91.0](https://github.com/nestoca/joy/compare/v0.90.1...v0.91.0) (2026-07-08)
 
 
