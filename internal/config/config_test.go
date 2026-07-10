@@ -22,7 +22,7 @@ func TestMergeCatalogResourceIntoCatalogConfig(t *testing.T) {
 		expected         Catalog
 	}{
 		{
-			name: "catalog resource adds charts and default",
+			name: "catalog resource replaces charts and default",
 			catalogConfig: Catalog{
 				Charts: map[string]helm.Chart{
 					"joy-only": {
@@ -49,11 +49,6 @@ func TestMergeCatalogResourceIntoCatalogConfig(t *testing.T) {
 			},
 			expected: Catalog{
 				Charts: map[string]helm.Chart{
-					"joy-only": {
-						RepoURL: "joy.example.com",
-						Name:    "charts/joy-only",
-						Version: "1.0.0",
-					},
 					"catalog-chart": {
 						RepoURL: "catalog.example.com",
 						Name:    "charts/catalog",
@@ -131,7 +126,37 @@ func TestMergeCatalogResourceIntoCatalogConfig(t *testing.T) {
 			},
 		},
 		{
-			name:          "nil charts map is initialized from catalog resource",
+			name: "catalog resource default only leaves joy charts unchanged",
+			catalogConfig: Catalog{
+				Charts: map[string]helm.Chart{
+					"joy-only": {
+						RepoURL: "joy.example.com",
+						Name:    "charts/joy-only",
+						Version: "1.0.0",
+					},
+				},
+				DefaultChartRef: "joy-only",
+			},
+			catalogResource: v1alpha1.Catalog{
+				Spec: v1alpha1.CatalogSpec{
+					Charts: v1alpha1.CatalogCharts{
+						Default: "joy-only",
+					},
+				},
+			},
+			expected: Catalog{
+				Charts: map[string]helm.Chart{
+					"joy-only": {
+						RepoURL: "joy.example.com",
+						Name:    "charts/joy-only",
+						Version: "1.0.0",
+					},
+				},
+				DefaultChartRef: "joy-only",
+			},
+		},
+		{
+			name:          "nil joy charts map is replaced from catalog resource",
 			catalogConfig: Catalog{},
 			catalogResource: v1alpha1.Catalog{
 				Spec: v1alpha1.CatalogSpec{
@@ -269,11 +294,6 @@ spec:
 			expected: Catalog{
 				MinVersion: "v1.0.0",
 				Charts: map[string]helm.Chart{
-					"joy-only": {
-						RepoURL: "joy.example.com",
-						Name:    "charts/joy-only",
-						Version: "1.0.0",
-					},
 					"example-chart": {
 						RepoURL: "example.com",
 						Name:    "charts/generic",

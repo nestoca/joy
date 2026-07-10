@@ -215,14 +215,11 @@ func Load(ctx context.Context, configDir, catalogDir string) (*Config, error) {
 }
 
 func MergeCatalogResourceIntoCatalogConfig(catalogConfig *Catalog, catalogResource *v1alpha1.Catalog) error {
-	if catalogConfig.Charts == nil {
-		catalogConfig.Charts = make(map[string]helm.Chart)
+	if refs := catalogResource.Spec.Charts.Refs; refs != nil {
+		catalogConfig.Charts = refs
 	}
-	for key, chart := range catalogResource.Spec.Charts.Refs {
-		catalogConfig.Charts[key] = chart
-	}
-	if catalogResource.Spec.Charts.Default != "" {
-		catalogConfig.DefaultChartRef = catalogResource.Spec.Charts.Default
+	if defaultRef := catalogResource.Spec.Charts.Default; defaultRef != "" {
+		catalogConfig.DefaultChartRef = defaultRef
 	}
 	return nil
 }
