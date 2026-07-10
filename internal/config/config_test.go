@@ -200,21 +200,23 @@ func TestLoadCatalogConfig(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name     string
-		joyYAML  string
+		name        string
+		joyYAML     string
 		catalogYAML string
-		expected Catalog
+		expected    Catalog
 	}{
 		{
 			name: "joy.yaml only",
-			joyYAML: `
-charts:
-  joy-chart:
-    repoUrl: joy.example.com
-    name: charts/joy
-    version: 1.0.0
-defaultChartRef: joy-chart
-`,
+			joyYAML: `{
+				charts: {
+					joy-chart: {
+						repoUrl: "joy.example.com",
+						name: "charts/joy",
+						version: "1.0.0"
+					}
+				},
+				defaultChartRef: "joy-chart"
+			}`,
 			expected: Catalog{
 				Charts: map[string]helm.Chart{
 					"joy-chart": {
@@ -228,22 +230,28 @@ defaultChartRef: joy-chart
 		},
 		{
 			name: "catalog.yaml only",
-			catalogYAML: `
-apiVersion: joy.nesto.ca/v1alpha1
-kind: Catalog
-metadata:
-  name: catalog
-spec:
-  charts:
-    default: example-chart
-    refs:
-      example-chart:
-        repoUrl: example.com
-        name: charts/generic
-        version: 1.2.3
-        mappings:
-          key1: value1
-`,
+			catalogYAML: `{
+				apiVersion: joy.nesto.ca/v1alpha1,
+				kind: Catalog,
+				metadata: {
+					name: catalog
+				},
+				spec: {
+					charts: {
+						default: example-chart,
+						refs: {
+							example-chart: {
+								repoUrl: example.com,
+								name: charts/generic,
+								version: 1.2.3,
+								mappings: {
+									key1: value1
+								}
+							}
+						}
+					}
+				}
+			}`,
 			expected: Catalog{
 				Charts: map[string]helm.Chart{
 					"example-chart": {
@@ -260,37 +268,46 @@ spec:
 		},
 		{
 			name: "catalog.yaml takes priority over joy.yaml",
-			joyYAML: `
-charts:
-  shared:
-    repoUrl: joy.example.com
-    name: charts/from-joy
-    version: 1.0.0
-  joy-only:
-    repoUrl: joy.example.com
-    name: charts/joy-only
-    version: 1.0.0
-defaultChartRef: joy-only
-minVersion: v1.0.0
-`,
-			catalogYAML: `
-apiVersion: joy.nesto.ca/v1alpha1
-kind: Catalog
-metadata:
-  name: catalog
-spec:
-  charts:
-    default: example-chart
-    refs:
-      example-chart:
-        repoUrl: example.com
-        name: charts/generic
-        version: 1.2.3
-      shared:
-        repoUrl: catalog.example.com
-        name: charts/from-catalog
-        version: 2.0.0
-`,
+			joyYAML: `{
+				charts: {
+					shared: {
+						repoUrl: "joy.example.com",
+						name: "charts/from-joy",
+						version: "1.0.0"
+					},
+					joy-only: {
+						repoUrl: "joy.example.com",
+						name: "charts/joy-only",
+						version: "1.0.0"
+					}
+				},
+				defaultChartRef: "joy-only",
+				minVersion: "v1.0.0"
+			}`,
+			catalogYAML: `{
+				apiVersion: joy.nesto.ca/v1alpha1,
+				kind: Catalog,
+				metadata: {
+					name: catalog
+				},
+				spec: {
+					charts: {
+						default: example-chart,
+						refs: {
+							example-chart: {
+								repoUrl: example.com,
+								name: charts/generic,
+								version: 1.2.3
+							},
+							shared: {
+								repoUrl: catalog.example.com,
+								name: charts/from-catalog,
+								version: 2.0.0
+							}
+						}
+					}
+				}
+			}`,
 			expected: Catalog{
 				MinVersion: "v1.0.0",
 				Charts: map[string]helm.Chart{
