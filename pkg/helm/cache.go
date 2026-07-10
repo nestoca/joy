@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,6 +14,12 @@ import (
 	"github.com/davidmdm/x/xfs"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/helm"
+)
+
+type (
+	Chart   = helm.Chart
+	ChartFS = helm.ChartFS
 )
 
 type ChartCache struct {
@@ -22,35 +27,6 @@ type ChartCache struct {
 	DefaultChartRef string
 	Root            string
 	Puller
-}
-
-type Chart struct {
-	RepoURL  string         `yaml:"repoUrl"`
-	Name     string         `yaml:"name"`
-	Version  string         `yaml:"version"`
-	Mappings map[string]any `yaml:"mappings"`
-}
-
-func (chart Chart) ToURL() (*url.URL, error) {
-	uri, err := url.Parse(chart.RepoURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if uri.Scheme == "" {
-		uri.Scheme = "oci"
-		uri, err = url.Parse(uri.String())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return uri.JoinPath(chart.Name), nil
-}
-
-type ChartFS struct {
-	Chart
-	xfs.FS
 }
 
 func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error) {

@@ -12,8 +12,6 @@ import (
 	"github.com/nestoca/joy/internal/yml"
 )
 
-const EnvironmentKind = "Environment"
-
 type EnvironmentMetadata struct {
 	metav1.ObjectMeta `yaml:",inline"`
 
