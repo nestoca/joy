@@ -14,7 +14,7 @@ type Catalog struct {
 type CatalogSpec struct {
 	RepoURL  string        `json:"repoUrl" yaml:"repoUrl"`
 	Revision string        `json:"revision" yaml:"revision"`
-	Charts   CatalogCharts `json:"charts,omitzero" yaml:"charts"`
+	Charts   CatalogCharts `json:"charts,omitzero" yaml:"charts,omitempty"`
 }
 
 type CatalogCharts struct {

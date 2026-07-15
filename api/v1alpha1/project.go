@@ -54,10 +54,10 @@ type Project struct {
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// ProjectMetadata is the metadata of the project.
-	ProjectMetadata `yaml:"metadata,omitempty" json:"metadata"`
+	ProjectMetadata `yaml:"metadata,omitempty" json:"metadata,omitzero"`
 
 	// Spec is the spec of the project.
-	Spec ProjectSpec `yaml:"spec,omitempty" json:"spec"`
+	Spec ProjectSpec `yaml:"spec,omitempty" json:"spec,omitzero"`
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-" json:"-"`
