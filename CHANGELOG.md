@@ -1,3 +1,10 @@
+## [0.93.0](https://github.com/nestoca/joy/compare/v0.92.0...v0.93.0) (2026-07-15)
+
+
+### Features
+
+* **PL-6289:** fix yaml and json tag mismatches for better crd openapi generation ([a82e0c2](https://github.com/nestoca/joy/commit/a82e0c2219aad190f312917fd717e29e394bb225))
+
 ## [0.92.0](https://github.com/nestoca/joy/compare/v0.91.0...v0.92.0) (2026-07-10)
 
 
