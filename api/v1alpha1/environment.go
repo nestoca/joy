@@ -37,7 +37,7 @@ type EnvironmentSpec struct {
 	Order int `yaml:"order,omitempty" json:"order,omitempty"`
 
 	// Promotion controls the promotion of releases to this environment.
-	Promotion Promotion `yaml:"promotion,omitempty" json:"promotion"`
+	Promotion Promotion `yaml:"promotion,omitempty" json:"promotion,omitzero"`
 
 	// Cluster is the name of environment's cluster.
 	Cluster string `yaml:"cluster,omitempty" json:"cluster,omitempty"`
@@ -70,10 +70,10 @@ type Environment struct {
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// EnvironmentMetadata is the metadata of the environment.
-	EnvironmentMetadata `yaml:"metadata,omitempty" json:"metadata"`
+	EnvironmentMetadata `yaml:"metadata,omitempty" json:"metadata,omitzero"`
 
 	// Spec is the spec of the environment.
-	Spec EnvironmentSpec `yaml:"spec,omitempty" json:"spec"`
+	Spec EnvironmentSpec `yaml:"spec,omitempty" json:"spec,omitzero"`
 
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-" json:"-"`

@@ -74,10 +74,10 @@ type Release struct {
 	Kind string `yaml:"kind,omitempty" json:"kind,omitempty"`
 
 	// ReleaseMetadata is the metadata of the release.
-	ReleaseMetadata `yaml:"metadata,omitempty" json:"metadata"`
+	ReleaseMetadata `yaml:"metadata,omitempty" json:"metadata,omitzero"`
 
 	// Spec is the spec of the release.
-	Spec ReleaseSpec `yaml:"spec,omitempty" json:"spec"`
+	Spec ReleaseSpec `yaml:"spec,omitempty" json:"spec,omitzero"`
 
 	// File represents the in-memory yaml file of the release.
 	File *yml.File `yaml:"-" json:"-"`
