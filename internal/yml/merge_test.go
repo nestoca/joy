@@ -750,7 +750,7 @@ func TestYmlMerge(t *testing.T) {
 			Expected: "{!lock key: TODO}",
 		},
 		{
-			Name:     "lcoal on key nodes",
+			Name:     "local on key nodes",
 			Src:      "{ !local key: value }",
 			Dst:      "{!lock foo: bar}",
 			Expected: "{!lock foo: bar}",

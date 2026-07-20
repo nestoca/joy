@@ -42,7 +42,7 @@ func GetMappingValueNodesWithTags(node *yaml.Node) (nodes []*yaml.Node) {
 	if node.Kind == yaml.MappingNode {
 		for i := 1; i < len(node.Content); i += 2 {
 			value := node.Content[i]
-			if slices.Contains(CustomTags, node.Tag) {
+			if slices.Contains(CustomTags, value.Tag) {
 				nodes = append(nodes, value)
 			}
 		}
