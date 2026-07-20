@@ -28,12 +28,22 @@ type RenderParams struct {
 	Chart      *helm.ChartFS
 	Helm       helm.PullRenderer
 	ValuesOnly bool
+	UseRawYaml bool
 }
 
 func Render(ctx context.Context, params RenderParams) (string, error) {
-	release, err := params.Release.FromTree()
+	release, err := func() (*v1alpha1.Release, error) {
+		if !params.UseRawYaml {
+			return params.Release, nil
+		}
+		release, err := params.Release.FromTree()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse release from file tree: %w", err)
+		}
+		return release, nil
+	}()
 	if err != nil {
-		return "", fmt.Errorf("failed to parse release from file tree: %w", err)
+		return "", err
 	}
 
 	values, err := HydrateValues(release, params.Chart)
