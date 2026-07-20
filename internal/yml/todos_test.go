@@ -65,6 +65,11 @@ func TestHasLockedTodos(t *testing.T) {
 			Value:    "{top: !lock { middle: { bottom: TODO } } }",
 			Expected: true,
 		},
+		{
+			Name:     "keyed lock todo",
+			Value:    "{ mapping: { !lock key: TODO } }",
+			Expected: true,
+		},
 	}
 
 	for _, tc := range cases {

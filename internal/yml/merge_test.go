@@ -743,6 +743,24 @@ func TestYmlMerge(t *testing.T) {
 			Dst:      "{}",
 			Expected: "{outer: {}}",
 		},
+		{
+			Name:     "locks on key nodes",
+			Src:      "{ !lock key: value }",
+			Dst:      "{}",
+			Expected: "{!lock key: TODO}",
+		},
+		{
+			Name:     "lcoal on key nodes",
+			Src:      "{ !local key: value }",
+			Dst:      "{!lock foo: bar}",
+			Expected: "{!lock foo: bar}",
+		},
+		{
+			Name:     "remove duplicate tags",
+			Src:      "{ !lock key: !lock value }",
+			Dst:      "{}",
+			Expected: "{!lock key: TODO}",
+		},
 	}
 
 	for _, tc := range cases {

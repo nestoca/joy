@@ -14,7 +14,18 @@ func hasLockedTodos(node *yaml.Node, locked bool) bool {
 	locked = locked || IsLocked(node)
 
 	switch node.Kind {
-	case yaml.DocumentNode, yaml.MappingNode, yaml.SequenceNode:
+	case yaml.MappingNode:
+		for i := 0; i < len(node.Content); i += 2 {
+			var (
+				key   = node.Content[i]
+				value = node.Content[i+1]
+			)
+			if hasLockedTodos(value, locked || IsLocked(key)) {
+				return true
+			}
+		}
+		return false
+	case yaml.DocumentNode, yaml.SequenceNode:
 		for _, n := range node.Content {
 			if hasLockedTodos(n, locked) {
 				return true
