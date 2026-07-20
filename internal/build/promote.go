@@ -43,17 +43,17 @@ func Promote(opts Opts) error {
 
 	promotionCount := 0
 	for _, release := range releases {
-		versionNode, err := yml.FindNode(release.File.Tree, "spec.version")
+		versionKeypair, err := yml.FindNodeKeyPair(release.File.Tree, "spec.version")
 		if err != nil {
 			return fmt.Errorf("release %s has no version property: %w", release.Name, err)
 		}
 
-		if yml.IsLocked(versionNode) {
+		if yml.IsLocked(versionKeypair.Key) || yml.IsLocked(versionKeypair.Value) {
 			fmt.Printf("⚠️ Skipping promotion of release %s: version is locked\n", style.Resource(release.Name))
 			continue
 		}
 
-		versionNode.Value = opts.Version
+		versionKeypair.Value.Value = opts.Version
 		if err := release.File.UpdateYamlFromTree(); err != nil {
 			return fmt.Errorf("updating release yaml from node tree: %w", err)
 		}

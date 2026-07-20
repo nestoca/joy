@@ -15,11 +15,11 @@ import (
 )
 
 type ValidateParams struct {
-	Releases              []*v1alpha1.Release
-	Helm                  helm.PullRenderer
-	ChartCache            helm.ChartCache
-	NoRender              bool
-	NoTagsOnMappingValues bool
+	Releases    []*v1alpha1.Release
+	Helm        helm.PullRenderer
+	ChartCache  helm.ChartCache
+	NoRender    bool
+	NoValueTags bool
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
@@ -39,7 +39,7 @@ func Validate(ctx context.Context, params ValidateParams) error {
 			Chart:                 chart,
 			Release:               release,
 			Helm:                  params.Helm,
-			NoTagsOnMappingValues: params.NoTagsOnMappingValues,
+			NoTagsOnMappingValues: params.NoValueTags,
 		}
 
 		if err := ValidateRelease(ctx, validateParams); err != nil {
