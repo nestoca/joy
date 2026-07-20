@@ -33,6 +33,7 @@ func Merge(dst, src *yaml.Node, sameOrg bool) *yaml.Node {
 	if result == nil {
 		result = &yaml.Node{Kind: yaml.MappingNode}
 	}
+	purgeMapingValueCustomTagsFromKeys(result)
 
 	doc.Content = []*yaml.Node{result}
 	return doc
@@ -263,4 +264,23 @@ func purgeNodes(node *yaml.Node, predicate func(*yaml.Node) bool) *yaml.Node {
 	}
 
 	return &copy
+}
+
+// purgeMapingValueCustomTags removes tags for values within mapping nodes if we can detect that
+// the tag was inherited from its key node during merge.
+func purgeMapingValueCustomTagsFromKeys(node *yaml.Node) {
+	if node.Kind == yaml.MappingNode {
+		for i := 0; i < len(node.Content); i += 2 {
+			var (
+				key   = node.Content[i]
+				value = node.Content[i+1]
+			)
+			if slices.Contains(CustomTags, value.Tag) && key.Tag == value.Tag {
+				value.Tag = ""
+			}
+		}
+	}
+	for _, node := range node.Content {
+		purgeMapingValueCustomTagsFromKeys(node)
+	}
 }
