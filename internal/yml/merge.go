@@ -1,6 +1,8 @@
 package yml
 
 import (
+	"slices"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -178,10 +180,14 @@ type KeyValuePair struct {
 func asMap(node *yaml.Node) map[string]KeyValuePair {
 	result := make(map[string]KeyValuePair, len(node.Content)/2)
 	for i := 0; i < len(node.Content); i += 2 {
-		result[node.Content[i].Value] = KeyValuePair{
+		kv := KeyValuePair{
 			Key:   node.Content[i],
 			Value: node.Content[i+1],
 		}
+		if slices.Contains(CustomTags, kv.Key.Tag) {
+			kv.Value.Tag = kv.Key.Tag
+		}
+		result[node.Content[i].Value] = kv
 	}
 	return result
 }
@@ -242,7 +248,7 @@ func purgeNodes(node *yaml.Node, predicate func(*yaml.Node) bool) *yaml.Node {
 	switch node.Kind {
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
-			if predicate(node.Content[i+1]) {
+			if predicate(node.Content[i]) || predicate(node.Content[i+1]) {
 				continue
 			}
 			copy.Content = append(copy.Content, node.Content[i], purgeNodes(node.Content[i+1], predicate))
