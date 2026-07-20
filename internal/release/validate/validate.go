@@ -20,6 +20,7 @@ type ValidateParams struct {
 	ChartCache  helm.ChartCache
 	NoRender    bool
 	NoValueTags bool
+	UseRawYaml  bool
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
@@ -40,6 +41,7 @@ func Validate(ctx context.Context, params ValidateParams) error {
 			Release:               release,
 			Helm:                  params.Helm,
 			NoTagsOnMappingValues: params.NoValueTags,
+			UseRawYaml:            params.UseRawYaml,
 		}
 
 		if err := ValidateRelease(ctx, validateParams); err != nil {
@@ -55,6 +57,7 @@ type ValidateReleaseParams struct {
 	Chart                 *helm.ChartFS
 	Helm                  helm.PullRenderer
 	NoTagsOnMappingValues bool
+	UseRawYaml            bool
 }
 
 func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
@@ -84,9 +87,10 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 	}
 
 	renderOpts := render.RenderParams{
-		Release: params.Release,
-		Chart:   params.Chart,
-		Helm:    params.Helm,
+		Release:    params.Release,
+		Chart:      params.Chart,
+		Helm:       params.Helm,
+		UseRawYaml: params.UseRawYaml,
 	}
 
 	_, err := render.Render(ctx, renderOpts)

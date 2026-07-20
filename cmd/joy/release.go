@@ -636,6 +636,7 @@ func NewValidateCommand() *cobra.Command {
 	var env string
 	var noRender bool
 	var noValueTags bool
+	var useRawYaml bool
 
 	cmd := &cobra.Command{
 		Use:   "validate [releases...]",
@@ -676,6 +677,7 @@ func NewValidateCommand() *cobra.Command {
 				Releases:    releases,
 				NoRender:    noRender,
 				NoValueTags: noValueTags,
+				UseRawYaml:  useRawYaml,
 				Helm:        helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
 				ChartCache: helm.ChartCache{
 					Refs:            cfg.Charts,
@@ -690,6 +692,8 @@ func NewValidateCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVarP(&noRender, "no-render", "", false, "skips release rendering validation step")
 	cmd.Flags().BoolVarP(&noValueTags, "no-value-tags", "", false, "disallows tags on mapping values")
+	cmd.Flags().BoolVarP(&useRawYaml, "raw-yaml", "", false, "validate against raw yaml release instead of joy parsed release")
+
 	return cmd
 }
 

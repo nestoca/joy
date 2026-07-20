@@ -229,6 +229,10 @@ func TestValidateRelease(t *testing.T) {
 				}
 			}
 
+			if tc.Release.File != nil {
+				require.NoError(t, tc.Release.File.Tree.Decode(tc.Release))
+			}
+
 			err := ValidateRelease(context.Background(), ValidateReleaseParams{
 				Release: tc.Release,
 				Chart:   &helm.ChartFS{FS: tc.ChartFS},
