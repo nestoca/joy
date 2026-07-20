@@ -325,6 +325,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 		valuesOnly   bool
 		normalize    bool
 		debug        bool
+		useRawYaml   bool
 	)
 
 	cmd := &cobra.Command{
@@ -505,6 +506,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 							Chart:      chart,
 							Helm:       helm.CLI{IO: internal.IoFromCommand(cmd), Debug: debug},
 							ValuesOnly: valuesOnly,
+							UseRawYaml: useRawYaml,
 						}
 
 						result, err := render.Render(cmd.Context(), params)
@@ -628,6 +630,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&valuesOnly, "values", false, "print rendered chart values only")
 	cmd.Flags().BoolVar(&debug, "debug", false, "send the --debug flag to the helm cli")
 	cmd.Flags().BoolVar(&normalize, "normalize", false, "decodes and re-encodes the rendered yaml into a normalized format so that templating diffs are ignored")
+	cmd.Flags().BoolVar(&useRawYaml, "raw-yaml", false, "use raw release yaml instead of joy parsed releases for rendering")
 
 	return cmd
 }
