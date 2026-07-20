@@ -31,7 +31,12 @@ type RenderParams struct {
 }
 
 func Render(ctx context.Context, params RenderParams) (string, error) {
-	values, err := HydrateValues(params.Release, params.Chart)
+	release, err := params.Release.FromTree()
+	if err != nil {
+		return "", fmt.Errorf("failed to parse release from file tree: %w", err)
+	}
+
+	values, err := HydrateValues(release, params.Chart)
 	if err != nil {
 		return "", fmt.Errorf("hydrating values: %w", err)
 	}
