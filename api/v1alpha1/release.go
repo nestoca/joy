@@ -98,6 +98,17 @@ func (release *Release) UnmarshalYAML(node *yaml.Node) error {
 	return stripCustomTags(yml.Clone(node)).Decode((*raw)(release))
 }
 
+func (release *Release) FromTree() (*Release, error) {
+	type alt Release
+	var result Release
+	if err := release.File.Tree.Decode((*alt)(&result)); err != nil {
+		return nil, fmt.Errorf("decoding: %w", err)
+	}
+	result.Environment = release.Environment
+	result.Project = release.Project
+	return &result, nil
+}
+
 func IsValidRelease(apiVersion, kind string) bool {
 	return apiVersion == "joy.nesto.ca/v1alpha1" && kind == ReleaseKind
 }
