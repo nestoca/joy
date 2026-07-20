@@ -1,3 +1,10 @@
+## [0.95.0](https://github.com/nestoca/joy/compare/v0.94.0...v0.95.0) (2026-07-20)
+
+
+### Features
+
+* **PL-6895:** add raw yaml flag to releaser render command ([f478a4b](https://github.com/nestoca/joy/commit/f478a4b2fcaac8aa91aae0de7df2bce4562c5217))
+
 ## [0.94.0](https://github.com/nestoca/joy/compare/v0.93.0...v0.94.0) (2026-07-20)
 
 
