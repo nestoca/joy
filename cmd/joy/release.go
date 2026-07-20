@@ -635,6 +635,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 func NewValidateCommand() *cobra.Command {
 	var env string
 	var noRender bool
+	var noMappingValueTags bool
 
 	cmd := &cobra.Command{
 		Use:   "validate [releases...]",
@@ -672,9 +673,10 @@ func NewValidateCommand() *cobra.Command {
 			}
 
 			return validate.Validate(cmd.Context(), validate.ValidateParams{
-				Releases: releases,
-				NoRender: noRender,
-				Helm:     helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
+				Releases:              releases,
+				NoRender:              noRender,
+				NoTagsOnMappingValues: noMappingValueTags,
+				Helm:                  helm.CLI{IO: internal.IO{Out: cmd.OutOrStdout(), Err: cmd.ErrOrStderr(), In: cmd.InOrStdin()}},
 				ChartCache: helm.ChartCache{
 					Refs:            cfg.Charts,
 					DefaultChartRef: cfg.DefaultChartRef,
@@ -687,6 +689,7 @@ func NewValidateCommand() *cobra.Command {
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "environment to select release from.")
 	cmd.Flags().BoolVarP(&noRender, "no-render", "", false, "skips release rendering validation step")
+	cmd.Flags().BoolVarP(&noMappingValueTags, "no-tags-on-mapping-values", "", false, "disallows tags on mapping values")
 	return cmd
 }
 

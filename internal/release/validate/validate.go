@@ -15,10 +15,11 @@ import (
 )
 
 type ValidateParams struct {
-	Releases   []*v1alpha1.Release
-	Helm       helm.PullRenderer
-	ChartCache helm.ChartCache
-	NoRender   bool
+	Releases              []*v1alpha1.Release
+	Helm                  helm.PullRenderer
+	ChartCache            helm.ChartCache
+	NoRender              bool
+	NoTagsOnMappingValues bool
 }
 
 func Validate(ctx context.Context, params ValidateParams) error {
@@ -35,9 +36,10 @@ func Validate(ctx context.Context, params ValidateParams) error {
 		}
 
 		validateParams := ValidateReleaseParams{
-			Chart:   chart,
-			Release: release,
-			Helm:    params.Helm,
+			Chart:                 chart,
+			Release:               release,
+			Helm:                  params.Helm,
+			NoTagsOnMappingValues: params.NoTagsOnMappingValues,
 		}
 
 		if err := ValidateRelease(ctx, validateParams); err != nil {
@@ -49,9 +51,10 @@ func Validate(ctx context.Context, params ValidateParams) error {
 }
 
 type ValidateReleaseParams struct {
-	Release *v1alpha1.Release
-	Chart   *helm.ChartFS
-	Helm    helm.PullRenderer
+	Release               *v1alpha1.Release
+	Chart                 *helm.ChartFS
+	Helm                  helm.PullRenderer
+	NoTagsOnMappingValues bool
 }
 
 func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
@@ -64,6 +67,16 @@ func ValidateRelease(ctx context.Context, params ValidateReleaseParams) error {
 
 	if yml.HasLockedTodos(params.Release.File.Tree) {
 		return errors.New("contains locked TODO")
+	}
+
+	if params.NoTagsOnMappingValues {
+		if nodes := yml.GetMappingValueNodesWithTags(params.Release.File.Tree); len(nodes) > 0 {
+			errs := make([]error, len(nodes))
+			for i, node := range nodes {
+				errs[i] = fmt.Errorf("line: %d", node.Line)
+			}
+			return xerr.MultiErrFrom("found invalid tags on mapping values", errs...)
+		}
 	}
 
 	if params.Chart == nil {

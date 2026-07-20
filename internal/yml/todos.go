@@ -1,6 +1,10 @@
 package yml
 
-import "gopkg.in/yaml.v3"
+import (
+	"slices"
+
+	"gopkg.in/yaml.v3"
+)
 
 func HasLockedTodos(node *yaml.Node) bool {
 	return hasLockedTodos(node, false)
@@ -21,4 +25,19 @@ func hasLockedTodos(node *yaml.Node, locked bool) bool {
 	default:
 		return locked && node.Value == "TODO"
 	}
+}
+
+func GetMappingValueNodesWithTags(node *yaml.Node) (nodes []*yaml.Node) {
+	if node.Kind == yaml.MappingNode {
+		for i := 1; i < len(node.Content); i += 2 {
+			value := node.Content[i]
+			if slices.Contains(CustomTags, node.Tag) {
+				nodes = append(nodes, value)
+			}
+		}
+	}
+	for _, node := range node.Content {
+		nodes = append(nodes, GetMappingValueNodesWithTags(node)...)
+	}
+	return
 }
