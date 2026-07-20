@@ -1,3 +1,20 @@
+## [0.94.0](https://github.com/nestoca/joy/compare/v0.93.0...v0.94.0) (2026-07-20)
+
+
+### Features
+
+* **PL-6895:** add flag for raw yaml parsing with release validate ([8504ca6](https://github.com/nestoca/joy/commit/8504ca6b838ffdf4ad3c20e37f339febb0f5e970))
+* **PL-6895:** option to invalidate tags on mapping values during joy rel validate ([760c68a](https://github.com/nestoca/joy/commit/760c68ab1652cfcff14b99983af881cd5cb7b04f))
+* **PL-6895:** purge mapping value custom tags on merge ([0c8d025](https://github.com/nestoca/joy/commit/0c8d025b81bbbb40a72de334cfcf5a45bc972e4a))
+* **PL-6895:** render now uses values directly from yaml tree ([9e8eb2f](https://github.com/nestoca/joy/commit/9e8eb2fddb21702d143e7f7f06f6816b2819dc62))
+* **PL-6895:** support custom tags on mapping keys ([bdab1c5](https://github.com/nestoca/joy/commit/bdab1c5204e39a40b536f7bc3c3228452c02ef2e))
+
+
+### Bug Fixes
+
+* **PL-6895:** fix marked lock todo logic and add tests for merge ([a947d33](https://github.com/nestoca/joy/commit/a947d33f944f7a7b7f57db46e534e3588e6d4ed7))
+* **PL-6895:** fix tests ([2d622da](https://github.com/nestoca/joy/commit/2d622daa6c19411cf258007e9c327784d5ae505d))
+
 ## [0.93.0](https://github.com/nestoca/joy/compare/v0.92.0...v0.93.0) (2026-07-15)
 
 
