@@ -153,8 +153,12 @@ func markLockedValuesAsTodo(node *yaml.Node, locked bool) *yaml.Node {
 			node.Content[i] = markLockedValuesAsTodo(n, locked)
 		}
 	case yaml.MappingNode:
-		for i := 1; i < len(node.Content); i += 2 {
-			node.Content[i] = markLockedValuesAsTodo(node.Content[i], locked)
+		for i := 0; i < len(node.Content); i += 2 {
+			var (
+				key   = node.Content[i]
+				value = node.Content[i+1]
+			)
+			node.Content[i+1] = markLockedValuesAsTodo(value, locked || IsLocked(key))
 		}
 	}
 
