@@ -11,10 +11,12 @@ import (
 
 	"github.com/davidmdm/x/xfs"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
@@ -217,6 +219,14 @@ func TestRenderRelease(t *testing.T) {
 					require.NoError(t, fmt.Errorf("%v", err))
 				}
 			}()
+
+			data, err := yaml.Marshal(tc.Params.Release)
+			require.NoError(t, err)
+
+			file, err := yml.NewFile("test.yaml", data)
+			require.NoError(t, err)
+
+			tc.Params.Release.File = file
 
 			result, err := Render(context.Background(), RenderParams{
 				Release: tc.Params.Release,
