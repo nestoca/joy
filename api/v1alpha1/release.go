@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	sigsyaml "sigs.k8s.io/yaml"
 
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
@@ -115,8 +116,13 @@ func IsValidRelease(apiVersion, kind string) bool {
 
 // LoadRelease loads a release from the given release file.
 func LoadRelease(file *yml.File) (*Release, error) {
+	data, err := yaml.Marshal(stripCustomTags(yml.Clone(file.Tree)))
+	if err != nil {
+		return nil, fmt.Errorf("marshalling release stripped of custom tags")
+	}
+
 	var rel Release
-	if err := yml.UnmarshalStrict(file.Yaml, &rel); err != nil {
+	if err := sigsyaml.UnmarshalStrict(data, &rel); err != nil {
 		return nil, fmt.Errorf("unmarshalling release: %w", err)
 	}
 	rel.File = file

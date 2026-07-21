@@ -31,6 +31,7 @@ require (
 	gopkg.in/godo.v2 v2.0.9
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.36.1
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
