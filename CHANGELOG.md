@@ -1,3 +1,10 @@
+## [0.96.0](https://github.com/nestoca/joy/compare/v0.95.1...v0.96.0) (2026-07-21)
+
+
+### Features
+
+* **PL-6299:** use sigs yaml for release parsing ([8ecaa2e](https://github.com/nestoca/joy/commit/8ecaa2e1a0ec51575cd72ea41245e7a6e8df6719))
+
 ## [0.95.1](https://github.com/nestoca/joy/compare/v0.95.0...v0.95.1) (2026-07-21)
 
 
