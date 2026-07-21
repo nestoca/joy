@@ -1,3 +1,10 @@
+## [0.95.1](https://github.com/nestoca/joy/compare/v0.95.0...v0.95.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **PL-6895:** remove edge case when merging mapping keys to preserve comments and tags ([6e196cf](https://github.com/nestoca/joy/commit/6e196cfabd1f2272f3563d5181a0b18415ed16ea))
+
 ## [0.95.0](https://github.com/nestoca/joy/compare/v0.94.0...v0.95.0) (2026-07-20)
 
 
