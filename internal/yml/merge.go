@@ -75,7 +75,7 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 	for _, key := range keys {
 		dstKV, srcKV := dstMap[key], srcMap[key]
 		if value := merge(dstKV.Value, srcKV.Value); value != nil {
-			content = append(content, firstNonNil(dstKV.Key, srcKV.Key), value)
+			content = append(content, mergeKey(dstKV.Key, srcKV.Key), value)
 		}
 	}
 
@@ -83,6 +83,17 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 	dst.Style = mergeStyle(dst.Style, src.Style)
 
 	return dst
+}
+
+func mergeKey(dst, src *yaml.Node) *yaml.Node {
+	if IsLocked(dst) || IsLocal(dst) || src == nil {
+		return dst
+	}
+	if dst != nil {
+		// we want to preserve comments within destination files.
+		src.HeadComment = dst.HeadComment
+	}
+	return src
 }
 
 func mergeSeq(dst, src *yaml.Node) *yaml.Node {
@@ -223,15 +234,6 @@ func mergeStyle(dst, src yaml.Style) yaml.Style {
 		dst &^= yaml.FlowStyle
 	}
 	return dst
-}
-
-func firstNonNil(nodes ...*yaml.Node) *yaml.Node {
-	for _, node := range nodes {
-		if node != nil {
-			return node
-		}
-	}
-	return nil
 }
 
 func purgeLocalContent(node *yaml.Node) *yaml.Node {
