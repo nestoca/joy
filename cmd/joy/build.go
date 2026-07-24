@@ -21,7 +21,10 @@ func NewBuildCmd() *cobra.Command {
 }
 
 func NewBuildPromoteCmd() *cobra.Command {
-	var chartVersion string
+	var (
+		chartVersion  string
+		excludeLabels []string
+	)
 
 	cmd := &cobra.Command{
 		Use:   "promote",
@@ -29,7 +32,7 @@ func NewBuildPromoteCmd() *cobra.Command {
 		Long: `Promote a project to given version in given environment.
 Typically called at the end of a CI pipeline to promote a new build to default target environment.
 
-Usage: joy build promote [--chart-version <chart-version>] <env> <project> <version>`,
+Usage: joy build promote [--chart-version <chart-version>] [--exclude-label <key[=value]>]... <env> <project> <version>`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			env := args[0]
@@ -40,17 +43,19 @@ Usage: joy build promote [--chart-version <chart-version>] <env> <project> <vers
 			cat.WithEnvironments([]string{env})
 
 			return build.Promote(build.Opts{
-				Catalog:      cat,
-				Environment:  env,
-				Project:      project,
-				Version:      version,
-				Writer:       yml.DiskWriter,
-				ChartVersion: chartVersion,
+				Catalog:       cat,
+				Environment:   env,
+				Project:       project,
+				Version:       version,
+				Writer:        yml.DiskWriter,
+				ChartVersion:  chartVersion,
+				ExcludeLabels: excludeLabels,
 			})
 		},
 	}
 
 	cmd.Flags().StringVar(&chartVersion, "chart-version", "", "(optional) Chart version to promote")
+	cmd.Flags().StringArrayVar(&excludeLabels, "exclude-label", nil, "(optional, repeatable) Skip releases carrying this metadata label. Format: `key` or `key=value`; a bare key matches any value (e.g. --exclude-label nesto.ca/preview)")
 
 	return cmd
 }

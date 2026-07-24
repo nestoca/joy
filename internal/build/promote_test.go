@@ -106,6 +106,41 @@ func TestPromoteWhenNoReleasesFoundForProject(t *testing.T) {
 	require.EqualError(t, Promote(opts), "no releases found for project promote-build")
 }
 
+func TestPromoteExcludesLabeledReleases(t *testing.T) {
+	var writer yml.WriterMock
+
+	environments := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}}}}
+	release := func(name string, labels map[string]string) *cross.Release {
+		return &cross.Release{Releases: []*v1alpha1.Release{{
+			ReleaseMetadata: v1alpha1.ReleaseMetadata{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}},
+			Spec:            v1alpha1.ReleaseSpec{Project: "promote-build"},
+			File:            makeFile(t, "{ spec: { version: 0.0.0 } }"),
+		}}}
+	}
+	opts := Opts{
+		Catalog: &catalog.Catalog{
+			Environments: environments,
+			Releases: cross.ReleaseList{
+				Environments: environments,
+				Items: []*cross.Release{
+					release("regular", nil),
+					release("preview", map[string]string{"nesto.ca/preview": "true"}),
+				},
+			},
+		},
+		Environment:   "staging",
+		Writer:        &writer,
+		Project:       "promote-build",
+		Version:       "1.1.2",
+		ExcludeLabels: []string{"nesto.ca/preview"},
+	}
+
+	require.NoError(t, Promote(opts))
+	// Only the unlabeled "regular" release is promoted; "preview" is excluded.
+	require.Len(t, writer.WriteFileCalls(), 1)
+	require.Equal(t, "1.1.2", yml.FindNodeValueOrDefault(writer.WriteFileCalls()[0].File.Tree, "spec.version", ""))
+}
+
 func makeFile(t *testing.T, content string) *yml.File {
 	t.Helper()
 	f, err := yml.NewFile("", []byte(content))
