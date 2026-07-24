@@ -1,3 +1,10 @@
+## [0.97.0](https://github.com/nestoca/joy/compare/v0.96.1...v0.97.0) (2026-07-24)
+
+
+### Features
+
+* **PL-5900:** promote build exclude label flag for front-end previews ([#292](https://github.com/nestoca/joy/issues/292)) ([dd34def](https://github.com/nestoca/joy/commit/dd34defbc4860cd7e024097b3fe51fca4feb4485))
+
 ## [0.96.1](https://github.com/nestoca/joy/compare/v0.96.0...v0.96.1) (2026-07-23)
 
 ## [0.96.0](https://github.com/nestoca/joy/compare/v0.95.1...v0.96.0) (2026-07-21)
