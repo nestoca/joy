@@ -6,6 +6,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/labels"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -18,6 +19,10 @@ type Opts struct {
 	Project      string
 	Version      string
 	ChartVersion string
+
+	// ExcludeLabels are `key` or `key=value` selectors; a release carrying any matching
+	// metadata label is skipped. A bare `key` matches the label regardless of its value.
+	ExcludeLabels []string
 }
 
 func Promote(opts Opts) error {
@@ -26,6 +31,11 @@ func Promote(opts Opts) error {
 		if semver.Prerelease(version)+semver.Build(version) != "" {
 			return fmt.Errorf("cannot promote prerelease version to %s environment", opts.Environment)
 		}
+	}
+
+	excludeSelectors, err := labels.ParseSelectors(opts.ExcludeLabels)
+	if err != nil {
+		return fmt.Errorf("parsing exclude labels: %w", err)
 	}
 
 	var releases []*v1alpha1.Release
@@ -43,6 +53,11 @@ func Promote(opts Opts) error {
 
 	promotionCount := 0
 	for _, release := range releases {
+		if selector, ok := labels.FirstMatch(excludeSelectors, release.Labels); ok {
+			fmt.Printf("⚠️ Skipping promotion of release %s: excluded by label %s\n", style.Resource(release.Name), style.Code(selector.String()))
+			continue
+		}
+
 		versionKeypair, err := yml.FindNodeKeyPair(release.File.Tree, "spec.version")
 		if err != nil {
 			return fmt.Errorf("release %s has no version property: %w", release.Name, err)
