@@ -36,7 +36,10 @@ func ParseSelectors(specs []string) ([]Selector, error) {
 	selectors := make([]Selector, 0, len(specs))
 	for _, spec := range specs {
 		key, value, hasValue := strings.Cut(spec, "=")
-		if strings.TrimSpace(key) == "" {
+		// Trim surrounding whitespace so a padded key (e.g. " nesto.ca/preview") still
+		// matches the actual metadata key rather than silently never matching.
+		key = strings.TrimSpace(key)
+		if key == "" {
 			return nil, fmt.Errorf("invalid label selector %q: key is empty", spec)
 		}
 		selectors = append(selectors, Selector{key: key, value: value, hasValue: hasValue})

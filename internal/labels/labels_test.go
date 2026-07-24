@@ -7,13 +7,19 @@ import (
 )
 
 func TestParseSelectors(t *testing.T) {
-	sels, err := ParseSelectors([]string{"bare", "k=v", "empty="})
+	sels, err := ParseSelectors([]string{"bare", "k=v", "empty=", "  spaced  "})
 	require.NoError(t, err)
 	require.Equal(t, []Selector{
 		{key: "bare"},
 		{key: "k", value: "v", hasValue: true},
 		{key: "empty", value: "", hasValue: true},
+		{key: "spaced"}, // surrounding whitespace is trimmed off the key
 	}, sels)
+
+	// A padded key still matches the real metadata key.
+	got, ok := FirstMatch(sels, map[string]string{"spaced": "x"})
+	require.True(t, ok)
+	require.Equal(t, "spaced", got.String())
 
 	for _, bad := range []string{"", "=novalue", "   "} {
 		_, err := ParseSelectors([]string{bad})
