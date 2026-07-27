@@ -33,7 +33,9 @@ func Promote(opts Opts) error {
 		}
 	}
 
-	excludeSelectors, err := labels.ParseSelectors(opts.ExcludeLabels)
+	// Always exclude preview releases (in addition to any caller-supplied selectors), so that
+	// promoting a project's real releases never overwrites the version of a preview copy.
+	excludeSelectors, err := labels.ParseSelectors(append([]string{v1alpha1.PreviewLabel}, opts.ExcludeLabels...))
 	if err != nil {
 		return fmt.Errorf("parsing exclude labels: %w", err)
 	}
