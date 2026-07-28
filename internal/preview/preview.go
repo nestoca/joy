@@ -87,12 +87,13 @@ func Create(params CreateParams) error {
 		return fmt.Errorf("setting spec.version: %w", err)
 	}
 
-	// Caller patches (RFC 6902), applied in order.
-	if err := patch.Apply(node, params.Patches); err != nil {
+	// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
+	patched, err := patch.Apply(tree, params.Patches)
+	if err != nil {
 		return err
 	}
 
-	targetFile, err := yml.NewFileFromTree(targetPath, source.File.Indent, tree)
+	targetFile, err := yml.NewFileFromTree(targetPath, source.File.Indent, patched)
 	if err != nil {
 		return fmt.Errorf("building preview file: %w", err)
 	}

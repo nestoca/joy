@@ -2,109 +2,94 @@ package patch
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
-const base = `
-spec:
+const base = `spec:
   namespace: default
   values:
     env:
-      ENV: !lock staging
-      PUBLIC_API_PATH: !lock https://office.staging.nesto.ca/api
+      ZULU: !lock z
+      ALPHA: !lock a
     frontend:
       gateway:
         httpRoutes: {}
 `
 
-func root(t *testing.T, src string) (*yaml.Node, *yaml.Node) {
+func doc(t *testing.T, src string) *yaml.Node {
 	t.Helper()
-	var doc yaml.Node
-	require.NoError(t, yaml.Unmarshal([]byte(src), &doc))
-	return &doc, doc.Content[0]
+	var d yaml.Node
+	require.NoError(t, yaml.Unmarshal([]byte(src), &d))
+	return &d
 }
 
-func dump(t *testing.T, doc *yaml.Node) string {
+func mustOp(t *testing.T, s string) Op {
 	t.Helper()
-	var b bytes.Buffer
-	enc := yaml.NewEncoder(&b)
-	enc.SetIndent(2)
-	require.NoError(t, enc.Encode(doc))
-	require.NoError(t, enc.Close())
-	return b.String()
-}
-
-func mustOp(t *testing.T, spec string) Op {
-	t.Helper()
-	op, err := ParseOp([]byte(spec))
+	op, err := ParseOp([]byte(s))
 	require.NoError(t, err)
 	return op
 }
 
-func TestApply_AddReplaceRemove(t *testing.T) {
-	doc, r := root(t, base)
-	ops := []Op{
+func render(t *testing.T, d *yaml.Node) string {
+	t.Helper()
+	var b bytes.Buffer
+	enc := yaml.NewEncoder(&b)
+	enc.SetIndent(2)
+	require.NoError(t, enc.Encode(d))
+	require.NoError(t, enc.Close())
+	return b.String()
+}
+
+func TestApply(t *testing.T) {
+	out, err := Apply(doc(t, base), []Op{
 		mustOp(t, `{op: add, path: /spec/values/image, value: {name: backoffice}}`),
-		mustOp(t, `{op: replace, path: /spec/values/env/PUBLIC_API_PATH, value: https://backoffice-og-1234.previews.staging.nesto.ca/api}`),
+		mustOp(t, `{op: replace, path: /spec/values/env/ALPHA, value: A2}`),
 		mustOp(t, `{op: remove, path: /spec/values/frontend/gateway}`),
-	}
-	require.NoError(t, Apply(r, ops))
-
-	out := dump(t, doc)
-	require.Contains(t, out, "name: backoffice")
-	require.Contains(t, out, "PUBLIC_API_PATH: !lock https://backoffice-og-1234.previews.staging.nesto.ca/api",
-		"replace must preserve the !lock tag")
-	require.Contains(t, out, "ENV: !lock staging")
-	require.NotContains(t, out, "gateway")
-}
-
-func TestApply_Errors(t *testing.T) {
-	_, r := root(t, base)
-	require.Error(t, Apply(r, []Op{mustOp(t, `{op: replace, path: /spec/values/env/NOPE, value: x}`)}))
-	_, r = root(t, base)
-	require.Error(t, Apply(r, []Op{mustOp(t, `{op: remove, path: /spec/values/nope}`)}))
-	_, r = root(t, base)
-	err := Apply(r, []Op{mustOp(t, `{op: add, path: /spec/values/image/name, value: x}`)})
-	require.ErrorContains(t, err, "add the parent object instead")
-	for _, op := range []string{"move", "copy", "test"} {
-		_, r := root(t, base)
-		require.Error(t, Apply(r, []Op{mustOp(t, "{op: "+op+", path: /spec/namespace, value: x}")}))
-	}
-}
-
-func TestSetPathCreating(t *testing.T) {
-	doc, r := root(t, base)
-	require.NoError(t, SetPathCreating(r, []string{"metadata", "labels", "joy.nesto.ca/preview"}, Scalar("true")))
-	require.NoError(t, SetPathCreating(r, []string{"spec", "values", "env", "NEW"}, Scalar("v")))
-
-	out := dump(t, doc)
-	require.Contains(t, out, `joy.nesto.ca/preview: "true"`)
-	require.Contains(t, out, "NEW: v")
-	require.Contains(t, out, "ENV: !lock staging", "existing siblings must survive")
-}
-
-func TestParseOp_NormalizesStyleToBlock(t *testing.T) {
-	// JSON-authored values (flow map, double-quoted scalars) should render as clean block YAML.
-	doc, r := root(t, base)
-	op, err := ParseOp([]byte(`{"op":"add","path":"/spec/values/image","value":{"name":"backoffice"}}`))
+	})
 	require.NoError(t, err)
-	ns, err := ParseOp([]byte(`{"op":"add","path":"/spec/namespace","value":"previews"}`))
-	require.NoError(t, err)
-	require.NoError(t, Apply(r, []Op{op, ns}))
+	s := render(t, out)
 
-	out := dump(t, doc)
-	require.Contains(t, out, "namespace: previews")  // not: namespace: "previews"
-	require.Contains(t, out, "    name: backoffice") // block, not: image: {"name": ...}
-	require.NotContains(t, out, `{"name"`)
+	// Custom tags restored by CopyMetadata (including on a replaced value).
+	require.Contains(t, s, "ZULU: !lock z")
+	require.Contains(t, s, "ALPHA: !lock A2")
+	// Source key order preserved (ZULU before ALPHA), not alphabetized.
+	require.Less(t, strings.Index(s, "ZULU"), strings.Index(s, "ALPHA"))
+	// De-flowed to block style (no leftover JSON braces from the round-trip).
+	require.NotContains(t, s, `{"`)
+	// Patch effects.
+	require.Contains(t, s, "name: backoffice")
+	require.NotContains(t, s, "httpRoutes")
 }
 
-func TestParsePointerEscapes(t *testing.T) {
-	got, err := parsePointer("/a~1b/c~0d")
+func TestApply_NoOpsReturnsInput(t *testing.T) {
+	in := doc(t, base)
+	out, err := Apply(in, nil)
 	require.NoError(t, err)
-	require.Equal(t, []string{"a/b", "c~d"}, got)
-	_, err = parsePointer("no-leading-slash")
+	require.Same(t, in, out)
+}
+
+func TestApply_StrictErrors(t *testing.T) {
+	// RFC 6902: replacing a non-existent path is an error.
+	_, err := Apply(doc(t, base), []Op{mustOp(t, `{op: replace, path: /spec/values/nope, value: x}`)})
 	require.Error(t, err)
+	// add to a non-existent parent is an error.
+	_, err = Apply(doc(t, base), []Op{mustOp(t, `{op: add, path: /spec/values/image/name, value: x}`)})
+	require.Error(t, err)
+}
+
+func TestSetPathAndSetPathCreating(t *testing.T) {
+	d := doc(t, base)
+	root := d.Content[0]
+	require.NoError(t, SetPath(root, []string{"spec", "namespace"}, Scalar("previews")))
+	require.NoError(t, SetPathCreating(root, []string{"metadata", "labels", "joy.nesto.ca/preview"}, Scalar("true")))
+
+	s := render(t, d)
+	require.Contains(t, s, "namespace: previews")
+	require.Contains(t, s, `joy.nesto.ca/preview: "true"`)
+	// Existing !lock values untouched by the setters.
+	require.Contains(t, s, "ZULU: !lock z")
 }

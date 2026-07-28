@@ -1,103 +1,109 @@
-// Package patch applies a subset of RFC 6902 JSON Patch (add / replace / remove) directly
-// against a gopkg.in/yaml.v3 node tree. Operating on nodes (rather than a JSON round-trip)
-// preserves the catalog's custom YAML tags (e.g. !lock) and node styles.
+// Package patch applies RFC 6902 JSON Patch operations to a YAML release tree.
+//
+// The patch itself is applied by a standard JSON Patch library, so serialization to JSON is
+// required — which drops YAML custom tags (e.g. !lock), comments and key order. Those are
+// restored from the original tree afterwards via yml.CopyMetadata. It also exposes a few
+// node-level setters used for built-in transforms that must run before the JSON round-trip.
 package patch
 
 import (
+	"bytes"
 	"fmt"
-	"slices"
-	"strconv"
-	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"gopkg.in/yaml.v3"
+	sigsyaml "sigs.k8s.io/yaml"
+
+	"github.com/nestoca/joy/internal/yml"
 )
 
-// Op is a single RFC 6902 operation.
+// Op is a single RFC 6902 operation, stored as its JSON encoding.
 type Op struct {
-	Op    string    `yaml:"op" json:"op"`
-	Path  string    `yaml:"path" json:"path"`
-	Value yaml.Node `yaml:"value" json:"value"`
+	json []byte
 }
 
-// ParseOp decodes a single RFC 6902 op (YAML or JSON object).
+// ParseOp decodes a single RFC 6902 op (YAML or JSON object) into its JSON form.
 func ParseOp(data []byte) (Op, error) {
-	var op Op
-	if strings.TrimSpace(string(data)) == "" {
-		return op, fmt.Errorf("empty patch op")
+	j, err := sigsyaml.YAMLToJSON(data)
+	if err != nil {
+		return Op{}, fmt.Errorf("decoding patch op: %w", err)
 	}
-	if err := yaml.Unmarshal(data, &op); err != nil {
-		return op, fmt.Errorf("decoding patch op: %w", err)
+	if trimmed := bytes.TrimSpace(j); len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return Op{}, fmt.Errorf("empty patch op")
 	}
-	// Normalize style so JSON-authored values (e.g. flow maps, double-quoted scalars) render as
-	// clean block YAML in the catalog. The encoder still re-quotes any scalar that needs it.
-	clearStyle(&op.Value)
-	return op, nil
+	return Op{json: j}, nil
 }
 
-func clearStyle(node *yaml.Node) {
-	if node == nil {
-		return
+// Apply applies the ops to doc (a document node) and returns the resulting document. The patch is
+// applied via a JSON Patch library; custom tags, comments and key order are then restored from
+// doc, and styles are cleared so the result serializes as clean block YAML. When there are no
+// ops, doc is returned unchanged.
+func Apply(doc *yaml.Node, ops []Op) (*yaml.Node, error) {
+	if len(ops) == 0 {
+		return doc, nil
 	}
-	node.Style = 0
-	for _, child := range node.Content {
-		clearStyle(child)
+
+	docJSON, err := toJSON(doc)
+	if err != nil {
+		return nil, fmt.Errorf("converting release to json: %w", err)
 	}
+
+	patch, err := jsonpatch.DecodePatch(patchArray(ops))
+	if err != nil {
+		return nil, fmt.Errorf("decoding patch: %w", err)
+	}
+
+	patchedJSON, err := patch.Apply(docJSON)
+	if err != nil {
+		return nil, fmt.Errorf("applying patch: %w", err)
+	}
+
+	var patched yaml.Node
+	if err := yaml.Unmarshal(patchedJSON, &patched); err != nil {
+		return nil, fmt.Errorf("parsing patched result: %w", err)
+	}
+
+	// The JSON round-trip drops custom tags, comments and key order, and flow-flattens styles.
+	yml.CopyMetadata(&patched, doc)
+	clearStyle(&patched)
+	return &patched, nil
 }
 
-// Apply runs each op against root (the mapping node, e.g. the document's first content node).
-func Apply(root *yaml.Node, ops []Op) error {
+// patchArray concatenates the ops' JSON objects into a single JSON Patch array.
+func patchArray(ops []Op) []byte {
+	parts := make([][]byte, len(ops))
 	for i, op := range ops {
-		if err := applyOp(root, op); err != nil {
-			return fmt.Errorf("patch op %d (%s %s): %w", i, op.Op, op.Path, err)
-		}
+		parts[i] = op.json
 	}
-	return nil
+	return append(append([]byte{'['}, bytes.Join(parts, []byte{','})...), ']')
 }
 
-func applyOp(root *yaml.Node, op Op) error {
-	tokens, err := parsePointer(op.Path)
+func toJSON(node *yaml.Node) ([]byte, error) {
+	data, err := yaml.Marshal(node)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if len(tokens) == 0 {
-		return fmt.Errorf("cannot target the document root")
-	}
-	parent, last, err := resolveParent(root, tokens)
-	if err != nil {
-		if op.Op == "add" {
-			return fmt.Errorf("%w (RFC 6902 'add' requires the parent to exist; add the parent object instead)", err)
-		}
-		return err
-	}
-	switch op.Op {
-	case "add":
-		return addChild(parent, last, &op.Value)
-	case "replace":
-		return replaceChild(parent, last, &op.Value)
-	case "remove":
-		return removeChild(parent, last, false)
-	case "move", "copy", "test":
-		return fmt.Errorf("op %q is not supported (only add/replace/remove)", op.Op)
-	default:
-		return fmt.Errorf("unknown op %q", op.Op)
-	}
+	return sigsyaml.YAMLToJSON(data)
 }
 
-// SetPath sets tokens (a decomposed path) to val, adding or replacing as needed.
+// Scalar builds a plain string scalar node.
+func Scalar(value string) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value}
+}
+
+// SetPath sets a mapping value at the given path (tokens), adding or replacing as needed. Every
+// intermediate node must already exist and be a mapping. Used for built-in transforms.
 func SetPath(root *yaml.Node, tokens []string, val *yaml.Node) error {
 	parent, last, err := resolveParent(root, tokens)
 	if err != nil {
 		return err
 	}
-	if parent.Kind != yaml.MappingNode {
-		return fmt.Errorf("SetPath %v: parent is not a mapping", tokens)
-	}
-	return setMapping(parent, last, val, false)
+	return setMapping(parent, last, val)
 }
 
-// SetPathCreating sets tokens to val, creating any missing intermediate mapping nodes along
-// the way (merging into existing ones rather than clobbering). Used for built-in transforms
-// that may target not-yet-existing parents (e.g. metadata.labels).
+// SetPathCreating is like SetPath but creates any missing intermediate mapping nodes (merging
+// into existing ones rather than clobbering). Used for built-ins that may target absent parents
+// (e.g. metadata.labels).
 func SetPathCreating(root *yaml.Node, tokens []string, val *yaml.Node) error {
 	cur := root
 	for _, t := range tokens[:len(tokens)-1] {
@@ -115,92 +121,36 @@ func SetPathCreating(root *yaml.Node, tokens []string, val *yaml.Node) error {
 	if cur.Kind != yaml.MappingNode {
 		return fmt.Errorf("SetPathCreating %v: parent is not a mapping", tokens)
 	}
-	return setMapping(cur, tokens[len(tokens)-1], val, false)
+	return setMapping(cur, tokens[len(tokens)-1], val)
 }
 
-// Scalar builds a plain string scalar node.
-func Scalar(value string) *yaml.Node {
-	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value}
+func resolveParent(root *yaml.Node, tokens []string) (*yaml.Node, string, error) {
+	if len(tokens) == 0 {
+		return nil, "", fmt.Errorf("empty path")
+	}
+	cur := root
+	for _, t := range tokens[:len(tokens)-1] {
+		if cur.Kind != yaml.MappingNode {
+			return nil, "", fmt.Errorf("path segment %q: parent is not a mapping", t)
+		}
+		i, ok := mappingIndex(cur, t)
+		if !ok {
+			return nil, "", fmt.Errorf("path segment %q not found", t)
+		}
+		cur = cur.Content[i+1]
+	}
+	return cur, tokens[len(tokens)-1], nil
 }
 
-func addChild(parent *yaml.Node, key string, val *yaml.Node) error {
-	if val == nil || val.Kind == 0 {
-		return fmt.Errorf("add: missing value")
+// setMapping adds or replaces key in a mapping node. When both old and new values are scalars,
+// the old node's tag/style/comments are preserved (so replacing a !lock value keeps !lock).
+func setMapping(m *yaml.Node, key string, val *yaml.Node) error {
+	if m.Kind != yaml.MappingNode {
+		return fmt.Errorf("cannot set key %q: parent is not a mapping", key)
 	}
-	switch parent.Kind {
-	case yaml.MappingNode:
-		return setMapping(parent, key, val, false)
-	case yaml.SequenceNode:
-		if key == "-" {
-			parent.Content = append(parent.Content, val)
-			return nil
-		}
-		idx, err := strconv.Atoi(key)
-		if err != nil || idx < 0 || idx > len(parent.Content) {
-			return fmt.Errorf("add: invalid array index %q", key)
-		}
-		parent.Content = slices.Insert(parent.Content, idx, val)
-		return nil
-	default:
-		return fmt.Errorf("add: parent is not a container")
-	}
-}
-
-func replaceChild(parent *yaml.Node, key string, val *yaml.Node) error {
-	if val == nil || val.Kind == 0 {
-		return fmt.Errorf("replace: missing value")
-	}
-	switch parent.Kind {
-	case yaml.MappingNode:
-		return setMapping(parent, key, val, true)
-	case yaml.SequenceNode:
-		idx, err := strconv.Atoi(key)
-		if err != nil || idx < 0 || idx >= len(parent.Content) {
-			return fmt.Errorf("replace: array index %q out of range", key)
-		}
-		parent.Content[idx] = preserveScalar(parent.Content[idx], val)
-		return nil
-	default:
-		return fmt.Errorf("replace: parent is not a container")
-	}
-}
-
-func removeChild(parent *yaml.Node, key string, tolerant bool) error {
-	switch parent.Kind {
-	case yaml.MappingNode:
-		if i, ok := mappingIndex(parent, key); ok {
-			parent.Content = append(parent.Content[:i], parent.Content[i+2:]...)
-			return nil
-		}
-		if tolerant {
-			return nil
-		}
-		return fmt.Errorf("remove: key %q not found", key)
-	case yaml.SequenceNode:
-		idx, err := strconv.Atoi(key)
-		if err != nil || idx < 0 || idx >= len(parent.Content) {
-			if tolerant {
-				return nil
-			}
-			return fmt.Errorf("remove: array index %q out of range", key)
-		}
-		parent.Content = slices.Delete(parent.Content, idx, idx+1)
-		return nil
-	default:
-		return fmt.Errorf("remove: parent is not a container")
-	}
-}
-
-// setMapping adds or replaces key in a mapping node. When the key exists and both the old and
-// new values are scalars, the old node's tag/style/comments are preserved (so replacing a
-// !lock value keeps !lock).
-func setMapping(m *yaml.Node, key string, val *yaml.Node, mustExist bool) error {
 	if i, ok := mappingIndex(m, key); ok {
 		m.Content[i+1] = preserveScalar(m.Content[i+1], val)
 		return nil
-	}
-	if mustExist {
-		return fmt.Errorf("key %q not found", key)
 	}
 	m.Content = append(m.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, val)
 	return nil
@@ -226,50 +176,12 @@ func mappingIndex(m *yaml.Node, key string) (int, bool) {
 	return -1, false
 }
 
-// resolveParent walks all but the last token and returns the container + last token.
-func resolveParent(root *yaml.Node, tokens []string) (*yaml.Node, string, error) {
-	cur := root
-	for _, t := range tokens[:len(tokens)-1] {
-		next, err := child(cur, t)
-		if err != nil {
-			return nil, "", err
-		}
-		cur = next
+func clearStyle(node *yaml.Node) {
+	if node == nil {
+		return
 	}
-	return cur, tokens[len(tokens)-1], nil
-}
-
-func child(n *yaml.Node, token string) (*yaml.Node, error) {
-	switch n.Kind {
-	case yaml.MappingNode:
-		if i, ok := mappingIndex(n, token); ok {
-			return n.Content[i+1], nil
-		}
-		return nil, fmt.Errorf("key %q not found", token)
-	case yaml.SequenceNode:
-		idx, err := strconv.Atoi(token)
-		if err != nil || idx < 0 || idx >= len(n.Content) {
-			return nil, fmt.Errorf("array index %q out of range", token)
-		}
-		return n.Content[idx], nil
-	default:
-		return nil, fmt.Errorf("cannot descend into %q", token)
+	node.Style = 0
+	for _, child := range node.Content {
+		clearStyle(child)
 	}
-}
-
-// parsePointer splits an RFC 6901 JSON Pointer into unescaped tokens.
-func parsePointer(path string) ([]string, error) {
-	if path == "" {
-		return nil, nil
-	}
-	if !strings.HasPrefix(path, "/") {
-		return nil, fmt.Errorf("invalid JSON pointer %q: must start with '/'", path)
-	}
-	parts := strings.Split(path, "/")[1:]
-	for i, p := range parts {
-		p = strings.ReplaceAll(p, "~1", "/")
-		p = strings.ReplaceAll(p, "~0", "~")
-		parts[i] = p
-	}
-	return parts, nil
 }
