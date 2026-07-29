@@ -18,6 +18,10 @@ import (
 // It walks both trees in parallel, stopping on any branch where the nodes are nil or differ in
 // kind (i.e. structurally changed relative to src). It never moves data between branches: every
 // dst node is preserved.
+//
+// Sequence *elements* are not reconciled: a JSON Patch may add/remove/move items, so matching by
+// index is unreliable and would risk copying metadata onto the wrong element. The sequence node's
+// own tag/comments are still restored; per-element metadata inside sequences is a known limitation.
 func CopyMetadata(dst, src *yaml.Node) {
 	if dst == nil || src == nil || dst.Kind != src.Kind {
 		return
@@ -31,10 +35,16 @@ func CopyMetadata(dst, src *yaml.Node) {
 	dst.FootComment = src.FootComment
 
 	switch dst.Kind {
-	case yaml.DocumentNode, yaml.SequenceNode:
+	case yaml.DocumentNode:
+		// A document wraps a single root node, so index correspondence is safe.
 		for i := 0; i < min(len(dst.Content), len(src.Content)); i++ {
 			CopyMetadata(dst.Content[i], src.Content[i])
 		}
+	// NOTE: sequence *elements* are intentionally not recursed into. A JSON Patch add/remove/move
+	// shifts indices, so dst.Content[i] may no longer correspond to src.Content[i]; copying by
+	// index would attach tags/comments (e.g. !lock) to the wrong element. The sequence node's own
+	// tag and comments are still restored (copied above). Reconciling element metadata would need
+	// patch-aware correspondence — a known limitation for now.
 	case yaml.MappingNode:
 		dstByKey := asMap(dst)
 		reordered := make([]*yaml.Node, 0, len(dst.Content))

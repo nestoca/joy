@@ -57,3 +57,25 @@ zebra: 1
 	// dst-only key preserved (appended, not dropped).
 	require.Contains(t, out, "ADDED: new")
 }
+
+func TestCopyMetadataDoesNotReconcileSequenceElements(t *testing.T) {
+	// src: a !lock-tagged sequence whose first element also carries a custom tag.
+	src := nodeOf(t, `list: !lock
+  - !lock aaa
+  - bbb
+`)
+	// dst: as if a patch removed/shifted elements (and the JSON round-trip dropped tags).
+	dst := nodeOf(t, `list:
+  - ccc
+`)
+
+	CopyMetadata(dst, src)
+
+	list := dst.Content[0].Content[1] // document -> root mapping -> value of "list"
+	// The sequence node's own tag is restored...
+	require.Equal(t, "!lock", list.Tag)
+	// ...but element metadata is NOT copied by index (no !lock leaks onto the wrong element).
+	require.Len(t, list.Content, 1)
+	require.NotEqual(t, "!lock", list.Content[0].Tag)
+	require.Equal(t, "ccc", list.Content[0].Value)
+}
