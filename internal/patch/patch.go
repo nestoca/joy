@@ -7,7 +7,7 @@
 package patch
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
@@ -17,21 +17,25 @@ import (
 	"github.com/nestoca/joy/internal/yml"
 )
 
-// Op is a single RFC 6902 operation, stored as its JSON encoding.
+// Op is a single RFC 6902 operation. Value is an arbitrary JSON value (set for add/replace);
+// From is only set for move/copy.
 type Op struct {
-	json []byte
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	From  string `json:"from,omitempty"`
+	Value any    `json:"value,omitempty"`
 }
 
-// ParseOp decodes a single RFC 6902 op (YAML or JSON object) into its JSON form.
+// ParseOp decodes a single RFC 6902 op from YAML or JSON.
 func ParseOp(data []byte) (Op, error) {
-	j, err := sigsyaml.YAMLToJSON(data)
-	if err != nil {
-		return Op{}, fmt.Errorf("decoding patch op: %w", err)
+	var op Op
+	if err := sigsyaml.Unmarshal(data, &op); err != nil {
+		return Op{}, fmt.Errorf("parsing patch op: %w", err)
 	}
-	if trimmed := bytes.TrimSpace(j); len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return Op{}, fmt.Errorf("empty patch op")
+	if op.Op == "" || op.Path == "" {
+		return Op{}, fmt.Errorf(`patch op must have both an "op" and a "path"`)
 	}
-	return Op{json: j}, nil
+	return op, nil
 }
 
 // Apply applies the ops to doc (a document node) and returns the resulting document. The patch is
@@ -48,7 +52,12 @@ func Apply(doc *yaml.Node, ops []Op) (*yaml.Node, error) {
 		return nil, fmt.Errorf("converting release to json: %w", err)
 	}
 
-	patch, err := jsonpatch.DecodePatch(patchArray(ops))
+	patchJSON, err := json.Marshal(ops)
+	if err != nil {
+		return nil, fmt.Errorf("encoding patch: %w", err)
+	}
+
+	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
 		return nil, fmt.Errorf("decoding patch: %w", err)
 	}
@@ -67,15 +76,6 @@ func Apply(doc *yaml.Node, ops []Op) (*yaml.Node, error) {
 	yml.CopyMetadata(&patched, doc)
 	clearStyle(&patched)
 	return &patched, nil
-}
-
-// patchArray concatenates the ops' JSON objects into a single JSON Patch array.
-func patchArray(ops []Op) []byte {
-	parts := make([][]byte, len(ops))
-	for i, op := range ops {
-		parts[i] = op.json
-	}
-	return append(append([]byte{'['}, bytes.Join(parts, []byte{','})...), ']')
 }
 
 func toJSON(node *yaml.Node) ([]byte, error) {
