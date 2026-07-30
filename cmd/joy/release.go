@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
@@ -18,6 +20,7 @@ import (
 	"github.com/davidmdm/x/xerr"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/term"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -485,20 +488,30 @@ func NewReleaseRenderCmd() *cobra.Command {
 					Puller:          helm.CLI{IO: internal.IoFromCommand(cmd)},
 				}
 
-				results := map[string]string{}
-
+				var releaseItems []*v1alpha1.Release
 				for i := range cat.Releases.Environments {
 					for _, cross := range cat.Releases.Items {
-						releaseItem := cross.Releases[i]
-						if releaseItem == nil {
-							continue
+						if releaseItem := cross.Releases[i]; releaseItem != nil {
+							releaseItems = append(releaseItems, releaseItem)
 						}
+					}
+				}
 
+				var (
+					mu      sync.Mutex
+					results = map[string]string{}
+				)
+
+				group, ctx := errgroup.WithContext(cmd.Context())
+				group.SetLimit(runtime.NumCPU())
+
+				for _, releaseItem := range releaseItems {
+					group.Go(func() error {
 						releaseIdentifier := releaseItem.Environment.Name + "/" + releaseItem.Name
 
-						chart, err := cache.GetReleaseChartFS(cmd.Context(), releaseItem)
+						chart, err := cache.GetReleaseChartFS(ctx, releaseItem)
 						if err != nil {
-							return nil, fmt.Errorf("getting chart for release: %s: %w", releaseIdentifier, err)
+							return fmt.Errorf("getting chart for release: %s: %w", releaseIdentifier, err)
 						}
 
 						params := render.RenderParams{
@@ -509,9 +522,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 							UseRawYaml: useRawYaml,
 						}
 
-						result, err := render.Render(cmd.Context(), params)
+						result, err := render.Render(ctx, params)
 						if err != nil {
-							return nil, fmt.Errorf("rendering release: %s: %w", releaseIdentifier, err)
+							return fmt.Errorf("rendering release: %s: %w", releaseIdentifier, err)
 						}
 
 						if normalize {
@@ -526,17 +539,25 @@ func NewReleaseRenderCmd() *cobra.Command {
 									if errors.Is(err, io.EOF) {
 										break
 									}
-									return nil, fmt.Errorf("failed to decode values for release: %s: %w", releaseIdentifier, err)
+									return fmt.Errorf("failed to decode values for release: %s: %w", releaseIdentifier, err)
 								}
 								if err := encoder.Encode(elem); err != nil {
-									return nil, fmt.Errorf("failed to encode values for release: %s: %w", releaseIdentifier, err)
+									return fmt.Errorf("failed to encode values for release: %s: %w", releaseIdentifier, err)
 								}
 							}
 							result = builder.String()
 						}
 
+						mu.Lock()
 						results[releaseIdentifier] = result
-					}
+						mu.Unlock()
+
+						return nil
+					})
+				}
+
+				if err := group.Wait(); err != nil {
+					return nil, err
 				}
 
 				return results, nil

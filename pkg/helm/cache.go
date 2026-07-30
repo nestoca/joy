@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/davidmdm/x/xfs"
 
@@ -28,6 +29,10 @@ type ChartCache struct {
 	Root            string
 	Puller
 }
+
+// pullMu serializes chart pulls across concurrent renders so that releases sharing
+// a chart+version don't race on the check-then-pull-then-untar sequence below.
+var pullMu sync.Mutex
 
 func (cache ChartCache) GetReleaseChart(release *v1alpha1.Release) (Chart, error) {
 	if repoURL := release.Spec.Chart.RepoUrl; repoURL != "" {
@@ -89,8 +94,18 @@ func (cache ChartCache) GetReleaseChartFS(ctx context.Context, release *v1alpha1
 			return nil, fmt.Errorf("verifying cache: %w", err)
 		}
 
-		pullOptions := PullOptions{Chart: chart, OutputDir: versionDir}
-		if err := cache.Pull(ctx, pullOptions); err != nil {
+		pullMu.Lock()
+		_, err := os.Stat(chartDir)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			pullMu.Unlock()
+			return nil, fmt.Errorf("verifying cache: %w", err)
+		}
+		if err != nil {
+			pullOptions := PullOptions{Chart: chart, OutputDir: versionDir}
+			err = cache.Pull(ctx, pullOptions)
+		}
+		pullMu.Unlock()
+		if err != nil {
 			return nil, fmt.Errorf("pulling chart: %w", err)
 		}
 	}

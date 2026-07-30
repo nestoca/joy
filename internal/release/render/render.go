@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 
 	"cuelang.org/go/cue"
@@ -114,26 +115,61 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 	return result, nil
 }
 
+// schemaCacheEntry holds a chart's compiled values.cue schema. Values produced by the
+// same cue.Context are not safe for concurrent use, so every access to schema must hold mu.
+type schemaCacheEntry struct {
+	once   sync.Once
+	mu     sync.Mutex
+	schema cue.Value
+	exists bool
+	err    error
+}
+
+// schemaCache dedupes values.cue compilation across concurrent renders of the same chart,
+// keyed by chart.DirName(), since compiling is by far the most expensive part of unifyValues
+// and is identical for every release rendered from a given chart.
+var schemaCache sync.Map // map[string]*schemaCacheEntry
+
+func loadSchema(chart *helm.ChartFS) (*schemaCacheEntry, error) {
+	actual, _ := schemaCache.LoadOrStore(chart.DirName(), &schemaCacheEntry{})
+	entry := actual.(*schemaCacheEntry)
+
+	entry.once.Do(func() {
+		rawSchema, err := chart.ReadFile("values.cue")
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				entry.err = fmt.Errorf("reading values.cue: %w", err)
+			}
+			return
+		}
+		entry.exists = true
+		entry.schema = cuecontext.New().
+			CompileBytes(rawSchema).
+			LookupPath(cue.MakePath(cue.Def("#values")))
+	})
+
+	return entry, entry.err
+}
+
 func unifyValues(values map[string]any, chart *helm.ChartFS) (map[string]any, error) {
 	if chart == nil {
 		return values, nil
 	}
 
-	rawSchema, err := chart.ReadFile("values.cue")
+	entry, err := loadSchema(chart)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return values, nil
-		}
-		return nil, fmt.Errorf("reading values.cue: %w", err)
+		return nil, err
+	}
+	if !entry.exists {
+		return values, nil
 	}
 
-	schema := cuecontext.New().
-		CompileBytes(rawSchema).
-		LookupPath(cue.MakePath(cue.Def("#values")))
+	entry.mu.Lock()
+	defer entry.mu.Unlock()
 
-	value := schema.Context().Encode(values)
+	value := entry.schema.Context().Encode(values)
 
-	unified := schema.Unify(value)
+	unified := entry.schema.Unify(value)
 
 	if err := unified.Validate(cue.Final(), cue.Concrete(true)); err != nil {
 		return nil, xerr.MultiErrFrom("validating values", AsErrorList(cueerrors.Errors(err))...)

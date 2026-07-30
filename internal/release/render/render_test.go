@@ -599,7 +599,10 @@ func TestSchemaUnification(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			mockFS := &xfs.FSMock{ReadFileFunc: tc.ReadFileFunc}
+			mockFS := &xfs.FSMock{
+				DirNameFunc:  func() string { return tc.Name },
+				ReadFileFunc: tc.ReadFileFunc,
+			}
 
 			result, err := HydrateValues(
 				&v1alpha1.Release{
