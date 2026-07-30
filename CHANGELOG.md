@@ -1,3 +1,10 @@
+## [0.98.0](https://github.com/nestoca/joy/compare/v0.97.0...v0.98.0) (2026-07-30)
+
+
+### Features
+
+* **PL-5900:** create/update/delete preview release ([#293](https://github.com/nestoca/joy/issues/293)) ([e394a56](https://github.com/nestoca/joy/commit/e394a5646cb7667af9688532edb19a38a4e1c0d3))
+
 ## [0.97.0](https://github.com/nestoca/joy/compare/v0.96.1...v0.97.0) (2026-07-24)
 
 
