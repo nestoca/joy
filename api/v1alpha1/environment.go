@@ -75,12 +75,17 @@ type Environment struct {
 	// Spec is the spec of the environment.
 	Spec EnvironmentSpec `yaml:"spec,omitempty" json:"spec,omitzero"`
 
+	// Status is the reconcile status set by the joy-operator (never by the CLI).
+	Status ResourceStatus `yaml:"status,omitempty" json:"status,omitzero"`
+
 	// File represents the in-memory yaml file of the project.
 	File *yml.File `yaml:"-" json:"-"`
 
 	// Dir is the path to the environment directory.
 	Dir string `yaml:"-" json:"-"`
 }
+
+func (e *Environment) GetStatus() *ResourceStatus { return &e.Status }
 
 func (e Environment) Validate(validChartRefs []string) error {
 	var errs []error

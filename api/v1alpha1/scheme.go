@@ -28,3 +28,12 @@ var (
 	ReleaseGVK     = schema.GroupVersionKind{Group: Group, Version: Version, Kind: ReleaseKind}
 	CatalogGVK     = schema.GroupVersionKind{Group: Group, Version: Version, Kind: CatalogKind}
 )
+
+// GroupVersionResource identifiers, using the plural resource names defined by
+// the generated CRDs (see joy-operator/cmd/crd-gen).
+var (
+	EnvironmentGVR = GroupVersion.WithResource("environments")
+	ProjectGVR     = GroupVersion.WithResource("projects")
+	ReleaseGVR     = GroupVersion.WithResource("releases")
+	CatalogGVR     = GroupVersion.WithResource("catalogs")
+)
