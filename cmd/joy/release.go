@@ -56,6 +56,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewReleaseOpenCmd())
 	cmd.AddCommand(NewReleaseLinksCmd())
 	cmd.AddCommand(NewReleaseSchemaCmd())
+	cmd.AddCommand(NewReleasePreviewCmd())
 	cmd.AddCommand(NewGitCommands())
 	cmd.AddCommand(NewValidateCommand())
 
