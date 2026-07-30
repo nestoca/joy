@@ -80,6 +80,9 @@ type Release struct {
 	// Spec is the spec of the release.
 	Spec ReleaseSpec `yaml:"spec,omitempty" json:"spec,omitzero"`
 
+	// Status is the reconcile status set by the joy-operator (never by the CLI).
+	Status ResourceStatus `yaml:"status,omitempty" json:"status,omitzero"`
+
 	// File represents the in-memory yaml file of the release.
 	File *yml.File `yaml:"-" json:"-"`
 
@@ -133,6 +136,8 @@ func LoadRelease(file *yml.File) (*Release, error) {
 func (release *Release) GetName() string {
 	return release.ReleaseMetadata.Name
 }
+
+func (release *Release) GetStatus() *ResourceStatus { return &release.Status }
 
 func stripCustomTags(node *yaml.Node) *yaml.Node {
 	if slices.Contains(yml.CustomTags, node.Tag) {
