@@ -1,3 +1,10 @@
+## [0.99.0](https://github.com/nestoca/joy/compare/v0.98.0...v0.99.0) (2026-07-30)
+
+
+### Features
+
+* **PL-6288:** add reconcile status to joy resources ([#294](https://github.com/nestoca/joy/issues/294)) ([98bf33f](https://github.com/nestoca/joy/commit/98bf33f30fecbd4b632000ce6af9a2a1971fc753))
+
 ## [0.98.0](https://github.com/nestoca/joy/compare/v0.97.0...v0.98.0) (2026-07-30)
 
 
