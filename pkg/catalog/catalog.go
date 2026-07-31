@@ -73,6 +73,18 @@ func Load(ctx context.Context, dir string, validChartRefs []string) (*Catalog, e
 	// Load all matching files
 	c := &Catalog{Dir: dir}
 	for _, fileAsset := range fileAssets {
+		// Skip files living inside a hidden directory (e.g. .git, .claude).
+		// Nested git worktrees and checkouts are commonly placed under such
+		// folders (for example .claude/worktrees/<name>) and each contains its
+		// own full copy of the catalog. Without this, every environment,
+		// release and project would be loaded once per checkout, duplicating
+		// the whole catalog N times.
+		if hidden, err := hasHiddenDirSegment(dir, fileAsset.Path); err != nil {
+			return nil, err
+		} else if hidden {
+			continue
+		}
+
 		if ignoreMatcher != nil && ignoreMatcher.Match(fileAsset.Path) {
 			continue
 		}
@@ -236,6 +248,28 @@ func (c *Catalog) ResolveRefs() error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// hasHiddenDirSegment reports whether path lies within a hidden directory
+// (a path segment beginning with a dot) relative to root. The root directory
+// itself is intentionally excluded from the check, so a hidden catalog root
+// such as ~/.joy is loaded normally while its hidden subdirectories
+// (.git, .claude/worktrees, ...) are skipped.
+func hasHiddenDirSegment(root, path string) (bool, error) {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false, fmt.Errorf("resolving %s relative to %s: %w", path, root, err)
+	}
+
+	// Only inspect the directory portion: a hidden file at the catalog root is
+	// not considered "inside a hidden directory".
+	for dir := filepath.Dir(rel); dir != "." && dir != string(filepath.Separator); dir = filepath.Dir(dir) {
+		if strings.HasPrefix(filepath.Base(dir), ".") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func isValid(file *yml.File) bool {

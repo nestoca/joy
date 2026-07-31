@@ -125,6 +125,70 @@ func TestFreeformEnvsAndReleasesLoadingWithJoyIgnore(t *testing.T) {
 	require.Equal(t, "1.1.1", rels[1].Releases[0].Spec.Version)
 }
 
+func TestCatalogLoadIgnoresHiddenDirectories(t *testing.T) {
+	// Nested git worktrees and checkouts (for example under .claude/worktrees),
+	// as well as the .git directory, contain their own full copy of the
+	// catalog. They must not be loaded, otherwise every environment and project
+	// is duplicated once per checkout. Regression test for PLT-6549, where
+	// `joy env list` showed every environment 4x because of nested worktrees.
+	catalogDir, err := filepath.Abs("testdata/hidden-dirs")
+	require.NoError(t, err)
+
+	cat, err := Load(context.Background(), catalogDir, nil)
+	require.NoError(t, err)
+
+	// The catalog defines each of these exactly once; the hidden copies under
+	// .claude/worktrees and .git must be ignored.
+	require.Equal(t, []string{"dev"}, cat.GetEnvironmentNames())
+
+	require.Len(t, cat.Projects, 1)
+	require.Equal(t, "project1", cat.Projects[0].Name)
+}
+
+func TestHasHiddenDirSegment(t *testing.T) {
+	root := filepath.Join(string(filepath.Separator), "Users", "someone", ".joy")
+
+	cases := []struct {
+		Name string
+		Path string
+		Want bool
+	}{
+		{
+			Name: "regular catalog file",
+			Path: filepath.Join(root, "environments", "dev", "env.yaml"),
+			Want: false,
+		},
+		{
+			Name: "hidden file at catalog root is loaded",
+			Path: filepath.Join(root, ".hidden-file.yaml"),
+			Want: false,
+		},
+		{
+			Name: "inside .git",
+			Path: filepath.Join(root, ".git", "index.yaml"),
+			Want: true,
+		},
+		{
+			Name: "nested git worktree under .claude",
+			Path: filepath.Join(root, ".claude", "worktrees", "wt1", "environments", "dev", "env.yaml"),
+			Want: true,
+		},
+		{
+			Name: "hidden directory nested deeper",
+			Path: filepath.Join(root, "environments", ".backup", "env.yaml"),
+			Want: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			got, err := hasHiddenDirSegment(root, tc.Path)
+			require.NoError(t, err)
+			require.Equal(t, tc.Want, got)
+		})
+	}
+}
+
 func requireRelease(t *testing.T, crossRelease *cross.Release, name string, devVersion string, prodVersion string) {
 	require.Equal(t, name, crossRelease.Name)
 	devRelease := crossRelease.Releases[0]
