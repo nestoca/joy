@@ -1,3 +1,10 @@
+## [0.99.1](https://github.com/nestoca/joy/compare/v0.99.0...v0.99.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **PLT-6549:** skip hidden directories when loading the catalog ([57b1511](https://github.com/nestoca/joy/commit/57b15111a9636bf80169fbfabe6d88ccfe371140))
+
 ## [0.99.0](https://github.com/nestoca/joy/compare/v0.98.0...v0.99.0) (2026-07-30)
 
 
