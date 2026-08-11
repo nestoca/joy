@@ -1,4 +1,5 @@
-// Package patch applies RFC 6902 JSON Patch operations to a YAML release tree.
+// Package patch applies RFC 6902 JSON Patch ops or an RFC 7386 JSON Merge Patch to a YAML
+// release tree.
 //
 // The patch itself is applied by a standard JSON Patch library, so serialization to JSON is
 // required — which drops YAML custom tags (e.g. !lock), comments and key order. Those are
@@ -67,12 +68,46 @@ func Apply(doc *yaml.Node, ops []Op) (*yaml.Node, error) {
 		return nil, fmt.Errorf("applying patch: %w", err)
 	}
 
+	return finish(doc, patchedJSON)
+}
+
+// ApplyMergePatch applies an RFC 7386 JSON Merge Patch (given as YAML or JSON) to doc and returns
+// the resulting document. Unlike Apply's path-addressed ops, a merge patch is just the target
+// shape: setting a key merges it in (whether it existed before or not), setting it to null
+// removes it. Metadata/style are restored the same way as Apply. When mergePatch is empty, doc is
+// returned unchanged.
+func ApplyMergePatch(doc *yaml.Node, mergePatch []byte) (*yaml.Node, error) {
+	if len(mergePatch) == 0 {
+		return doc, nil
+	}
+
+	docJSON, err := toJSON(doc)
+	if err != nil {
+		return nil, fmt.Errorf("converting release to json: %w", err)
+	}
+
+	patchJSON, err := sigsyaml.YAMLToJSON(mergePatch)
+	if err != nil {
+		return nil, fmt.Errorf("converting merge patch to json: %w", err)
+	}
+
+	patchedJSON, err := jsonpatch.MergePatch(docJSON, patchJSON)
+	if err != nil {
+		return nil, fmt.Errorf("applying merge patch: %w", err)
+	}
+
+	return finish(doc, patchedJSON)
+}
+
+// finish unmarshals patchedJSON back into a yaml.Node, restoring the custom tags, comments and
+// key order that the JSON round-trip drops (from the pre-patch doc), and clears flow-flattened
+// styles so the result serializes as clean block YAML.
+func finish(doc *yaml.Node, patchedJSON []byte) (*yaml.Node, error) {
 	var patched yaml.Node
 	if err := yaml.Unmarshal(patchedJSON, &patched); err != nil {
 		return nil, fmt.Errorf("parsing patched result: %w", err)
 	}
 
-	// The JSON round-trip drops custom tags, comments and key order, and flow-flattens styles.
 	yml.CopyMetadata(&patched, doc)
 	clearStyle(&patched)
 	return &patched, nil
