@@ -20,7 +20,8 @@ func NewReleasePreviewCmd() *cobra.Command {
 
 A preview is a copy of a source release named <release><suffix>, pinned to a version and
 labelled ` + "`joy.nesto.ca/preview`" + ` so that "joy build promote" excludes it. Callers layer
-their own transforms via repeatable --patch (RFC 6902 op) and --replace (regex) flags.`,
+their own transforms via repeatable --patch (RFC 6902 op) flags, a single --merge-patch
+(RFC 7386) flag, and repeatable --replace (regex) flags.`,
 	}
 	cmd.AddCommand(newReleasePreviewCreateCmd())
 	cmd.AddCommand(newReleasePreviewDeleteCmd())
@@ -29,11 +30,12 @@ their own transforms via repeatable --patch (RFC 6902 op) and --replace (regex) 
 
 func newReleasePreviewCreateCmd() *cobra.Command {
 	var (
-		env      string
-		suffix   string
-		version  string
-		patches  []string
-		replaces []string
+		env        string
+		suffix     string
+		version    string
+		patches    []string
+		mergePatch string
+		replaces   []string
 	)
 
 	cmd := &cobra.Command{
@@ -42,8 +44,8 @@ func newReleasePreviewCreateCmd() *cobra.Command {
 		Long: `Create a preview copy of <release> named <release><suffix> in the given environment.
 
 Applies, in order: built-ins (metadata.name, joy.nesto.ca/preview label, spec.version), then
-each --patch, then each --replace, then a final placeholder pass (__RELEASE__, __SUFFIX__).
-If the preview already exists, only spec.version is updated.`,
+each --patch, then --merge-patch, then each --replace, then a final placeholder pass
+(__RELEASE__, __SUFFIX__). If the preview already exists, only spec.version is updated.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ops, err := parsePatchFlags(patches)
@@ -59,14 +61,15 @@ If the preview already exists, only spec.version is updated.`,
 			cat.WithEnvironments([]string{env})
 
 			return preview.Create(preview.CreateParams{
-				Catalog:  cat,
-				Writer:   yml.DiskWriter,
-				Env:      env,
-				Release:  args[0],
-				Suffix:   suffix,
-				Version:  version,
-				Patches:  ops,
-				Replaces: replacements,
+				Catalog:    cat,
+				Writer:     yml.DiskWriter,
+				Env:        env,
+				Release:    args[0],
+				Suffix:     suffix,
+				Version:    version,
+				Patches:    ops,
+				MergePatch: []byte(mergePatch),
+				Replaces:   replacements,
 			})
 		},
 	}
@@ -75,6 +78,7 @@ If the preview already exists, only spec.version is updated.`,
 	cmd.Flags().StringVar(&suffix, "suffix", "", "Suffix appended to the release name to form the preview (include the leading dash, e.g. -og-1234)")
 	cmd.Flags().StringVar(&version, "version", "", "Version to set on the preview release")
 	cmd.Flags().StringArrayVar(&patches, "patch", nil, "(repeatable) A single RFC 6902 op (add/replace/remove) applied to the preview, as JSON/YAML")
+	cmd.Flags().StringVar(&mergePatch, "merge-patch", "", "An RFC 7386 JSON Merge Patch applied to the preview, as JSON/YAML")
 	cmd.Flags().StringArrayVar(&replaces, "replace", nil, "(repeatable) A single {search, replace} regex applied to the preview file text, as JSON/YAML")
 	_ = cmd.MarkFlagRequired("env")
 	_ = cmd.MarkFlagRequired("suffix")

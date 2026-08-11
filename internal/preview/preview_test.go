@@ -120,6 +120,42 @@ func TestCreate(t *testing.T) {
 	require.Equal(t, "backoffice", spec["values"].(map[string]any)["image"].(map[string]any)["name"])
 }
 
+func TestCreateWithMergePatch(t *testing.T) {
+	dir, cat := newCatalog(t)
+	err := Create(CreateParams{
+		Catalog: cat, Writer: yml.DiskWriter,
+		Env: "staging", Release: "backoffice", Suffix: "-og-1234", Version: "1.2.3-preview",
+		MergePatch: []byte(`
+metadata:
+  annotations:
+    argocd.nesto.ca/sync.prune: 'true'
+spec:
+  values:
+    frontend:
+      gateway: null
+`),
+		Replaces: []Replacement{{
+			Search:  `(https://)(office)(\.staging\..*/api)`,
+			Replace: `${1}__RELEASE____SUFFIX__.previews$3`,
+		}},
+	})
+	require.NoError(t, err)
+
+	text, err := os.ReadFile(previewPath(dir))
+	require.NoError(t, err)
+	s := string(text)
+
+	require.Contains(t, s, "name: backoffice-og-1234")
+	require.Contains(t, s, "version: 1.2.3-preview")
+	require.NotContains(t, s, "gateway")
+	require.Contains(t, s, "PUBLIC_API_PATH: !lock https://backoffice-og-1234.previews.staging.nesto.ca/api")
+
+	// The slash in the annotation key needs no escaping with a merge patch.
+	m := decode(t, previewPath(dir))
+	annotations := m["metadata"].(map[string]any)["annotations"].(map[string]any)
+	require.Equal(t, "true", annotations["argocd.nesto.ca/sync.prune"])
+}
+
 func TestCreateUpdateOnlyBumpsVersion(t *testing.T) {
 	dir, cat := newCatalog(t)
 	require.NoError(t, Create(CreateParams{
@@ -180,6 +216,16 @@ func TestCreateUpdateWarnsAboutSkippedPatches(t *testing.T) {
 		}))
 	})
 	require.Contains(t, out, "backoffice-og-1234")
+	require.Contains(t, out, "not re-applied")
+
+	// Update with a merge patch (no --patch ops): also warns.
+	out = captureStdout(func() {
+		require.NoError(t, Create(CreateParams{
+			Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
+			Release: "backoffice", Suffix: "-og-1234", Version: "4.0.0",
+			MergePatch: []byte(`{spec: {values: {image: {name: backoffice}}}}`),
+		}))
+	})
 	require.Contains(t, out, "not re-applied")
 }
 

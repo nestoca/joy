@@ -2,7 +2,8 @@
 //
 // A preview is a copy of a source release named <sourceRelease><suffix>, pinned to a specific
 // build version and marked with the v1alpha1.PreviewLabel so that `joy build promote` excludes
-// it. Callers layer their own transforms via patches (RFC 6902) and regex replacements.
+// it. Callers layer their own transforms via patches (RFC 6902), a merge patch (RFC 7386) and
+// regex replacements.
 package preview
 
 import (
@@ -29,14 +30,15 @@ type Replacement struct {
 
 // CreateParams are the inputs to Create.
 type CreateParams struct {
-	Catalog  *catalog.Catalog
-	Writer   yml.Writer
-	Env      string
-	Release  string // source release name
-	Suffix   string // appended to Release to form the preview name; includes any leading dash
-	Version  string
-	Patches  []patch.Op
-	Replaces []Replacement
+	Catalog    *catalog.Catalog
+	Writer     yml.Writer
+	Env        string
+	Release    string // source release name
+	Suffix     string // appended to Release to form the preview name; includes any leading dash
+	Version    string
+	Patches    []patch.Op
+	MergePatch []byte // RFC 7386 JSON Merge Patch (YAML or JSON), applied after Patches
+	Replaces   []Replacement
 }
 
 // DeleteParams are the inputs to Delete.
@@ -50,8 +52,9 @@ type DeleteParams struct {
 // Create writes (or, if it already exists, version-bumps) the preview copy of a release.
 //
 // New preview: copy source → built-ins (metadata.name, preview label, version) → patches →
-// replacements → placeholder substitution (__RELEASE__, __SUFFIX__). Existing preview: only
-// spec.version is re-patched (copy is idempotent; other transforms are not re-applied).
+// merge patch → replacements → placeholder substitution (__RELEASE__, __SUFFIX__). Existing
+// preview: only spec.version is re-patched (copy is idempotent; other transforms are not
+// re-applied).
 func Create(params CreateParams) error {
 	source, err := findSourceRelease(params.Catalog, params.Release, params.Env)
 	if err != nil {
@@ -68,7 +71,7 @@ func Create(params CreateParams) error {
 	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
 
 	if _, err := os.Stat(targetPath); err == nil {
-		if len(params.Patches) > 0 || len(params.Replaces) > 0 {
+		if len(params.Patches) > 0 || len(params.MergePatch) > 0 || len(params.Replaces) > 0 {
 			fmt.Printf(
 				"%s existing preview %s: only spec.version is updated, patches and replacements are not re-applied. Delete and recreate the preview to pick up changes to those.\n",
 				style.Warning("⚠️"), style.Resource(target),
@@ -95,6 +98,12 @@ func Create(params CreateParams) error {
 
 	// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
 	patched, err := patch.Apply(tree, params.Patches)
+	if err != nil {
+		return err
+	}
+
+	// Caller merge patch (RFC 7386), applied on top of the RFC 6902 patches.
+	patched, err = patch.ApplyMergePatch(patched, params.MergePatch)
 	if err != nil {
 		return err
 	}

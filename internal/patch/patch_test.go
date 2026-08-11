@@ -81,6 +81,37 @@ func TestApply_StrictErrors(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestApplyMergePatch(t *testing.T) {
+	out, err := ApplyMergePatch(doc(t, base), []byte(`
+spec:
+  values:
+    image: {name: backoffice}
+    env: {ALPHA: A2}
+    frontend: {gateway: null}
+`))
+	require.NoError(t, err)
+	s := render(t, out)
+
+	// Custom tags restored by CopyMetadata (including on a replaced value).
+	require.Contains(t, s, "ZULU: !lock z")
+	require.Contains(t, s, "ALPHA: !lock A2")
+	// Source key order preserved (ZULU before ALPHA), not alphabetized.
+	require.Less(t, strings.Index(s, "ZULU"), strings.Index(s, "ALPHA"))
+	// De-flowed to block style (no leftover JSON braces from the round-trip).
+	require.NotContains(t, s, `{"`)
+	// Merge effects: object merged in, null removes the key.
+	require.Contains(t, s, "name: backoffice")
+	require.NotContains(t, s, "httpRoutes")
+	require.Contains(t, s, "namespace: default")
+}
+
+func TestApplyMergePatch_EmptyReturnsInput(t *testing.T) {
+	in := doc(t, base)
+	out, err := ApplyMergePatch(in, nil)
+	require.NoError(t, err)
+	require.Same(t, in, out)
+}
+
 func TestSetPathAndSetPathCreating(t *testing.T) {
 	d := doc(t, base)
 	root := d.Content[0]
