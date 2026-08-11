@@ -1,3 +1,10 @@
+## [0.99.2](https://github.com/nestoca/joy/compare/v0.99.1...v0.99.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **PL-5900:** regen previews from scratch every time ([ba82c39](https://github.com/nestoca/joy/commit/ba82c3952dd45a98672ba7002cd0de280ea65607))
+
 ## [0.99.1](https://github.com/nestoca/joy/compare/v0.99.0...v0.99.1) (2026-07-31)
 
 
