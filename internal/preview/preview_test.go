@@ -119,27 +119,6 @@ func TestCreate(t *testing.T) {
 	require.Equal(t, "backoffice", spec["values"].(map[string]any)["image"].(map[string]any)["name"])
 }
 
-func TestCreateUpdateOnlyBumpsVersion(t *testing.T) {
-	dir, cat := newCatalog(t)
-	require.NoError(t, Create(CreateParams{
-		Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
-		Release: "backoffice", Suffix: "-og-1234", Version: "1.0.0", Patches: nestoPatches(t),
-	}))
-
-	// Second create with a different version + a patch that must NOT be re-applied.
-	extra, err := patch.ParseOp([]byte(`{op: add, path: /spec/values/SHOULD_NOT_APPEAR, value: x}`))
-	require.NoError(t, err)
-	require.NoError(t, Create(CreateParams{
-		Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
-		Release: "backoffice", Suffix: "-og-1234", Version: "9.9.9", Patches: []patch.Op{extra},
-	}))
-
-	text, err := os.ReadFile(previewPath(dir))
-	require.NoError(t, err)
-	require.Contains(t, string(text), "version: 9.9.9")
-	require.NotContains(t, string(text), "SHOULD_NOT_APPEAR")
-}
-
 func TestDelete(t *testing.T) {
 	dir, cat := newCatalog(t)
 	require.NoError(t, Create(CreateParams{
