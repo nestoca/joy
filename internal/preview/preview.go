@@ -67,12 +67,6 @@ func Create(params CreateParams) error {
 	target := params.Release + params.Suffix
 	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
 
-	if _, err := os.Stat(targetPath); err == nil {
-		return updateVersion(params.Writer, targetPath, params.Version, target)
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("checking preview file %s: %w", targetPath, err)
-	}
-
 	tree := yml.Clone(source.File.Tree)
 	node := documentRoot(tree)
 
@@ -137,24 +131,6 @@ func Delete(params DeleteParams) error {
 		return fmt.Errorf("removing preview file %s: %w", targetPath, err)
 	}
 	fmt.Printf("🗑️  Deleted preview %s\n", style.Resource(target))
-	return nil
-}
-
-func updateVersion(writer yml.Writer, path, version, target string) error {
-	file, err := yml.LoadFile(path)
-	if err != nil {
-		return fmt.Errorf("loading preview file %s: %w", path, err)
-	}
-	if err := patch.SetPath(documentRoot(file.Tree), []string{"spec", "version"}, patch.Scalar(version)); err != nil {
-		return fmt.Errorf("setting spec.version: %w", err)
-	}
-	if err := file.UpdateYamlFromTree(); err != nil {
-		return fmt.Errorf("updating preview yaml: %w", err)
-	}
-	if err := writer.WriteFile(file); err != nil {
-		return fmt.Errorf("writing preview file: %w", err)
-	}
-	fmt.Printf("✅ Updated preview %s to version %s\n", style.Resource(target), style.Version(version))
 	return nil
 }
 
