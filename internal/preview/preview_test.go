@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -138,6 +139,48 @@ func TestCreateUpdateOnlyBumpsVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(text), "version: 9.9.9")
 	require.NotContains(t, string(text), "SHOULD_NOT_APPEAR")
+}
+
+func TestCreateUpdateWarnsAboutSkippedPatches(t *testing.T) {
+	_, cat := newCatalog(t)
+	require.NoError(t, Create(CreateParams{
+		Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
+		Release: "backoffice", Suffix: "-og-1234", Version: "1.0.0", Patches: nestoPatches(t),
+	}))
+
+	captureStdout := func(fn func()) string {
+		old := os.Stdout
+		r, w, err := os.Pipe()
+		require.NoError(t, err)
+		os.Stdout = w
+		defer func() { os.Stdout = old }()
+
+		fn()
+
+		require.NoError(t, w.Close())
+		out, err := io.ReadAll(r)
+		require.NoError(t, err)
+		return string(out)
+	}
+
+	// Update without patches/replaces: no warning.
+	out := captureStdout(func() {
+		require.NoError(t, Create(CreateParams{
+			Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
+			Release: "backoffice", Suffix: "-og-1234", Version: "2.0.0",
+		}))
+	})
+	require.NotContains(t, out, "not re-applied")
+
+	// Update with patches: warns that they're skipped.
+	out = captureStdout(func() {
+		require.NoError(t, Create(CreateParams{
+			Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
+			Release: "backoffice", Suffix: "-og-1234", Version: "3.0.0", Patches: nestoPatches(t),
+		}))
+	})
+	require.Contains(t, out, "backoffice-og-1234")
+	require.Contains(t, out, "not re-applied")
 }
 
 func TestDelete(t *testing.T) {

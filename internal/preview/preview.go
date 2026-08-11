@@ -68,6 +68,12 @@ func Create(params CreateParams) error {
 	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
 
 	if _, err := os.Stat(targetPath); err == nil {
+		if len(params.Patches) > 0 || len(params.Replaces) > 0 {
+			fmt.Printf(
+				"%s existing preview %s: only spec.version is updated, patches and replacements are not re-applied. Delete and recreate the preview to pick up changes to those.\n",
+				style.Warning("⚠️"), style.Resource(target),
+			)
+		}
 		return updateVersion(params.Writer, targetPath, params.Version, target)
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("checking preview file %s: %w", targetPath, err)
