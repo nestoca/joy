@@ -12,13 +12,13 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"gopkg.in/yaml.v3"
 
 	"github.com/TwiN/go-color"
 	"github.com/davidmdm/x/xerr"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"

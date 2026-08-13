@@ -6,9 +6,10 @@ import (
 	"os"
 	"slices"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/nestoca/joy/internal/yml"
 	joy "github.com/nestoca/joy/pkg"
-	"gopkg.in/yaml.v3"
 )
 
 func main() {

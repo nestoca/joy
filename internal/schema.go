@@ -6,9 +6,9 @@ import (
 	"cuelang.org/go/cue"
 	cueerrors "cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
-	"gopkg.in/yaml.v3"
 
 	"github.com/davidmdm/x/xerr"
+	"gopkg.in/yaml.v3"
 )
 
 func StringifySchema(value cue.Value) string {
