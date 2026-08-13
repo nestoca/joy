@@ -3,9 +3,10 @@ package v1alpha1
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/nestoca/joy/internal"
 	"github.com/nestoca/joy/internal/yml"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ProjectMetadata struct {

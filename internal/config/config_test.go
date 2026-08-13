@@ -16,10 +16,10 @@ func TestMergeCatalogResourceIntoCatalogConfig(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name             string
-		catalogConfig    Catalog
-		catalogResource  v1alpha1.Catalog
-		expected         Catalog
+		name            string
+		catalogConfig   Catalog
+		catalogResource v1alpha1.Catalog
+		expected        Catalog
 	}{
 		{
 			name: "catalog resource replaces charts and default",
@@ -102,7 +102,7 @@ func TestMergeCatalogResourceIntoCatalogConfig(t *testing.T) {
 			},
 		},
 		{
-			name:            "empty catalog resource leaves joy config unchanged",
+			name: "empty catalog resource leaves joy config unchanged",
 			catalogConfig: Catalog{
 				Charts: map[string]helm.Chart{
 					"joy-only": {

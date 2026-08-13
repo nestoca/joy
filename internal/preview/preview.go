@@ -16,6 +16,7 @@ import (
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+
 	sigsyaml "sigs.k8s.io/yaml"
 )
 
