@@ -6,19 +6,19 @@
 package preview
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Replacement is a single regex search/replace applied to the preview file text.
@@ -67,42 +67,49 @@ func Create(params CreateParams) error {
 	target := params.Release + params.Suffix
 	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
 
-	tree := yml.Clone(source.File.Tree)
-	node := documentRoot(tree)
-
-	// joy built-ins.
-	if err := patch.SetPath(node, []string{"metadata", "name"}, patch.Scalar(target)); err != nil {
-		return fmt.Errorf("setting metadata.name: %w", err)
+	source.Name = target
+	source.Spec.Version = params.Version
+	if source.Labels == nil {
+		source.Labels = map[string]string{}
 	}
-	if err := patch.SetPathCreating(node, []string{"metadata", "labels", v1alpha1.PreviewLabel}, patch.Scalar("true")); err != nil {
-		return fmt.Errorf("setting preview label: %w", err)
-	}
-	if err := patch.SetPath(node, []string{"spec", "version"}, patch.Scalar(params.Version)); err != nil {
-		return fmt.Errorf("setting spec.version: %w", err)
-	}
+	source.Labels[v1alpha1.PreviewLabel] = "true"
 
 	// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
-	patched, err := patch.Apply(tree, params.Patches)
+	patched, err := patch.Apply(source, params.Patches)
 	if err != nil {
 		return err
 	}
 
-	targetFile, err := yml.NewFileFromTree(targetPath, source.File.Indent, patched)
+	patched.File, err = yml.NewFileFromObject(targetPath, source.File.Indent, patched)
 	if err != nil {
 		return fmt.Errorf("building preview file: %w", err)
 	}
 
-	// Text transforms: regex replacements, then the final placeholder pass.
-	text, err := applyReplacements(string(targetFile.Yaml), params.Replaces)
-	if err != nil {
-		return err
-	}
-	text = applyPlaceholders(text, params.Release, params.Suffix)
-	targetFile.Yaml = []byte(text)
+	yml.CopyMetadata(patched.File.Tree, source.File.Tree)
 
-	if err := params.Writer.WriteFile(targetFile); err != nil {
+	text, err := yaml.Marshal(patched.File.Tree)
+	if err != nil {
+		return fmt.Errorf("failed to marshal patched document to yaml: %w", err)
+	}
+
+	replacements := append(
+		params.Replaces,
+		[]Replacement{
+			{Search: "__RELEASE__", Replace: params.Release},
+			{Search: "__SUFFIX__", Replace: params.Suffix},
+		}...,
+	)
+
+	for _, replacement := range replacements {
+		text = bytes.ReplaceAll(text, []byte(replacement.Search), []byte(replacement.Replace))
+	}
+
+	patched.File.Yaml = text
+
+	if err := params.Writer.WriteFile(patched.File); err != nil {
 		return fmt.Errorf("writing preview file: %w", err)
 	}
+
 	fmt.Printf("✅ Created preview %s at version %s\n", style.Resource(target), style.Version(params.Version))
 	return nil
 }
@@ -164,11 +171,4 @@ func applyPlaceholders(text, release, suffix string) string {
 		"__RELEASE__", release,
 		"__SUFFIX__", suffix,
 	).Replace(text)
-}
-
-func documentRoot(tree *yaml.Node) *yaml.Node {
-	if tree.Kind == yaml.DocumentNode && len(tree.Content) > 0 {
-		return tree.Content[0]
-	}
-	return tree
 }

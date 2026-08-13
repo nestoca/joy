@@ -23,6 +23,11 @@ import (
 // index is unreliable and would risk copying metadata onto the wrong element. The sequence node's
 // own tag/comments are still restored; per-element metadata inside sequences is a known limitation.
 func CopyMetadata(dst, src *yaml.Node) {
+	clearStyle(dst)
+	copyMetadata(dst, src)
+}
+
+func copyMetadata(dst, src *yaml.Node) {
 	if dst == nil || src == nil || dst.Kind != src.Kind {
 		return
 	}
@@ -38,7 +43,7 @@ func CopyMetadata(dst, src *yaml.Node) {
 	case yaml.DocumentNode:
 		// A document wraps a single root node, so index correspondence is safe.
 		for i := 0; i < min(len(dst.Content), len(src.Content)); i++ {
-			CopyMetadata(dst.Content[i], src.Content[i])
+			copyMetadata(dst.Content[i], src.Content[i])
 		}
 	// NOTE: sequence *elements* are intentionally not recursed into. A JSON Patch add/remove/move
 	// shifts indices, so dst.Content[i] may no longer correspond to src.Content[i]; copying by
@@ -57,8 +62,8 @@ func CopyMetadata(dst, src *yaml.Node) {
 			if !ok {
 				continue
 			}
-			CopyMetadata(dstPair.Key, src.Content[i])
-			CopyMetadata(dstPair.Value, src.Content[i+1])
+			copyMetadata(dstPair.Key, src.Content[i])
+			copyMetadata(dstPair.Value, src.Content[i+1])
 			reordered = append(reordered, dstPair.Key, dstPair.Value)
 			seen[key] = true
 		}
@@ -69,5 +74,15 @@ func CopyMetadata(dst, src *yaml.Node) {
 			}
 		}
 		dst.Content = reordered
+	}
+}
+
+func clearStyle(node *yaml.Node) {
+	if node == nil {
+		return
+	}
+	node.Style = 0
+	for _, child := range node.Content {
+		clearStyle(child)
 	}
 }

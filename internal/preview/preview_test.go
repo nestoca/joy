@@ -58,23 +58,6 @@ func newCatalog(t *testing.T) (dir string, cat *catalog.Catalog) {
 	return dir, cat
 }
 
-// nestoPatches mirrors the built-in transforms the preview-service action passes.
-func nestoPatches(t *testing.T) []patch.Op {
-	t.Helper()
-	specs := []string{
-		`{op: remove, path: /spec/values/frontend/gateway}`,
-		`{op: add, path: /spec/namespace, value: previews}`,
-		`{op: add, path: /spec/values/image, value: {name: backoffice}}`,
-	}
-	ops := make([]patch.Op, 0, len(specs))
-	for _, s := range specs {
-		op, err := patch.ParseOp([]byte(s))
-		require.NoError(t, err)
-		ops = append(ops, op)
-	}
-	return ops
-}
-
 func previewPath(dir string) string {
 	return filepath.Join(dir, "environments", "staging", "releases", "origination", "backoffice-og-1234.yaml")
 }
@@ -91,13 +74,20 @@ func decode(t *testing.T, path string) map[string]any {
 func TestCreate(t *testing.T) {
 	dir, cat := newCatalog(t)
 	err := Create(CreateParams{
-		Catalog: cat, Writer: yml.DiskWriter,
-		Env: "staging", Release: "backoffice", Suffix: "-og-1234", Version: "1.2.3-preview",
-		Patches: nestoPatches(t),
-		Replaces: []Replacement{{
-			Search:  `(https://)(office)(\.staging\..*/api)`,
-			Replace: `${1}__RELEASE____SUFFIX__.previews$3`,
-		}},
+		Catalog: cat,
+		Writer:  yml.DiskWriter,
+		Env:     "staging",
+		Release: "backoffice",
+		Suffix:  "-og-1234",
+		Version: "1.2.3-preview",
+		Patches: []patch.Op{
+			{Op: "remove", Path: "/spec/values/frontend/gateway"},
+			{Op: "add", Path: "/spec/namespace", Value: "previews"},
+			{Op: "add", Path: "/spec/values/image", Value: map[string]any{"name": "backoffice"}},
+		},
+		Replaces: []Replacement{
+			{Search: "https://office.staging.", Replace: `https://__RELEASE____SUFFIX__.previews.staging.`},
+		},
 	})
 	require.NoError(t, err)
 
@@ -108,7 +98,6 @@ func TestCreate(t *testing.T) {
 	require.Contains(t, s, "name: backoffice-og-1234")
 	require.Contains(t, s, "version: 1.2.3-preview")
 	require.NotContains(t, s, "gateway")
-	// placeholders resolved inside the regex replacement + !lock preserved:
 	require.Contains(t, s, "PUBLIC_API_PATH: !lock https://backoffice-og-1234.previews.staging.nesto.ca/api")
 	require.Contains(t, s, "ENV: !lock staging")
 

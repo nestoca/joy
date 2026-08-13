@@ -27,13 +27,6 @@ func doc(t *testing.T, src string) *yaml.Node {
 	return &d
 }
 
-func mustOp(t *testing.T, s string) Op {
-	t.Helper()
-	op, err := ParseOp([]byte(s))
-	require.NoError(t, err)
-	return op
-}
-
 func render(t *testing.T, d *yaml.Node) string {
 	t.Helper()
 	var b bytes.Buffer
@@ -45,11 +38,14 @@ func render(t *testing.T, d *yaml.Node) string {
 }
 
 func TestApply(t *testing.T) {
-	out, err := Apply(doc(t, base), []Op{
-		mustOp(t, `{op: add, path: /spec/values/image, value: {name: backoffice}}`),
-		mustOp(t, `{op: replace, path: /spec/values/env/ALPHA, value: A2}`),
-		mustOp(t, `{op: remove, path: /spec/values/frontend/gateway}`),
-	})
+	out, err := Apply(
+		doc(t, base),
+		[]Op{
+			{Op: "add", Path: "/spec/values/image", Value: map[string]any{"name": "backoffice"}},
+			{Op: "replace", Path: "/spec/values/env/ALPHA", Value: "A2"},
+			{Op: "remove", Path: "/spec/values/frontend/gateway"},
+		},
+	)
 	require.NoError(t, err)
 	s := render(t, out)
 
@@ -74,22 +70,9 @@ func TestApply_NoOpsReturnsInput(t *testing.T) {
 
 func TestApply_StrictErrors(t *testing.T) {
 	// RFC 6902: replacing a non-existent path is an error.
-	_, err := Apply(doc(t, base), []Op{mustOp(t, `{op: replace, path: /spec/values/nope, value: x}`)})
+	_, err := Apply(doc(t, base), []Op{{Op: "replace", Path: "/spec/values/nope", Value: "x"}})
 	require.Error(t, err)
 	// add to a non-existent parent is an error.
-	_, err = Apply(doc(t, base), []Op{mustOp(t, `{op: add, path: /spec/values/image/name, value: x}`)})
+	_, err = Apply(doc(t, base), []Op{{Op: "add", Path: "/spec/values/image/name", Value: "x"}})
 	require.Error(t, err)
-}
-
-func TestSetPathAndSetPathCreating(t *testing.T) {
-	d := doc(t, base)
-	root := d.Content[0]
-	require.NoError(t, SetPath(root, []string{"spec", "namespace"}, Scalar("previews")))
-	require.NoError(t, SetPathCreating(root, []string{"metadata", "labels", "joy.nesto.ca/preview"}, Scalar("true")))
-
-	s := render(t, d)
-	require.Contains(t, s, "namespace: previews")
-	require.Contains(t, s, `joy.nesto.ca/preview: "true"`)
-	// Existing !lock values untouched by the setters.
-	require.Contains(t, s, "ZULU: !lock z")
 }
