@@ -18,5 +18,5 @@ func TestFileUpdatesPreserveComments(t *testing.T) {
 	output, err := file.Yaml()
 	require.NoError(t, err)
 
-	require.Equal(t, "{\n  # comment\n  hello: moon}\n", output)
+	require.Equal(t, "{\n  # comment\n  hello: moon}\n", string(output))
 }

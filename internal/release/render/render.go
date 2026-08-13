@@ -20,6 +20,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/helm"
 )
 
@@ -83,7 +84,7 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 	}
 
 	for key, value := range chart.Mappings {
-		setInMap(values, splitIntoPathSegments(key), value)
+		setInMap(values, yml.SplitIntoPathSegments(key), value)
 	}
 
 	data, err := yaml.Marshal(values)
@@ -287,39 +288,6 @@ func setInMap(mapping map[string]any, segments []string, value any) {
 		}
 		mapping = submap
 	}
-}
-
-func splitIntoPathSegments(input string) (result []string) {
-	var (
-		start   int
-		escaped bool
-	)
-
-	sanitize := func(value string) string {
-		value = strings.ReplaceAll(value, `\.`, ".")
-		value = strings.ReplaceAll(value, `\\`, `\`)
-		return value
-	}
-
-	for i, c := range input {
-		switch c {
-		case '\\':
-			escaped = !escaped
-		case '.':
-			if escaped {
-				continue
-			}
-			result = append(result, sanitize(input[start:i]))
-			escaped = false
-			start = i + 1
-		default:
-			escaped = false
-		}
-	}
-
-	result = append(result, sanitize(input[start:]))
-
-	return
 }
 
 type NotFoundError string
