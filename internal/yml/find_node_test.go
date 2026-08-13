@@ -23,6 +23,7 @@ func TestSplitIntoPathSegments(t *testing.T) {
 			Input:    ".",
 			Segments: []string{},
 		},
+		{Input: `hello.\..world`, Segments: []string{"hello", ".", "world"}},
 		{
 			Input:    `\.`,
 			Segments: []string{"."},
