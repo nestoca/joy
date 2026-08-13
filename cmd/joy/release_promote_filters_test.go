@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -61,7 +60,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 				require.Len(t, files, 1)
 
 				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].MustYaml()))
 			},
 		},
 		{
@@ -82,9 +81,9 @@ func TestReleasePromoteFilters(t *testing.T) {
 			Expectations: func(t *testing.T, files []*yml.File) {
 				require.Len(t, files, 2)
 				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].MustYaml()))
 				require.Equal(t, "beta-target.yaml", filepath.Base(files[1].Path))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].MustYaml()))
 			},
 		},
 		{
@@ -106,9 +105,9 @@ func TestReleasePromoteFilters(t *testing.T) {
 			Expectations: func(t *testing.T, files []*yml.File) {
 				require.Len(t, files, 2)
 				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].MustYaml()))
 				require.Equal(t, "beta-target.yaml", filepath.Base(files[1].Path))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].MustYaml()))
 			},
 		},
 		{
@@ -147,10 +146,10 @@ func TestReleasePromoteFilters(t *testing.T) {
 				require.Len(t, files, 2)
 
 				require.Equal(t, "alpha-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 1.2.3}}\n", string(files[0].MustYaml()))
 
 				require.Equal(t, "beta-target.yaml", filepath.Base(files[1].Path))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[1].MustYaml()))
 			},
 		},
 		{
@@ -171,7 +170,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 			Expectations: func(t *testing.T, files []*yml.File) {
 				require.Len(t, files, 1)
 				require.Equal(t, "beta-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].MustYaml()))
 			},
 		},
 		{
@@ -210,7 +209,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 				require.Len(t, files, 1)
 
 				require.Equal(t, "beta-target.yaml", filepath.Base(files[0].Path))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].MustYaml()))
 			},
 		},
 		{
@@ -235,7 +234,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 				_, targetDir := filepath.Split(filepath.Clean(dir))
 
 				require.Equal(t, "target/beta-source.yaml", filepath.Join(targetDir, filename))
-				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].Yaml))
+				require.Equal(t, "{spec: {version: 3.2.1}}\n", string(files[0].MustYaml()))
 			},
 		},
 	}
@@ -304,7 +303,7 @@ func TestReleasePromoteFilters(t *testing.T) {
 					if rel == nil {
 						continue
 					}
-					require.NoError(t, yaml.Unmarshal(rel.File.Yaml, &rel))
+					require.NoError(t, rel.File.Tree.Decode(&rel))
 				}
 			}
 

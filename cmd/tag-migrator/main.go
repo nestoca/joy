@@ -32,7 +32,7 @@ func run() error {
 
 			moveTags(release.File.Tree)
 
-			data, err := release.File.ToYaml()
+			data, err := release.File.Yaml()
 			if err != nil {
 				return fmt.Errorf("failed to marshal data for release: %s/%s: %v", release.Environment.Name, release.Name, err)
 			}

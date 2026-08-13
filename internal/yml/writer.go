@@ -14,5 +14,9 @@ func (fn writerFunc) WriteFile(file *File) error {
 }
 
 var DiskWriter = writerFunc(func(file *File) error {
-	return os.WriteFile(file.Path, file.Yaml, 0o644)
+	data, err := file.Yaml()
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(file.Path, data, 0o644)
 })

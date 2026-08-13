@@ -273,9 +273,19 @@ func (i *InteractivePromptProvider) PrintReleasePreview(targetEnvName string, re
 func (i *InteractivePromptProvider) printDiff(before, after *yml.File) error {
 	beforeYaml := ""
 	if before != nil {
-		beforeYaml = string(before.Yaml)
+		data, err := before.Yaml()
+		if err != nil {
+			return err
+		}
+		beforeYaml = string(data)
 	}
-	edits := myers.ComputeEdits(span.URIFromPath(""), beforeYaml, string(after.Yaml))
+
+	afterData, err := after.Yaml()
+	if err != nil {
+		return err
+	}
+
+	edits := myers.ComputeEdits(span.URIFromPath(""), beforeYaml, string(afterData))
 	unified := fmt.Sprintf("%s", gotextdiff.ToUnified("before", "after", beforeYaml, edits))
 	unified = strings.ReplaceAll(unified, "\\ No newline at end of file\n", "")
 	unified = formatDiff(unified)

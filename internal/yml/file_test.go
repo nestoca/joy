@@ -14,9 +14,8 @@ func TestFileUpdatesPreserveComments(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, SetOrAddNodeValue(file.Tree, "hello", "moon"))
-	require.NoError(t, file.UpdateYamlFromTree())
 
-	output, err := file.ToYaml()
+	output, err := file.Yaml()
 	require.NoError(t, err)
 
 	require.Equal(t, "{\n  # comment\n  hello: moon}\n", output)

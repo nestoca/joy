@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
@@ -312,7 +311,7 @@ func TestPromotion(t *testing.T) {
 					var resource struct {
 						Spec map[string]any `yaml:"spec"`
 					}
-					require.NoError(t, yaml.Unmarshal(calls[0].File.Yaml, &resource))
+					require.NoError(t, calls[0].File.Tree.Decode(&resource))
 					require.Equal(t, []string{"key"}, slices.Collect(maps.Keys(resource.Spec)))
 				}
 			},
