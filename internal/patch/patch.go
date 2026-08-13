@@ -19,15 +19,12 @@ import (
 // From is only set for move/copy.
 type Op struct {
 	Op    string `json:"op" yaml:"op"`
-	Path  string `json:"path" yaml:"patch"`
+	Path  string `json:"path" yaml:"path"`
 	From  string `json:"from,omitempty" yaml:"from,omitempty"`
 	Value any    `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
-// Apply applies the ops to doc (a document node) and returns the resulting document. The patch is
-// applied via a JSON Patch library; custom tags, comments and key order are then restored from
-// doc, and styles are cleared so the result serializes as clean block YAML. When there are no
-// ops, doc is returned unchanged.
+// Apply applies a json patch.
 func Apply[T any](doc *T, ops []Op) (*T, error) {
 	if len(ops) == 0 {
 		return doc, nil
