@@ -66,13 +66,6 @@ func Create(params CreateParams) error {
 	target := params.Release + params.Suffix
 	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
 
-	source.Name = target
-	source.Spec.Version = params.Version
-	if source.Labels == nil {
-		source.Labels = map[string]string{}
-	}
-	source.Labels[v1alpha1.PreviewLabel] = "true"
-
 	text, err := func() ([]byte, error) {
 		tree := yml.Clone(source.File.Tree)
 		yml.SetOrAddNodeValue(tree, "metadata.name", target)
