@@ -145,10 +145,10 @@ func SplitIntoPathSegments(input string) (result []string) {
 			escaped = !escaped
 		case '.':
 			if escaped {
+				escaped = false
 				continue
 			}
 			result = append(result, sanitize(input[start:i]))
-			escaped = false
 			start = i + 1
 		default:
 			escaped = false
