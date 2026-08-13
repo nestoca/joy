@@ -75,7 +75,7 @@ If the preview already exists, only spec.version is updated.`,
 	cmd.Flags().StringVar(&suffix, "suffix", "", "Suffix appended to the release name to form the preview (include the leading dash, e.g. -og-1234)")
 	cmd.Flags().StringVar(&version, "version", "", "Version to set on the preview release")
 	cmd.Flags().StringArrayVar(&patches, "patch", nil, "(repeatable) A single RFC 6902 op (add/replace/remove) applied to the preview, as JSON/YAML")
-	cmd.Flags().StringArrayVar(&replaces, "replace", nil, "(repeatable) A single {search, replace} regex applied to the preview file text, as JSON/YAML")
+	cmd.Flags().StringArrayVar(&replaces, "replace", nil, "(repeatable) A single {search, replace} applied to the preview file text, as JSON/YAML")
 	_ = cmd.MarkFlagRequired("env")
 	_ = cmd.MarkFlagRequired("suffix")
 	_ = cmd.MarkFlagRequired("version")
@@ -115,13 +115,13 @@ func newReleasePreviewDeleteCmd() *cobra.Command {
 }
 
 func parsePatchFlags(specs []string) ([]patch.Op, error) {
-	ops := make([]patch.Op, 0, len(specs))
-	for _, spec := range specs {
-		op, err := patch.ParseOp([]byte(spec))
-		if err != nil {
+	ops := make([]patch.Op, len(specs))
+	for i, spec := range specs {
+		var op patch.Op
+		if err := yaml.Unmarshal([]byte(spec), &op); err != nil {
 			return nil, fmt.Errorf("parsing --patch %q: %w", spec, err)
 		}
-		ops = append(ops, op)
+		ops[i] = op
 	}
 	return ops, nil
 }
