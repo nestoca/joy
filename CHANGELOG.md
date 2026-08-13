@@ -1,3 +1,13 @@
+## [0.99.3](https://github.com/nestoca/joy/compare/v0.99.2...v0.99.3) (2026-08-13)
+
+
+### Bug Fixes
+
+* **PLT-5890:** code review ([ed72aa8](https://github.com/nestoca/joy/commit/ed72aa88d235d3c71b318585401808768ed24857))
+* **PLT-5890:** fix test from yaml update ([9bd4d35](https://github.com/nestoca/joy/commit/9bd4d35063ceddcc7abcdbcd1ad0cad2bbfb0343))
+* **PLT-5890:** previews auto add preview label and refactorings ([bfb3a6a](https://github.com/nestoca/joy/commit/bfb3a6a1c8549b3d18b8e0374c04569da1c26601))
+* **PLT-5890:** small fix to segment split ([73941ef](https://github.com/nestoca/joy/commit/73941ef0288b8130f786b8716038ad9f52e490cc))
+
 ## [0.99.2](https://github.com/nestoca/joy/compare/v0.99.1...v0.99.2) (2026-08-11)
 
 
