@@ -111,8 +111,12 @@ func (e Environment) GetName() string {
 
 // NewEnvironment creates a new environment from given yaml file.
 func NewEnvironment(file *yml.File) (*Environment, error) {
+	data, err := file.Yaml()
+	if err != nil {
+		return nil, err
+	}
 	var env Environment
-	if err := yml.UnmarshalStrict(file.Yaml, &env); err != nil {
+	if err := yml.UnmarshalStrict(data, &env); err != nil {
 		return nil, fmt.Errorf("unmarshalling environment: %w", err)
 	}
 	env.File = file

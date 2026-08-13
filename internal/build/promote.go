@@ -71,9 +71,6 @@ func Promote(opts Opts) error {
 		}
 
 		versionKeypair.Value.Value = opts.Version
-		if err := release.File.UpdateYamlFromTree(); err != nil {
-			return fmt.Errorf("updating release yaml from node tree: %w", err)
-		}
 
 		if opts.ChartVersion != "" {
 			chartVersionNode, err := yml.FindNode(release.File.Tree, "spec.chart.version")
@@ -81,9 +78,6 @@ func Promote(opts Opts) error {
 				return fmt.Errorf("release %s has no chart version property: %w", release.Name, err)
 			}
 			chartVersionNode.Value = opts.ChartVersion
-			if err := release.File.UpdateYamlFromTree(); err != nil {
-				return fmt.Errorf("updating release yaml from node tree: %w", err)
-			}
 		}
 
 		if err := opts.Writer.WriteFile(release.File); err != nil {

@@ -2,6 +2,7 @@ package yml
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,9 +15,6 @@ import (
 type File struct {
 	// Path is the path to the yaml file.
 	Path string
-
-	// Yaml is the raw yaml of the yaml file.
-	Yaml []byte
 
 	// Tree is the root node of the tree representation of the yaml file.
 	Tree *yaml.Node
@@ -34,6 +32,24 @@ type File struct {
 	Indent int
 }
 
+func (file *File) Yaml() ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := yaml.NewEncoder(&buffer)
+	encoder.SetIndent(cmp.Or(file.Indent, 2))
+	if err := encoder.Encode(file.Tree); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+func (file *File) MustYaml() []byte {
+	data, err := file.Yaml()
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 func NewFile(filePath string, content []byte) (*File, error) {
 	var node yaml.Node
 	if err := yaml.Unmarshal(content, &node); err != nil {
@@ -47,7 +63,6 @@ func NewFile(filePath string, content []byte) (*File, error) {
 
 	return &File{
 		Path:         cleanFilePath,
-		Yaml:         content,
 		Tree:         &node,
 		ApiVersion:   FindNodeValueOrDefault(&node, "apiVersion", ""),
 		Kind:         FindNodeValueOrDefault(&node, "kind", ""),
@@ -57,11 +72,6 @@ func NewFile(filePath string, content []byte) (*File, error) {
 }
 
 func NewFileFromTree(filePath string, indent int, node *yaml.Node) (*File, error) {
-	content, err := marshallTreeToYaml(node, indent)
-	if err != nil {
-		return nil, fmt.Errorf("marshalling yaml node to yaml: %w", err)
-	}
-
 	cleanFilePath, err := cleanUpFilePath(filePath)
 	if err != nil {
 		return nil, err
@@ -69,7 +79,6 @@ func NewFileFromTree(filePath string, indent int, node *yaml.Node) (*File, error
 
 	return &File{
 		Path:         cleanFilePath,
-		Yaml:         content,
 		Tree:         node,
 		ApiVersion:   FindNodeValueOrDefault(node, "apiVersion", ""),
 		Kind:         FindNodeValueOrDefault(node, "kind", ""),
@@ -108,42 +117,12 @@ func LoadFile(filePath string) (*File, error) {
 }
 
 func (y *File) CopyWithNewTree(newTree *yaml.Node) (*File, error) {
-	newYaml, err := marshallTreeToYaml(newTree, y.Indent)
-	if err != nil {
-		return nil, err
-	}
-
 	return &File{
 		Path:         y.Path,
-		Yaml:         newYaml,
 		Tree:         newTree,
 		ApiVersion:   y.ApiVersion,
 		Kind:         y.Kind,
 		MetadataName: y.MetadataName,
 		Indent:       y.Indent,
 	}, nil
-}
-
-func (y *File) UpdateYamlFromTree() error {
-	newYaml, err := marshallTreeToYaml(y.Tree, y.Indent)
-	if err != nil {
-		return err
-	}
-	y.Yaml = newYaml
-	return nil
-}
-
-func marshallTreeToYaml(tree *yaml.Node, indent int) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	encoder := yaml.NewEncoder(buf)
-	encoder.SetIndent(indent)
-	err := encoder.Encode(tree)
-	if err != nil {
-		return nil, fmt.Errorf("marshalling node tree to yaml: %w", err)
-	}
-	return buf.Bytes(), nil
-}
-
-func (y *File) ToYaml() (string, error) {
-	return TreeToYaml(y.Tree, y.Indent)
 }

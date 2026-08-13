@@ -73,8 +73,12 @@ func IsValidProject(apiVersion, kind string) bool {
 
 // NewProject creates a new project from given yaml file.
 func NewProject(file *yml.File) (*Project, error) {
+	data, err := file.Yaml()
+	if err != nil {
+		return nil, err
+	}
 	var proj Project
-	if err := yml.UnmarshalStrict(file.Yaml, &proj); err != nil {
+	if err := yml.UnmarshalStrict(data, &proj); err != nil {
 		return nil, fmt.Errorf("unmarshalling project: %w", err)
 	}
 	proj.File = file

@@ -10,15 +10,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	yaml "gopkg.in/yaml.v3"
+	sigsyaml "sigs.k8s.io/yaml"
 )
 
 // Replacement is a single regex search/replace applied to the preview file text.
@@ -74,22 +72,28 @@ func Create(params CreateParams) error {
 	}
 	source.Labels[v1alpha1.PreviewLabel] = "true"
 
-	// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
-	patched, err := patch.Apply(source, params.Patches)
+	text, err := func() ([]byte, error) {
+		if len(params.Patches) == 0 {
+			return sigsyaml.Marshal(source)
+		}
+		//
+		// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
+		patched, err := patch.Apply(source, params.Patches)
+		if err != nil {
+			return nil, err
+		}
+
+		patched.File, err = yml.NewFileFromObject(targetPath, source.File.Indent, patched)
+		if err != nil {
+			return nil, fmt.Errorf("building preview file: %w", err)
+		}
+
+		yml.CopyMetadata(patched.File.Tree, source.File.Tree)
+
+		return patched.File.Yaml()
+	}()
 	if err != nil {
 		return err
-	}
-
-	patched.File, err = yml.NewFileFromObject(targetPath, source.File.Indent, patched)
-	if err != nil {
-		return fmt.Errorf("building preview file: %w", err)
-	}
-
-	yml.CopyMetadata(patched.File.Tree, source.File.Tree)
-
-	text, err := yaml.Marshal(patched.File.Tree)
-	if err != nil {
-		return fmt.Errorf("failed to marshal patched document to yaml: %w", err)
 	}
 
 	replacements := append(
@@ -104,9 +108,12 @@ func Create(params CreateParams) error {
 		text = bytes.ReplaceAll(text, []byte(replacement.Search), []byte(replacement.Replace))
 	}
 
-	patched.File.Yaml = text
+	file, err := yml.NewFile(targetPath, text)
+	if err != nil {
+		return fmt.Errorf("reconstructing patched file with text replacements: %w", err)
+	}
 
-	if err := params.Writer.WriteFile(patched.File); err != nil {
+	if err := params.Writer.WriteFile(file); err != nil {
 		return fmt.Errorf("writing preview file: %w", err)
 	}
 
@@ -153,22 +160,4 @@ func findSourceRelease(cat *catalog.Catalog, name, env string) (*v1alpha1.Releas
 		return crossRelease.Releases[0], nil
 	}
 	return nil, fmt.Errorf("release %q not found", name)
-}
-
-func applyReplacements(text string, replacements []Replacement) (string, error) {
-	for _, r := range replacements {
-		re, err := regexp.Compile(r.Search)
-		if err != nil {
-			return "", fmt.Errorf("invalid search regex %q: %w", r.Search, err)
-		}
-		text = re.ReplaceAllString(text, r.Replace)
-	}
-	return text, nil
-}
-
-func applyPlaceholders(text, release, suffix string) string {
-	return strings.NewReplacer(
-		"__RELEASE__", release,
-		"__SUFFIX__", suffix,
-	).Replace(text)
 }
