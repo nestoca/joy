@@ -24,9 +24,9 @@ func FindNodeKeyPair(node *yaml.Node, path string) (keypair *KeyValuePair, err e
 
 	// If node is a DocumentNode, we need to retrieve the MappingNode from its Content and traverse it.
 	if node.Kind == yaml.DocumentNode && len(node.Content) == 1 {
-		keypair, findNodeErr = findKeypair(node.Content[0], segmentPath(path))
+		keypair, findNodeErr = findKeypair(node.Content[0], SplitIntoPathSegments(path))
 	} else {
-		keypair, findNodeErr = findKeypair(node, segmentPath(path))
+		keypair, findNodeErr = findKeypair(node, SplitIntoPathSegments(path))
 	}
 
 	if findNodeErr != nil {
@@ -45,7 +45,7 @@ func FindNodeValueOrDefault(node *yaml.Node, path string, defaultValue string) s
 }
 
 func SetOrAddNodeValue(node *yaml.Node, path string, value string) error {
-	segments := segmentPath(path)
+	segments := SplitIntoPathSegments(path)
 
 	// If node is a DocumentNode, we need to retrieve the MappingNode from its Content and traverse it.
 	if node.Kind == yaml.DocumentNode && len(node.Content) == 1 {
@@ -81,12 +81,11 @@ func setOrAddNodeValue(node *yaml.Node, pathSegments []string, value string) err
 	// Add intermediate missing nodes
 	if len(pathSegments) > 1 {
 		for _, segment := range pathSegments[:len(pathSegments)-1] {
-			node.Content = append(node.Content, &yaml.Node{
-				Kind:  yaml.ScalarNode,
-				Value: segment,
-			}, &yaml.Node{
-				Kind: yaml.MappingNode,
-			})
+			node.Content = append(
+				node.Content,
+				&yaml.Node{Kind: yaml.ScalarNode, Value: segment},
+				&yaml.Node{Kind: yaml.MappingNode},
+			)
 			node = node.Content[len(node.Content)-1]
 		}
 		// Keep only the last segment
@@ -94,13 +93,11 @@ func setOrAddNodeValue(node *yaml.Node, pathSegments []string, value string) err
 	}
 
 	// Add terminal missing node
-	node.Content = append(node.Content, &yaml.Node{
-		Kind:  yaml.ScalarNode,
-		Value: pathSegments[0],
-	}, &yaml.Node{
-		Kind:  yaml.ScalarNode,
-		Value: value,
-	})
+	node.Content = append(
+		node.Content,
+		&yaml.Node{Kind: yaml.ScalarNode, Value: pathSegments[0]},
+		&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value},
+	)
 
 	return nil
 }
@@ -130,11 +127,42 @@ func findKeypair(node *yaml.Node, pathSegments []string) (*KeyValuePair, error) 
 	return nil, fmt.Errorf("key '%s' does not exist", pathSegments[0])
 }
 
-func segmentPath(path string) []string {
-	segments := strings.Split(path, ".")
-	if len(segments) > 0 && segments[0] == "" {
-		segments = segments[1:]
+func SplitIntoPathSegments(input string) (result []string) {
+	var (
+		start   int
+		escaped bool
+	)
+
+	sanitize := func(value string) string {
+		value = strings.ReplaceAll(value, `\.`, ".")
+		value = strings.ReplaceAll(value, `\\`, `\`)
+		return value
 	}
 
-	return segments
+	for i, c := range input {
+		switch c {
+		case '\\':
+			escaped = !escaped
+		case '.':
+			if escaped {
+				continue
+			}
+			result = append(result, sanitize(input[start:i]))
+			escaped = false
+			start = i + 1
+		default:
+			escaped = false
+		}
+	}
+
+	result = append(result, sanitize(input[start:]))
+	for {
+		if len(result) > 0 && result[0] == "" {
+			result = result[1:]
+			continue
+		}
+		break
+	}
+
+	return
 }

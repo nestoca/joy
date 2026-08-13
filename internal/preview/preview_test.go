@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,6 +39,7 @@ spec:
 func newCatalog(t *testing.T) (dir string, cat *catalog.Catalog) {
 	t.Helper()
 	dir = t.TempDir()
+	fmt.Println(dir)
 	relDir := filepath.Join(dir, "environments", "staging", "releases", "origination")
 	require.NoError(t, os.MkdirAll(relDir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(relDir, "backoffice.yaml"), []byte(sourceYAML), 0o644))

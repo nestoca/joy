@@ -10,14 +10,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-
-	sigsyaml "sigs.k8s.io/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 // Replacement is a single regex search/replace applied to the preview file text.
@@ -74,24 +74,23 @@ func Create(params CreateParams) error {
 	source.Labels[v1alpha1.PreviewLabel] = "true"
 
 	text, err := func() ([]byte, error) {
+		tree := yml.Clone(source.File.Tree)
+		yml.SetOrAddNodeValue(tree, "metadata.name", target)
+		yml.SetOrAddNodeValue(tree, "metadata.labels."+strings.ReplaceAll(v1alpha1.PreviewLabel, ".", "\\."), "true")
+		yml.SetOrAddNodeValue(tree, "spec.version", params.Version)
+
 		if len(params.Patches) == 0 {
-			return sigsyaml.Marshal(source)
+			return yaml.Marshal(tree)
 		}
-		//
-		// Caller patches (RFC 6902), applied via the JSON Patch library (tags/comments/order restored).
-		patched, err := patch.Apply(source, params.Patches)
+
+		patched, err := patch.Apply(tree, params.Patches)
 		if err != nil {
 			return nil, err
 		}
 
-		patched.File, err = yml.NewFileFromObject(targetPath, source.File.Indent, patched)
-		if err != nil {
-			return nil, fmt.Errorf("building preview file: %w", err)
-		}
+		yml.CopyMetadata(patched, source.File.Tree)
 
-		yml.CopyMetadata(patched.File.Tree, source.File.Tree)
-
-		return patched.File.Yaml()
+		return yaml.Marshal(patched)
 	}()
 	if err != nil {
 		return err
@@ -113,6 +112,7 @@ func Create(params CreateParams) error {
 	if err != nil {
 		return fmt.Errorf("reconstructing patched file with text replacements: %w", err)
 	}
+	file.Indent = source.File.Indent
 
 	if err := params.Writer.WriteFile(file); err != nil {
 		return fmt.Errorf("writing preview file: %w", err)
