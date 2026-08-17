@@ -1,3 +1,10 @@
+## [0.99.4](https://github.com/nestoca/joy/compare/v0.99.3...v0.99.4) (2026-08-17)
+
+
+### Bug Fixes
+
+* **PLT-5890:** previews should be created with argocd prune annotation ([1c9e13f](https://github.com/nestoca/joy/commit/1c9e13f4ec334050bfa105f5c6ca850a657ba38a))
+
 ## [0.99.3](https://github.com/nestoca/joy/compare/v0.99.2...v0.99.3) (2026-08-13)
 
 
