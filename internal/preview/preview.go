@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
@@ -69,7 +68,8 @@ func Create(params CreateParams) error {
 	text, err := func() ([]byte, error) {
 		tree := yml.Clone(source.File.Tree)
 		yml.SetOrAddNodeValue(tree, "metadata.name", target)
-		yml.SetOrAddNodeValue(tree, "metadata.labels."+strings.ReplaceAll(v1alpha1.PreviewLabel, ".", "\\."), "true")
+		yml.SetOrAddNodeValue(tree, "metadata.labels."+yml.EscapePathSegment(v1alpha1.PreviewLabel), "true")
+		yml.SetOrAddNodeValue(tree, "metadata.annotations."+yml.EscapePathSegment(v1alpha1.PruneArgoAnnotation), "true")
 		yml.SetOrAddNodeValue(tree, "spec.version", params.Version)
 
 		if len(params.Patches) == 0 {

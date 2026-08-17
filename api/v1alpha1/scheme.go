@@ -15,7 +15,10 @@ const (
 
 // PreviewLabel marks a release as a preview copy created by `joy release preview`.
 // `joy build promote` always excludes releases carrying this label.
-const PreviewLabel = "joy.nesto.ca/preview"
+const (
+	PreviewLabel        = "joy.nesto.ca/preview"
+	PruneArgoAnnotation = "argocd.nesto.ca/sync.prune"
+)
 
 var GroupVersion = schema.GroupVersion{Group: Group, Version: Version}
 

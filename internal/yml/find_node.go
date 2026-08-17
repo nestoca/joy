@@ -166,3 +166,7 @@ func SplitIntoPathSegments(input string) (result []string) {
 
 	return
 }
+
+func EscapePathSegment(text string) string {
+	return strings.ReplaceAll(text, `.`, `\.`)
+}

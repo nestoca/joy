@@ -105,6 +105,7 @@ func TestCreate(t *testing.T) {
 
 	m := decode(t, previewPath(dir))
 	require.Equal(t, "true", m["metadata"].(map[string]any)["labels"].(map[string]any)[v1alpha1.PreviewLabel])
+	require.Equal(t, "true", m["metadata"].(map[string]any)["annotations"].(map[string]any)[v1alpha1.PruneArgoAnnotation])
 	spec := m["spec"].(map[string]any)
 	require.Equal(t, "previews", spec["namespace"])
 	require.Equal(t, "backoffice", spec["values"].(map[string]any)["image"].(map[string]any)["name"])
