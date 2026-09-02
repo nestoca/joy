@@ -85,29 +85,34 @@ If the preview already exists, only spec.version is updated.`,
 
 func newReleasePreviewDeleteCmd() *cobra.Command {
 	var (
-		env    string
-		suffix string
+		env string
+		all bool
 	)
 
 	cmd := &cobra.Command{
-		Use:   "delete -e <env> <release> --suffix <suffix>",
+		Use:   "delete -e <env> <release,...>",
 		Short: "Delete a preview copy of a release",
-		Args:  cobra.ExactArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if all {
+				return cobra.NoArgs(cmd, args)
+			}
+			return cobra.MinimumNArgs(1)(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
 			cat.WithEnvironments([]string{env})
 
 			return preview.Delete(preview.DeleteParams{
-				Catalog: cat,
-				Env:     env,
-				Release: args[0],
-				Suffix:  suffix,
+				Catalog:  cat,
+				Env:      env,
+				Releases: args,
+				All:      all,
 			})
 		},
 	}
 
 	cmd.Flags().StringVarP(&env, "env", "e", "", "Environment of the release")
-	cmd.Flags().StringVar(&suffix, "suffix", "", "Suffix identifying the preview (include the leading dash, e.g. -og-1234)")
+	cmd.Flags().BoolVar(&all, "all", false, "delete all previews in target environment")
 	_ = cmd.MarkFlagRequired("env")
 	_ = cmd.MarkFlagRequired("suffix")
 

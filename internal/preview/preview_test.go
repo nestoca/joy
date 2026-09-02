@@ -8,12 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
-	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
+	joy "github.com/nestoca/joy/pkg"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -36,28 +35,35 @@ spec:
       PUBLIC_API_PATH: !lock https://office.staging.nesto.ca/api
 `
 
-func newCatalog(t *testing.T) (dir string, cat *catalog.Catalog) {
+const envYAML = `apiVersion: joy.nesto.ca/v1alpha1
+kind: Environment
+metadata:
+  name: staging
+spec: {}`
+
+const projectYAML = `apiVersion: joy.nesto.ca/v1alpha1
+kind: Project
+metadata:
+  name: backoffice`
+
+func newCatalog(t *testing.T) (cat *catalog.Catalog) {
 	t.Helper()
-	dir = t.TempDir()
+	dir := t.TempDir()
 	fmt.Println(dir)
-	relDir := filepath.Join(dir, "environments", "staging", "releases", "origination")
+	envDir := filepath.Join(dir, "environments", "staging")
+	relDir := filepath.Join(envDir, "releases", "origination")
+	projDir := filepath.Join(dir, "projects")
 	require.NoError(t, os.MkdirAll(relDir, 0o755))
+	require.NoError(t, os.MkdirAll(projDir, 0o755))
+
 	require.NoError(t, os.WriteFile(filepath.Join(relDir, "backoffice.yaml"), []byte(sourceYAML), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(envDir, "env.yaml"), []byte(envYAML), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(projDir, "backoffice.yaml"), []byte(projectYAML), 0o644))
 
-	file, err := yml.LoadFile(filepath.Join(relDir, "backoffice.yaml"))
-	require.NoError(t, err)
-	rel, err := v1alpha1.LoadRelease(file)
+	cat, err := joy.LoadCatalog(t.Context(), dir)
 	require.NoError(t, err)
 
-	envs := []*v1alpha1.Environment{{EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: "staging"}}}}
-	cat = &catalog.Catalog{
-		Environments: envs,
-		Releases: cross.ReleaseList{
-			Environments: envs,
-			Items:        []*cross.Release{{Name: "backoffice", Releases: []*v1alpha1.Release{rel}}},
-		},
-	}
-	return dir, cat
+	return cat
 }
 
 func previewPath(dir string) string {
@@ -74,7 +80,7 @@ func decode(t *testing.T, path string) map[string]any {
 }
 
 func TestCreate(t *testing.T) {
-	dir, cat := newCatalog(t)
+	cat := newCatalog(t)
 	err := Create(CreateParams{
 		Catalog: cat,
 		Writer:  yml.DiskWriter,
@@ -93,7 +99,7 @@ func TestCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	text, err := os.ReadFile(previewPath(dir))
+	text, err := os.ReadFile(previewPath(cat.Dir))
 	require.NoError(t, err)
 	s := string(text)
 
@@ -103,7 +109,7 @@ func TestCreate(t *testing.T) {
 	require.Contains(t, s, "PUBLIC_API_PATH: !lock https://backoffice-og-1234.previews.staging.nesto.ca/api")
 	require.Contains(t, s, "ENV: !lock staging")
 
-	m := decode(t, previewPath(dir))
+	m := decode(t, previewPath(cat.Dir))
 	require.Equal(t, "true", m["metadata"].(map[string]any)["labels"].(map[string]any)[v1alpha1.PreviewLabel])
 	require.Equal(t, "true", m["metadata"].(map[string]any)["annotations"].(map[string]any)[v1alpha1.PruneArgoAnnotation])
 	spec := m["spec"].(map[string]any)
@@ -112,22 +118,41 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	dir, cat := newCatalog(t)
+	cat := newCatalog(t)
 	require.NoError(t, Create(CreateParams{
 		Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
 		Release: "backoffice", Suffix: "-og-1234", Version: "1.0.0",
 	}))
-	require.FileExists(t, previewPath(dir))
+	require.FileExists(t, previewPath(cat.Dir))
 
-	require.NoError(t, Delete(DeleteParams{Catalog: cat, Env: "staging", Release: "backoffice", Suffix: "-og-1234"}))
-	require.NoFileExists(t, previewPath(dir))
+	cat, err := joy.LoadCatalog(t.Context(), cat.Dir)
+	require.NoError(t, err)
+
+	require.NoError(t, Delete(DeleteParams{Catalog: cat, Env: "staging", Releases: []string{"backoffice-og-1234"}}))
+
+	require.NoFileExists(t, previewPath(cat.Dir))
 
 	// Deleting again is a no-op.
-	require.NoError(t, Delete(DeleteParams{Catalog: cat, Env: "staging", Release: "backoffice", Suffix: "-og-1234"}))
+	require.NoError(t, Delete(DeleteParams{Catalog: cat, Env: "staging", Releases: []string{"backoffice-og-1234"}}))
+}
+
+func TestDeleteAll(t *testing.T) {
+	cat := newCatalog(t)
+	require.NoError(t, Create(CreateParams{
+		Catalog: cat, Writer: yml.DiskWriter, Env: "staging",
+		Release: "backoffice", Suffix: "-og-1234", Version: "1.0.0",
+	}))
+	require.FileExists(t, previewPath(cat.Dir))
+
+	cat, err := joy.LoadCatalog(t.Context(), cat.Dir)
+	require.NoError(t, err)
+
+	require.NoError(t, Delete(DeleteParams{Catalog: cat, Env: "staging", All: true}))
+	require.NoFileExists(t, previewPath(cat.Dir))
 }
 
 func TestCreateErrors(t *testing.T) {
-	_, cat := newCatalog(t)
+	cat := newCatalog(t)
 	base := CreateParams{Catalog: cat, Writer: yml.DiskWriter, Env: "staging", Release: "backoffice", Suffix: "-og-1234", Version: "1.0.0"}
 
 	unknown := base
