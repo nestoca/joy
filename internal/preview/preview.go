@@ -7,10 +7,13 @@ package preview
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/davidmdm/x/xerr"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
 	"github.com/nestoca/joy/internal/style"
@@ -39,19 +42,18 @@ type CreateParams struct {
 
 // DeleteParams are the inputs to Delete.
 type DeleteParams struct {
-	Catalog *catalog.Catalog
-	Env     string
-	Release string
-	Suffix  string
+	Catalog  *catalog.Catalog
+	Env      string
+	Releases []string
+	All      bool
 }
 
-// Create writes (or, if it already exists, version-bumps) the preview copy of a release.
+// Create writes the preview copy of a release.
 //
 // New preview: copy source → built-ins (metadata.name, preview label, version) → patches →
-// replacements → placeholder substitution (__RELEASE__, __SUFFIX__). Existing preview: only
-// spec.version is re-patched (copy is idempotent; other transforms are not re-applied).
+// replacements → placeholder substitution (__RELEASE__, __SUFFIX__).
 func Create(params CreateParams) error {
-	source, err := findSourceRelease(params.Catalog, params.Release, params.Env)
+	source, err := params.Catalog.LookupRelease(params.Env, params.Release)
 	if err != nil {
 		return err
 	}
@@ -117,41 +119,50 @@ func Create(params CreateParams) error {
 
 // Delete removes the preview copy of a release, if it exists.
 func Delete(params DeleteParams) error {
-	source, err := findSourceRelease(params.Catalog, params.Release, params.Env)
+	releases, err := func() (result []*v1alpha1.Release, err error) {
+		if params.All {
+			for _, cross := range params.Catalog.Releases.Items {
+				for _, rel := range cross.Releases {
+					if rel != nil && rel.Environment.Name == params.Env && rel.Labels[v1alpha1.PreviewLabel] == "true" {
+						result = append(result, rel)
+						break
+					}
+				}
+			}
+			return result, nil
+		}
+
+		var errs []error
+		for _, name := range params.Releases {
+			release, err := params.Catalog.LookupRelease(params.Env, name)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if release.Labels == nil || release.Labels[v1alpha1.PreviewLabel] != "true" {
+				errs = append(errs, fmt.Errorf("%s/%s is not a preview", params.Env, name))
+				continue
+			}
+			result = append(result, release)
+		}
+		return result, xerr.JoinOrdered(errs...)
+	}()
 	if err != nil {
-		return err
-	}
-	if params.Suffix == "" {
-		return fmt.Errorf("suffix must not be empty")
+		return fmt.Errorf("finding wanted preview releases: %w", err)
 	}
 
-	target := params.Release + params.Suffix
-	targetPath := filepath.Join(filepath.Dir(source.File.Path), target+".yaml")
-
-	if _, err := os.Stat(targetPath); err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("ℹ️ Preview %s does not exist; nothing to delete\n", style.Resource(target))
-			return nil
+	var errs []error
+	for _, release := range releases {
+		if err := os.Remove(release.File.Path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			errs = append(errs, fmt.Errorf("%s/%s: %w", release.Environment.Name, release.Name, err))
 		}
-		return fmt.Errorf("checking preview file %s: %w", targetPath, err)
 	}
-	if err := os.Remove(targetPath); err != nil {
-		return fmt.Errorf("removing preview file %s: %w", targetPath, err)
+
+	if err := xerr.JoinOrdered(errs...); err != nil {
+		return fmt.Errorf("deleting previews: %w", err)
 	}
-	fmt.Printf("🗑️  Deleted preview %s\n", style.Resource(target))
+
+	fmt.Printf("🗑️  Deleted %d preview(s)\n", len(releases))
+
 	return nil
-}
-
-// findSourceRelease locates the source release within the (single-environment) catalog.
-func findSourceRelease(cat *catalog.Catalog, name, env string) (*v1alpha1.Release, error) {
-	for _, crossRelease := range cat.Releases.Items {
-		if crossRelease.Name != name {
-			continue
-		}
-		if len(crossRelease.Releases) == 0 || crossRelease.Releases[0] == nil || crossRelease.Releases[0].File == nil {
-			return nil, fmt.Errorf("release %q not found in environment %q", name, env)
-		}
-		return crossRelease.Releases[0], nil
-	}
-	return nil, fmt.Errorf("release %q not found", name)
 }
