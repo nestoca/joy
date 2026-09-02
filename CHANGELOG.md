@@ -1,3 +1,10 @@
+## [0.100.0](https://github.com/nestoca/joy/compare/v0.99.4...v0.100.0) (2026-09-02)
+
+
+### Features
+
+* **PLT-6914:** update preview deletion to include all option ([9df0d70](https://github.com/nestoca/joy/commit/9df0d70f508f09eba0d82a1dd822f335b2e63368))
+
 ## [0.99.4](https://github.com/nestoca/joy/compare/v0.99.3...v0.99.4) (2026-08-17)
 
 
