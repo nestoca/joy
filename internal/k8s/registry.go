@@ -23,12 +23,13 @@ type ClusterRegistry struct {
 }
 
 type HelmSource struct {
-	URL        string `json:"url"`
-	Namespace  string `json:"namespace"`
-	Version    string `json:"version"`
-	Release    string `json:"release"`
-	ValuesFile string `json:"valuesFile"`
-	Values     any    `json:"values"`
+	AdditionalArgs string `json:"additionalArgs"`
+	URL            string `json:"url"`
+	Namespace      string `json:"namespace"`
+	Version        string `json:"version"`
+	Release        string `json:"release"`
+	ValuesFile     string `json:"valuesFile"`
+	Values         any    `json:"values"`
 }
 
 func (source HelmSource) Apply(ctx context.Context) error {
@@ -55,7 +56,7 @@ func (source HelmSource) Apply(ctx context.Context) error {
 	}
 	return sh.Execf(
 		ctx,
-		"helm upgrade --create-namespace --namespace %s --install --wait --timeout 5m %s %s %s --values -",
+		"helm upgrade --create-namespace --namespace %s --install --wait --timeout 5m %s %s %s --values - %s",
 		[]any{
 			ns,
 			source.Release,
@@ -66,6 +67,7 @@ func (source HelmSource) Apply(ctx context.Context) error {
 				}
 				return ""
 			}(),
+			source.AdditionalArgs,
 		},
 		shell.WithStdin(bytes.NewReader(data)),
 	)
