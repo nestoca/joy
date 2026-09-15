@@ -128,7 +128,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 
 				if err := sh.Execf(
 					ctx,
-					`kubectl apply -n argocd --server-side -f -`,
+					`kubectl apply --server-side -f -`,
 					nil,
 					shell.WithStdin(
 						shell.JSONReader(
