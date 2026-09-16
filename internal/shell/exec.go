@@ -47,7 +47,7 @@ func (shell Shell) Dir(dir string) Shell {
 var Default Shell
 
 func (shell Shell) Execf(ctx context.Context, format string, args []any, opts ...ExecOption) error {
-	return shell.Exec(ctx, []string{"sh", "-c", "set -euo pipefail\n\n" + fmt.Sprintf(format, args...)}, opts...)
+	return shell.Exec(ctx, []string{"sh", "-euo", "pipefail", "-c", fmt.Sprintf(format, args...)}, opts...)
 }
 
 func (shell Shell) Exec(ctx context.Context, args []string, opts ...ExecOption) error {
