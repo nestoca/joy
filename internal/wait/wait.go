@@ -80,8 +80,8 @@ func Tick(ctx context.Context, label string) func() {
 	}
 
 	go func() {
-		defer fmt.Fprint(os.Stderr, "\n")
 		defer close(done)
+		defer fmt.Fprint(os.Stderr, "\n")
 		for {
 			select {
 			case <-ctx.Done():
