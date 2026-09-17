@@ -176,12 +176,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
           users.anonymous.enabled: "true"
         rbac:
           policy.default: role:admin
-      
-      server:
-        service:
-          type: LoadBalancer
-          servicePortHttp: 80
-          servicePortHttps: 443`),
+      `),
 	}
 
 	if err := wait.TickFunc(ctx, "applying argocd", argocd.Apply); err != nil {
