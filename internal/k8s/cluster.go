@@ -118,7 +118,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 						registryURL.Host: map[string]any{
 							"username": "oauth2accesstoken",
 							"password": string(token),
-							"auth":     base64.StdEncoding.EncodeToString(token),
+							"auth":     base64.StdEncoding.EncodeToString(append([]byte("oauth2accesstoken:"), token...)),
 						},
 					},
 				})
