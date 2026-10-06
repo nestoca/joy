@@ -58,6 +58,9 @@ type PromptProvider interface {
 	// PrintPullRequestCreated prints message that a new promotion pull request was created.
 	PrintPullRequestCreated(url string)
 
+	// PrintPullRequestUpdated prints message that an existing promotion pull request was updated.
+	PrintPullRequestUpdated(number int)
+
 	// PrintCanceled prints message that promotion was canceled and no pull request was created.
 	PrintCanceled()
 

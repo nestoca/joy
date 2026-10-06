@@ -51,6 +51,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	}
 	cmd.AddCommand(NewReleaseListCmd(preRunConfigs))
 	cmd.AddCommand(NewReleasePromoteCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
+	cmd.AddCommand(NewReleaseReRenderPRsCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
 	cmd.AddCommand(NewReleaseSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewReleaseOpenCmd())
@@ -356,15 +357,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 				if ref == "" {
 					return cfg.CatalogDir, func() error { return nil }, nil
 				}
-				sha, err := git.RevParse(cfg.CatalogDir, ref)
-				if err != nil {
-					return "", nil, fmt.Errorf("cannot rev-parse: %w", err)
-				}
-				worktree, err := git.CreateWorktree(cfg.CatalogDir, name, sha)
-				if err != nil {
-					return "", nil, err
-				}
-				return worktree, func() error { return git.RemoveWorktree(cfg.CatalogDir, worktree) }, nil
+				return git.CheckoutWorktree(cfg.CatalogDir, name, ref)
 			}
 
 			diffTree, teardown, err := setupWorktree("diffRef", diffRef)

@@ -4,11 +4,10 @@
 package promote
 
 import (
-	"sync"
-
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/yml"
+	"sync"
 )
 
 // Ensure, that PromptProviderMock does implement PromptProvider.
@@ -50,6 +49,9 @@ var _ PromptProvider = &PromptProviderMock{}
 //			},
 //			PrintPullRequestCreatedFunc: func(url string)  {
 //				panic("mock out the PrintPullRequestCreated method")
+//			},
+//			PrintPullRequestUpdatedFunc: func(number int)  {
+//				panic("mock out the PrintPullRequestUpdated method")
 //			},
 //			PrintReleasePreviewFunc: func(targetEnvName string, releaseName string, existingTargetFile *yml.File, promotedFile *yml.File) error {
 //				panic("mock out the PrintReleasePreview method")
@@ -111,6 +113,9 @@ type PromptProviderMock struct {
 
 	// PrintPullRequestCreatedFunc mocks the PrintPullRequestCreated method.
 	PrintPullRequestCreatedFunc func(url string)
+
+	// PrintPullRequestUpdatedFunc mocks the PrintPullRequestUpdated method.
+	PrintPullRequestUpdatedFunc func(number int)
 
 	// PrintReleasePreviewFunc mocks the PrintReleasePreview method.
 	PrintReleasePreviewFunc func(targetEnvName string, releaseName string, existingTargetFile *yml.File, promotedFile *yml.File) error
@@ -188,6 +193,11 @@ type PromptProviderMock struct {
 			// URL is the url argument value.
 			URL string
 		}
+		// PrintPullRequestUpdated holds details about calls to the PrintPullRequestUpdated method.
+		PrintPullRequestUpdated []struct {
+			// Number is the number argument value.
+			Number int
+		}
 		// PrintReleasePreview holds details about calls to the PrintReleasePreview method.
 		PrintReleasePreview []struct {
 			// TargetEnvName is the targetEnvName argument value.
@@ -251,6 +261,7 @@ type PromptProviderMock struct {
 	lockPrintNoPromotableEnvironmentFound   sync.RWMutex
 	lockPrintNoPromotableReleasesFound      sync.RWMutex
 	lockPrintPullRequestCreated             sync.RWMutex
+	lockPrintPullRequestUpdated             sync.RWMutex
 	lockPrintReleasePreview                 sync.RWMutex
 	lockPrintSelectedNonPromotableReleases  sync.RWMutex
 	lockPrintStartPreview                   sync.RWMutex
@@ -582,6 +593,38 @@ func (mock *PromptProviderMock) PrintPullRequestCreatedCalls() []struct {
 	mock.lockPrintPullRequestCreated.RLock()
 	calls = mock.calls.PrintPullRequestCreated
 	mock.lockPrintPullRequestCreated.RUnlock()
+	return calls
+}
+
+// PrintPullRequestUpdated calls PrintPullRequestUpdatedFunc.
+func (mock *PromptProviderMock) PrintPullRequestUpdated(number int) {
+	callInfo := struct {
+		Number int
+	}{
+		Number: number,
+	}
+	mock.lockPrintPullRequestUpdated.Lock()
+	mock.calls.PrintPullRequestUpdated = append(mock.calls.PrintPullRequestUpdated, callInfo)
+	mock.lockPrintPullRequestUpdated.Unlock()
+	if mock.PrintPullRequestUpdatedFunc == nil {
+		return
+	}
+	mock.PrintPullRequestUpdatedFunc(number)
+}
+
+// PrintPullRequestUpdatedCalls gets all the calls that were made to PrintPullRequestUpdated.
+// Check the length with:
+//
+//	len(mockedPromptProvider.PrintPullRequestUpdatedCalls())
+func (mock *PromptProviderMock) PrintPullRequestUpdatedCalls() []struct {
+	Number int
+} {
+	var calls []struct {
+		Number int
+	}
+	mock.lockPrintPullRequestUpdated.RLock()
+	calls = mock.calls.PrintPullRequestUpdated
+	mock.lockPrintPullRequestUpdated.RUnlock()
 	return calls
 }
 

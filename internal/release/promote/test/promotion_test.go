@@ -1,6 +1,7 @@
 package promote_test
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -463,4 +464,142 @@ func newOpts() promote.Opts {
 		ReleasesFiltered:     false,
 		SelectedEnvironments: nil,
 	}
+}
+
+func TestPromotionUpdatePullRequest(t *testing.T) {
+	const title = "PR: Promote 1 releases (staging -> prod)"
+	expectedBody := promote.AppendPromotionMetadata("", promote.PromotionMetadata{
+		Source:    sourceEnvName,
+		Target:    targetEnvName,
+		Releases:  []string{"release1"},
+		Reviewers: []string{"john.doe", "github-actions[bot]"},
+	})
+
+	run := func(t *testing.T, current pr.PullRequest, renderErr error) (*pr.PullRequestProviderMock, *promote.PromptProviderMock, *yml.WriterMock, *promote.GitProviderMock, error) {
+		opts := newOpts()
+		opts.NoPrompt = true
+		opts.Releases = []string{"release1"}
+		opts.Reviewers = []string{"john.doe", "github-actions[bot]"}
+		opts.UpdatePullRequest = &current
+
+		crossRel0 := opts.Catalog.Releases.Items[0]
+		crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+		crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+		prProvider := new(pr.PullRequestProviderMock)
+		promptProvider := new(promote.PromptProviderMock)
+		yamlWriter := new(yml.WriterMock)
+		gitProvider := new(promote.GitProviderMock)
+		infoProvider := new(info.ProviderMock)
+		setupDefaultMockInfoProvider(infoProvider)
+		if renderErr != nil {
+			infoProvider.GetProjectSourceDirFunc = func(project *v1alpha1.Project) (string, error) {
+				return "", renderErr
+			}
+		}
+
+		promotion := promote.Promotion{
+			PromptProvider:      promptProvider,
+			GitProvider:         gitProvider,
+			PullRequestProvider: prProvider,
+			YamlWriter:          yamlWriter,
+			PullRequestTemplate: "PR: Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})",
+			InfoProvider:        infoProvider,
+			LinksProvider:       new(links.ProviderMock),
+			Out:                 io.Discard,
+		}
+		_, err := promotion.Promote(opts)
+		return prProvider, promptProvider, yamlWriter, gitProvider, err
+	}
+
+	t.Run("updates outdated body, missing reviewers and removes rendering label", func(t *testing.T) {
+		prProvider, promptProvider, yamlWriter, gitProvider, err := run(t, pr.PullRequest{
+			Number: 123,
+			Title:  title,
+			Body:   "partial body",
+			Labels: []string{"environment:prod", promote.RenderingFailedLabel},
+		}, nil)
+		require.NoError(t, err)
+
+		require.Empty(t, yamlWriter.WriteFileCalls())
+		require.Empty(t, gitProvider.CreateAndPushBranchWithFilesCalls())
+		require.Empty(t, prProvider.CreateCalls())
+		require.Len(t, prProvider.UpdateCalls(), 1)
+		require.Equal(t, pr.UpdateParams{
+			Number:       123,
+			Body:         expectedBody,
+			AddReviewers: []string{"john.doe"},
+			RemoveLabels: []string{promote.RenderingFailedLabel},
+		}, prProvider.UpdateCalls()[0].UpdateParams)
+		require.Len(t, promptProvider.PrintPullRequestUpdatedCalls(), 1)
+	})
+
+	t.Run("leaves up to date pull request unchanged", func(t *testing.T) {
+		prProvider, promptProvider, _, _, err := run(t, pr.PullRequest{
+			Number:    123,
+			Title:     title,
+			Body:      expectedBody,
+			Reviewers: []string{"John.Doe"},
+		}, nil)
+		require.NoError(t, err)
+		require.Empty(t, prProvider.UpdateCalls())
+		require.Empty(t, promptProvider.PrintPullRequestUpdatedCalls())
+	})
+
+	t.Run("does not overwrite successfully rendered pull request with rendering errors", func(t *testing.T) {
+		prProvider, _, _, _, err := run(t, pr.PullRequest{Number: 123, Title: title, Body: "good body"}, errors.New("clone failed"))
+		require.ErrorContains(t, err, "re-rendering pull request #123 failed, leaving it unchanged")
+		require.Empty(t, prProvider.UpdateCalls())
+	})
+
+	t.Run("updates pull request still failing to render but keeps rendering label", func(t *testing.T) {
+		prProvider, _, _, _, err := run(t, pr.PullRequest{
+			Number: 123,
+			Title:  title,
+			Body:   "partial body",
+			Labels: []string{promote.RenderingFailedLabel},
+		}, errors.New("clone failed"))
+		require.ErrorContains(t, err, "pull request #123 still has rendering errors")
+		require.Len(t, prProvider.UpdateCalls(), 1)
+		require.Empty(t, prProvider.UpdateCalls()[0].UpdateParams.RemoveLabels)
+		require.Contains(t, prProvider.UpdateCalls()[0].UpdateParams.Body, "# Rendering Errors")
+	})
+}
+
+func TestPromotionLabelsPullRequestFailingToRender(t *testing.T) {
+	opts := newOpts()
+	opts.NoPrompt = true
+	opts.Releases = []string{"release1"}
+
+	crossRel0 := opts.Catalog.Releases.Items[0]
+	crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+	crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+	prProvider := &pr.PullRequestProviderMock{
+		CreateFunc: func(createParams pr.CreateParams) (string, error) {
+			return "https://github.com/owner/repo/pull/123", nil
+		},
+	}
+	infoProvider := new(info.ProviderMock)
+	setupDefaultMockInfoProvider(infoProvider)
+	infoProvider.GetProjectSourceDirFunc = func(project *v1alpha1.Project) (string, error) {
+		return "", errors.New("clone failed")
+	}
+
+	promotion := promote.Promotion{
+		PromptProvider:      new(promote.PromptProviderMock),
+		GitProvider:         new(promote.GitProviderMock),
+		PullRequestProvider: prProvider,
+		YamlWriter:          new(yml.WriterMock),
+		InfoProvider:        infoProvider,
+		LinksProvider:       new(links.ProviderMock),
+		Out:                 io.Discard,
+	}
+	_, err := promotion.Promote(opts)
+	require.NoError(t, err)
+
+	require.Len(t, prProvider.CreateCalls(), 1)
+	createParams := prProvider.CreateCalls()[0].CreateParams
+	require.Contains(t, createParams.Labels, promote.RenderingFailedLabel)
+	require.Contains(t, createParams.Body, "<!-- joy-promotion: ")
 }

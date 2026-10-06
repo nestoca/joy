@@ -1,5 +1,27 @@
 package pr
 
+import (
+	"slices"
+	"strings"
+)
+
+var nonRequestableReviewers = []string{
+	"",
+	"*",
+	"invalid-email-address",
+	"nestobot",
+	"copilot",
+	"claude",
+	"cursor",
+}
+
+// IsRequestableReviewer returns whether a review can be requested from given user.
+// Bots cannot be requested as reviewers (GitHub returns "not found"), nor can placeholder or AI agent authors.
+func IsRequestableReviewer(reviewer string) bool {
+	lower := strings.ToLower(reviewer)
+	return !strings.HasSuffix(lower, "[bot]") && !slices.Contains(nonRequestableReviewers, lower)
+}
+
 type CreateParams struct {
 	Branch    string
 	Title     string
@@ -7,6 +29,36 @@ type CreateParams struct {
 	Labels    []string
 	Reviewers []string
 	Draft     bool
+}
+
+type PullRequest struct {
+	Number int
+	URL    string
+	Branch string
+	Title  string
+	Body   string
+	Labels []string
+	// Approved indicates the pull request review decision is approved.
+	Approved bool
+	// Reviewers are the users whose review was requested or who already reviewed.
+	Reviewers []string
+	// Commits are the SHAs of the pull request commits, oldest first.
+	Commits []string
+}
+
+// UpdateParams describes changes to an existing pull request. Empty fields are left unchanged.
+type UpdateParams struct {
+	Number       int
+	Title        string
+	Body         string
+	AddReviewers []string
+	AddLabels    []string
+	RemoveLabels []string
+}
+
+// IsEmpty returns whether the update would leave the pull request unchanged.
+func (p UpdateParams) IsEmpty() bool {
+	return p.Title == "" && p.Body == "" && len(p.AddReviewers) == 0 && len(p.AddLabels) == 0 && len(p.RemoveLabels) == 0
 }
 
 //go:generate moq -stub -out ./pull_request_provider_mock.go . PullRequestProvider
@@ -26,6 +78,17 @@ type PullRequestProvider interface {
 
 	// Create creates a pull request for given branch
 	Create(CreateParams) (string, error)
+
+	// Get returns the pull request with given number.
+	Get(number int) (*PullRequest, error)
+
+	// ListOpen returns all open pull requests with given label and whose body contains given text.
+	// Empty label or text means no filtering on it.
+	// Only the number, URL, branch, labels and approval are populated, use Get for full details.
+	ListOpen(label string, bodyContains string) ([]PullRequest, error)
+
+	// Update applies given changes to an existing pull request.
+	Update(UpdateParams) error
 
 	// GetPromotionEnvironment returns the environment to promote builds of given branch's pull request to.
 	// If empty string is returned, promotion is disabled.
