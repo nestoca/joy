@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -22,9 +23,24 @@ type ClusterDefinition struct {
 	Env           string                     `json:"-"`
 	Recreate      bool                       `json:"-"`
 	CRDs          string                     `json:"crds"`
-	SetupCommands []string                   `json:"setupCommands"`
+	SetupCommands []SetupCommand             `json:"setupCommands"`
 	Registries    map[string]ClusterRegistry `json:"registries"`
 	Sources       map[string]Source          `json:"sources"`
+}
+
+type SetupCommand struct {
+	Value        string `json:"cmd"`
+	InheritStdio bool   `json:"inheritStdio"`
+}
+
+func (cmd *SetupCommand) UnmarshalJSON(data []byte) error {
+	var raw string
+	if err := json.Unmarshal(data, &raw); err == nil {
+		cmd.Value = raw
+		return nil
+	}
+	type alt SetupCommand
+	return json.Unmarshal(data, (*alt)(cmd))
 }
 
 func Setup(ctx context.Context, cluster ClusterDefinition) error {
@@ -59,8 +75,14 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	}
 
 	for _, cmd := range cluster.SetupCommands {
-		if err := sh.Execf(ctx, cmd, nil); err != nil {
-			return fmt.Errorf("failed to run: %q: %w", cmd, err)
+		options := func() []shell.ExecOption {
+			if !cmd.InheritStdio {
+				return nil
+			}
+			return []shell.ExecOption{shell.WithStdin(os.Stdin), shell.WithStdout(os.Stdout), shell.WithStderr(os.Stderr)}
+		}()
+		if err := sh.Execf(ctx, cmd.Value, nil, options...); err != nil {
+			return fmt.Errorf("failed to run:\n%s\n\n%w", cmd.Value, err)
 		}
 	}
 
