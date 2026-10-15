@@ -17,7 +17,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var sh = shell.Default
+var (
+	sh        = shell.Default
+	withStdio = []shell.ExecOption{shell.WithStdin(os.Stdin), shell.WithStdout(os.Stdout), shell.WithStderr(os.Stderr)}
+)
 
 type ClusterDefinition struct {
 	Env           string                     `json:"-"`
@@ -79,7 +82,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 			if !cmd.InheritStdio {
 				return nil
 			}
-			return []shell.ExecOption{shell.WithStdin(os.Stdin), shell.WithStdout(os.Stdout), shell.WithStderr(os.Stderr)}
+			return withStdio
 		}()
 		if err := sh.Execf(ctx, cmd.Value, nil, options...); err != nil {
 			return fmt.Errorf("failed to run:\n%s\n\n%w", cmd.Value, err)
@@ -92,6 +95,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 
 	for name, registry := range cluster.Registries {
 		if err := func() error {
+			fmt.Printf("getting credentials for registry: %s\n", name)
 			token, err := sh.ExecfCombined(ctx, registry.AuthCommand, nil)
 			if err != nil {
 				return fmt.Errorf("failed to authenticate with registry: %w", err)
