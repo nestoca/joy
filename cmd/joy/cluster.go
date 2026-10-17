@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/davidmdm/x/xcontainer"
+	"github.com/fsnotify/fsnotify"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/k8s"
@@ -20,6 +22,7 @@ func NewClusterCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewClusterSetupCommand())
+	cmd.AddCommand(NewClusterDeployCommand())
 
 	return cmd
 }
@@ -69,6 +72,132 @@ func NewClusterSetupCommand() *cobra.Command {
 
 	cmd.Flags().StringVarP(&envName, "env", "e", "environment", "setup cluster in orbstack defined by environment")
 	cmd.Flags().BoolVar(&cluster.Recreate, "recreate", false, "recreate orbstack cluster")
+
+	return cmd
+}
+
+func NewClusterDeployCommand() *cobra.Command {
+	var envName string
+	var watch bool
+
+	cmd := &cobra.Command{
+		Use: "deploy",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cat := catalog.FromContext(cmd.Context())
+
+			env, err := func() (*v1alpha1.Environment, error) {
+				if envName == "" {
+					return environment.SelectSingle(cat.Environments, nil, "select which environment")
+				}
+				env := environment.FindByName(cat.Environments, envName)
+				if env == nil {
+					return nil, fmt.Errorf("could not find env %q", envName)
+				}
+				return env, nil
+			}()
+			if err != nil {
+				return err
+			}
+
+			cat.WithEnvironments([]string{env.Name})
+
+			filepaths, fileDirs := func() (xcontainer.Set[string], xcontainer.Set[string]) {
+				paths := make(xcontainer.Set[string])
+				dirs := make(xcontainer.Set[string])
+
+				add := func(value string) {
+					dirs.Add(filepath.Dir(value))
+					value, _ = filepath.Rel(cat.Dir, value)
+					paths.Add(value)
+				}
+
+				if cat.Root != nil {
+					add(cat.Root.File.Path)
+				}
+
+				add(env.File.Path)
+
+				for _, project := range cat.Projects {
+					add(project.File.Path)
+				}
+
+				for _, cross := range cat.Releases.Items {
+					for _, release := range cross.Releases {
+						if release == nil {
+							continue
+						}
+						add(release.File.Path)
+					}
+				}
+
+				return paths, dirs
+			}()
+
+			fileChan, err := func() (chan string, error) {
+				c := make(chan string, len(filepaths))
+				for path := range filepaths {
+					c <- path
+				}
+
+				if !watch {
+					close(c)
+					return c, nil
+				}
+
+				watcher, err := fsnotify.NewWatcher()
+				if err != nil {
+					return nil, fmt.Errorf("failed to create file watcher: %w", err)
+				}
+
+				for dir := range fileDirs {
+					watcher.Add(dir)
+				}
+
+				go func() {
+					defer close(c)
+					for {
+						select {
+						case <-cmd.Context().Done():
+							return
+						case event, ok := <-watcher.Events:
+							if !ok {
+								return
+							}
+							if event.Op == fsnotify.Chmod || event.Op == fsnotify.Rename {
+								continue
+							}
+							if path, _ := filepath.Rel(cat.Dir, event.Name); filepaths.Has(path) {
+								c <- path
+							}
+						case err, ok := <-watcher.Errors:
+							if !ok {
+								watcher.Errors = nil
+								continue
+							}
+							fmt.Fprintln(cmd.ErrOrStderr(), fmt.Errorf("error from file watcher: %v", err))
+						}
+					}
+				}()
+
+				return c, nil
+			}()
+			if err != nil {
+				return err
+			}
+
+			k8s.DeployResources(cmd.Context(), k8s.DeployResourcesParams{
+				Namespace:   env.Name,
+				RootDir:     cat.Dir,
+				Files:       fileChan,
+				KubeContext: "orbstack",
+			})
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&envName, "env", "e", "environment", "setup cluster in orbstack defined by environment")
+	cmd.Flags().BoolVar(&watch, "watch", false, "watch deployed resources for changes")
 
 	return cmd
 }
