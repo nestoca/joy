@@ -35,7 +35,7 @@ type HelmSource struct {
 func (source HelmSource) Apply(ctx context.Context) error {
 	ns := cmp.Or(source.Namespace, "default")
 	if ns != "default" {
-		if err := ensureNamespace(ctx, ns); err != nil {
+		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
 			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
 		}
 	}
@@ -83,7 +83,7 @@ type KubectlSource struct {
 func (source KubectlSource) Apply(ctx context.Context) error {
 	ns := cmp.Or(source.Namespace, "default")
 	if ns != "default" {
-		if err := ensureNamespace(ctx, ns); err != nil {
+		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
 			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
 		}
 	}
@@ -122,11 +122,11 @@ func (source Source) Apply(ctx context.Context) error {
 	return nil
 }
 
-func ensureNamespace(ctx context.Context, ns string) error {
+func ensureNamespace(ctx context.Context, ns, kubectx string) error {
 	return sh.Execf(
 		ctx,
-		`kubectl apply -f -`,
-		nil,
+		`kubectl --context %s apply -f -`,
+		[]any{kubectx},
 		shell.WithStdin(shell.JSONReader(&corev1.Namespace{
 			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Namespace"},
 			ObjectMeta: metav1.ObjectMeta{Name: ns},

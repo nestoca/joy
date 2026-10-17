@@ -7,10 +7,11 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/TwiN/go-color v1.4.1
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-	github.com/davidmdm/x/xcontext v0.0.4
+	github.com/davidmdm/x/xcontainer v0.0.3
 	github.com/davidmdm/x/xerr v0.0.6
 	github.com/davidmdm/x/xfs v0.0.5
 	github.com/evanphx/json-patch/v5 v5.9.11
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.7.0
