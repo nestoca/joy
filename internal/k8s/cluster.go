@@ -7,8 +7,12 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+
+	sigsyaml "sigs.k8s.io/yaml"
 
 	"github.com/nestoca/joy/internal/shell"
 	"github.com/nestoca/joy/internal/wait"
@@ -89,7 +93,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 		}
 	}
 
-	if err := ensureNamespace(ctx, "argocd"); err != nil {
+	if err := ensureNamespace(ctx, "argocd", "orbstack"); err != nil {
 		return fmt.Errorf("failed to ensure argocd namespace: %w", err)
 	}
 
@@ -261,4 +265,53 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	fmt.Println("cluster setup and operational")
 
 	return nil
+}
+
+type DeployResourcesParams struct {
+	Namespace   string
+	RootDir     string
+	Files       chan string
+	KubeContext string
+}
+
+func DeployResources(ctx context.Context, params DeployResourcesParams) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	ensureNamespace(ctx, params.Namespace, "orbstack")
+
+	sh := sh.Dir(params.RootDir)
+
+	for range 8 {
+		wg.Go(func() {
+			for path := range params.Files {
+				err := func() error {
+					data, err := os.ReadFile(filepath.Join(params.RootDir, path))
+					if err != nil {
+						return err
+					}
+					var resource metav1.TypeMeta
+					if err := sigsyaml.Unmarshal(data, &resource); err != nil {
+						return err
+					}
+
+					var nsOption string
+					if resource.Kind == "Release" {
+						nsOption = "-n " + params.Namespace
+					}
+
+					return sh.Execf(
+						ctx,
+						"kubectl --context %s apply -f %s %s",
+						[]any{params.KubeContext, path, nsOption},
+					)
+				}()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "failed to process %q: %v\n", path, err)
+					continue
+				}
+				fmt.Fprintf(os.Stderr, "applied %s\n", path)
+			}
+		})
+	}
 }
