@@ -27,6 +27,7 @@ var (
 )
 
 type ClusterDefinition struct {
+	KubeContext   string                     `json:"kubeContext"`
 	Env           string                     `json:"-"`
 	Recreate      bool                       `json:"-"`
 	CRDs          string                     `json:"crds"`
@@ -74,7 +75,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	if err := wait.Eventually(
 		ctx,
 		func(ctx context.Context) error {
-			return sh.Execf(ctx, "kubectl get ns default", nil)
+			return sh.Execf(ctx, "kubectl --context %s get ns default", []any{cluster.KubeContext})
 		},
 		wait.WithTicker("testing for cluster readiness"),
 	); err != nil {
@@ -113,8 +114,8 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 			if registry.Helm {
 				if err := sh.Execf(
 					ctx,
-					`kubectl apply -n argocd --server-side -f -`,
-					nil,
+					`kubectl --context %s apply -n argocd --server-side -f -`,
+					[]any{cluster.KubeContext},
 					shell.WithStdin(
 						shell.JSONReader(
 							&corev1.Secret{
@@ -158,8 +159,8 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 
 				if err := sh.Execf(
 					ctx,
-					`kubectl apply --server-side -f -`,
-					nil,
+					`kubectl --context %s apply --server-side -f -`,
+					[]any{cluster.KubeContext},
 					shell.WithStdin(
 						shell.JSONReader(
 							&corev1.Secret{
@@ -186,8 +187,9 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	}
 
 	crds := KubectlSource{
-		Path:      cluster.CRDs,
-		Recursive: true,
+		KubeContext: cluster.KubeContext,
+		Path:        cluster.CRDs,
+		Recursive:   true,
 	}
 
 	if err := wait.TickFunc(ctx, "applying crds", crds.Apply); err != nil {
@@ -195,9 +197,10 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	}
 
 	argocd := HelmSource{
-		URL:       "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.9.0/argo-cd-10.9.0.tgz",
-		Namespace: "argocd",
-		Release:   "argo-cd",
+		URL:         "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.9.0/argo-cd-10.9.0.tgz",
+		Namespace:   "argocd",
+		Release:     "argo-cd",
+		KubeContext: cluster.KubeContext,
 		Values: strings.NewReader(`
       configs:
         params:
@@ -216,10 +219,11 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	joyOperatorVersion := "0.7.2"
 
 	joyOperator := HelmSource{
-		URL:       "oci://ghcr.io/nestoca/joy-operator-chart",
-		Namespace: "argocd",
-		Version:   joyOperatorVersion,
-		Release:   "joy-operator",
+		URL:         "oci://ghcr.io/nestoca/joy-operator-chart",
+		Namespace:   "argocd",
+		KubeContext: cluster.KubeContext,
+		Version:     joyOperatorVersion,
+		Release:     "joy-operator",
 		Values: map[string]any{
 			"helm": func() map[string]any {
 				if len(cluster.Registries) == 0 {
@@ -257,6 +261,13 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	}
 
 	for name, source := range cluster.Sources {
+		if source.Helm != nil {
+			source.Helm.KubeContext = cluster.KubeContext
+		}
+		if source.Kubectl != nil {
+			source.Kubectl.KubeContext = cluster.KubeContext
+		}
+
 		if err := wait.TickFunc(ctx, "applying "+name, source.Apply); err != nil {
 			return fmt.Errorf("failed to apply %s: %w", name, err)
 		}

@@ -30,6 +30,7 @@ type HelmSource struct {
 	Release        string `json:"release"`
 	ValuesFile     string `json:"valuesFile"`
 	Values         any    `json:"values"`
+	KubeContext    string `json:"-"`
 }
 
 func (source HelmSource) Apply(ctx context.Context) error {
@@ -56,8 +57,9 @@ func (source HelmSource) Apply(ctx context.Context) error {
 	}
 	return sh.Execf(
 		ctx,
-		"helm upgrade --create-namespace --namespace %s --install --wait --timeout 5m %s %s %s --values - %s",
+		"helm upgrade --kube-context %s --create-namespace --namespace %s --install --wait --timeout 5m %s %s %s --values - %s",
 		[]any{
+			source.KubeContext,
 			ns,
 			source.Release,
 			source.URL,
@@ -74,10 +76,11 @@ func (source HelmSource) Apply(ctx context.Context) error {
 }
 
 type KubectlSource struct {
-	Path      string `json:"path"`
-	Input     string `json:"input"`
-	Namespace string `json:"namespace"`
-	Recursive bool   `json:"recursive"`
+	KubeContext string `json:"-"`
+	Path        string `json:"path"`
+	Input       string `json:"input"`
+	Namespace   string `json:"namespace"`
+	Recursive   bool   `json:"recursive"`
 }
 
 func (source KubectlSource) Apply(ctx context.Context) error {
@@ -90,15 +93,15 @@ func (source KubectlSource) Apply(ctx context.Context) error {
 	if source.Input != "" {
 		return sh.Execf(
 			ctx,
-			"kubectl apply --server-side -n '%s' -f -",
-			[]any{ns},
+			"kubectl --context %s apply --server-side -n '%s' -f -",
+			[]any{source.KubeContext, ns},
 			shell.WithStdin(strings.NewReader(source.Input)),
 		)
 	}
 	return sh.Execf(
 		ctx,
-		"kubectl apply --server-side -n '%s' -f '%s' %s",
-		[]any{ns, source.Path, func() string {
+		"kubectl --context %s apply --server-side -n '%s' -f '%s' %s",
+		[]any{source.KubeContext, ns, source.Path, func() string {
 			if source.Recursive {
 				return "--recursive"
 			}
