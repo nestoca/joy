@@ -5,12 +5,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	sigsyaml "sigs.k8s.io/yaml"
 
@@ -196,81 +199,121 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 		return fmt.Errorf("failed to apply crds: %w", err)
 	}
 
-	argocd := HelmSource{
-		URL:         "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.9.0/argo-cd-10.9.0.tgz",
-		Namespace:   "argocd",
-		Release:     "argo-cd",
-		KubeContext: cluster.KubeContext,
-		Values: strings.NewReader(`
-      configs:
-        params:
-          server.insecure: true
-        cm:
-          users.anonymous.enabled: "true"
-        rbac:
-          policy.default: role:admin
-      `),
+	if cluster.Sources == nil {
+		cluster.Sources = map[string]Source{}
 	}
 
-	if err := wait.TickFunc(ctx, "applying argocd", argocd.Apply); err != nil {
-		return fmt.Errorf("failed to apply argocd: %w", err)
+	cluster.Sources["argocd"] = Source{
+		Helm: &HelmSource{
+			URL:         "https://github.com/argoproj/argo-helm/releases/download/argo-cd-10.9.0/argo-cd-10.9.0.tgz",
+			Namespace:   "argocd",
+			Release:     "argo-cd",
+			KubeContext: cluster.KubeContext,
+			Values: strings.NewReader(`
+        configs:
+          params:
+            server.insecure: true
+          cm:
+            users.anonymous.enabled: "true"
+          rbac:
+            policy.default: role:admin
+      `),
+		},
 	}
 
 	joyOperatorVersion := "0.7.2"
 
-	joyOperator := HelmSource{
-		URL:         "oci://ghcr.io/nestoca/joy-operator-chart",
-		Namespace:   "argocd",
-		KubeContext: cluster.KubeContext,
-		Version:     joyOperatorVersion,
-		Release:     "joy-operator",
-		Values: map[string]any{
-			"helm": func() map[string]any {
-				if len(cluster.Registries) == 0 {
+	cluster.Sources["joy-operator"] = Source{
+		Helm: &HelmSource{
+			URL:         "oci://ghcr.io/nestoca/joy-operator-chart",
+			Namespace:   "argocd",
+			KubeContext: cluster.KubeContext,
+			Version:     joyOperatorVersion,
+			Release:     "joy-operator",
+			Values: map[string]any{
+				"helm": func() map[string]any {
+					if len(cluster.Registries) == 0 {
+						return nil
+					}
+					for name, registry := range cluster.Registries {
+						if !registry.Helm {
+							continue
+						}
+						return map[string]any{
+							"registry": registry.URL,
+							"user":     "oauth2accesstoken",
+							"credentials": map[string]any{
+								"secret":    name + "-helm",
+								"key":       "password",
+								"mountPath": "/secrets/registry.creds",
+							},
+						}
+					}
 					return nil
-				}
-				for name, registry := range cluster.Registries {
-					if !registry.Helm {
-						continue
-					}
-					return map[string]any{
-						"registry": registry.URL,
-						"user":     "oauth2accesstoken",
-						"credentials": map[string]any{
-							"secret":    name + "-helm",
-							"key":       "password",
-							"mountPath": "/secrets/registry.creds",
-						},
-					}
-				}
-				return nil
-			}(),
-			"environmentDestinations": map[string]any{
-				cluster.Env: map[string]any{
-					"server":    "https://kubernetes.default.svc",
-					"namespace": "default",
+				}(),
+				"environmentDestinations": map[string]any{
+					cluster.Env: map[string]any{
+						"server":    "https://kubernetes.default.svc",
+						"namespace": "default",
+					},
 				},
+				"installCrds": true,
+				"version":     joyOperatorVersion,
 			},
-			"installCrds": true,
-			"version":     joyOperatorVersion,
 		},
 	}
 
-	if err := wait.TickFunc(ctx, "applying joy-operator", joyOperator.Apply); err != nil {
-		return fmt.Errorf("failed to apply joy-operator: %w", err)
+	type Result struct {
+		Name    string
+		Err     error
+		Elapsed time.Duration
 	}
+	results := make(chan Result, len(cluster.Sources))
+	var wg sync.WaitGroup
+
+	fmt.Println("applying", strings.Join(slices.Sorted(maps.Keys(cluster.Sources)), ", "))
 
 	for name, source := range cluster.Sources {
-		if source.Helm != nil {
-			source.Helm.KubeContext = cluster.KubeContext
-		}
-		if source.Kubectl != nil {
-			source.Kubectl.KubeContext = cluster.KubeContext
-		}
+		wg.Go(func() {
+			if source.Helm != nil {
+				source.Helm.KubeContext = cluster.KubeContext
+			}
+			if source.Kubectl != nil {
+				source.Kubectl.KubeContext = cluster.KubeContext
+			}
 
-		if err := wait.TickFunc(ctx, "applying "+name, source.Apply); err != nil {
-			return fmt.Errorf("failed to apply %s: %w", name, err)
+			start := time.Now()
+			err := source.Apply(ctx)
+			elapsed := time.Since(start)
+
+			results <- Result{
+				Name:    name,
+				Err:     err,
+				Elapsed: elapsed.Round(100 * time.Millisecond),
+			}
+		})
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var done int
+
+	var failedSetup bool
+	for result := range results {
+		done++
+		if result.Err != nil {
+			failedSetup = true
+			fmt.Printf("  (%d/%d) %s: failed to apply after %s: %v\n", done, len(cluster.Sources), result.Name, result.Elapsed, result.Err)
+		} else {
+			fmt.Printf("  (%d/%d) %s: succeeded after %s\n", done, len(cluster.Sources), result.Name, result.Elapsed)
 		}
+	}
+
+	if failedSetup {
+		return fmt.Errorf("failed to setup cluster dependencies")
 	}
 
 	fmt.Println("cluster setup and operational")
