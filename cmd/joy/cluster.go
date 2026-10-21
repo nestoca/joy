@@ -67,6 +67,11 @@ func NewClusterSetupCommand() *cobra.Command {
 			if cluster.CRDs != "" {
 				cluster.CRDs = filepath.Join(env.Dir, cluster.CRDs)
 			}
+			for _, source := range cluster.Sources {
+				if source.Kubectl != nil && source.Kubectl.Path != "" && !filepath.IsAbs(source.Kubectl.Path) {
+					source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
+				}
+			}
 			cluster.Env = env.Name
 			cluster.KubeContext = cmp.Or(cluster.KubeContext, "orbstack")
 
