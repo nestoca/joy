@@ -35,6 +35,7 @@ type Catalog struct {
 	Environments []*v1alpha1.Environment
 	Releases     ReleaseList
 	Projects     []*v1alpha1.Project
+	Root         *v1alpha1.Catalog
 	Files        []*yml.File
 }
 
@@ -96,6 +97,17 @@ func Load(ctx context.Context, dir string, validChartRefs []string) (*Catalog, e
 		// Only keep Joy CRDs
 		if isValid(file) {
 			c.Files = append(c.Files, file)
+		}
+	}
+
+	catalogFiles := c.GetFilesByKind(v1alpha1.CatalogKind)
+	if len(catalogFiles) > 1 {
+		return nil, fmt.Errorf("there must be at most 1 catalog resource")
+	}
+	if len(catalogFiles) == 1 {
+		c.Root, err = v1alpha1.CatalogFromFile(catalogFiles[0])
+		if err != nil {
+			return nil, fmt.Errorf("loading catalog resource file: %w", err)
 		}
 	}
 
@@ -275,7 +287,8 @@ func hasHiddenDirSegment(root, path string) (bool, error) {
 func isValid(file *yml.File) bool {
 	return v1alpha1.IsValidEnvironment(file.ApiVersion, file.Kind) ||
 		v1alpha1.IsValidRelease(file.ApiVersion, file.Kind) ||
-		v1alpha1.IsValidProject(file.ApiVersion, file.Kind)
+		v1alpha1.IsValidProject(file.ApiVersion, file.Kind) ||
+		v1alpha1.IsValidCatalog(file.ApiVersion, file.Kind)
 }
 
 // GetFilesByKind returns all files of the given kind.
