@@ -47,3 +47,4 @@ func init() {
 func ReleaseSpecification() string     { return internal.StringifySchema(schemas.Release) }
 func EnvironmentSpecification() string { return internal.StringifySchema(schemas.Environment) }
 func ProjectSpecification() string     { return internal.StringifySchema(schemas.Project) }
+func ReleaseSchema() cue.Value         { return schemas.Release }
