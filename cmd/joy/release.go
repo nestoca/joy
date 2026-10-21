@@ -34,6 +34,7 @@ import (
 	"github.com/nestoca/joy/internal/release/list"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/internal/release/render"
+	"github.com/nestoca/joy/internal/release/schema"
 	"github.com/nestoca/joy/internal/release/validate"
 	"github.com/nestoca/joy/internal/text"
 	"github.com/nestoca/joy/internal/yml"
@@ -918,9 +919,16 @@ func NewReleaseLinksCmd() *cobra.Command {
 }
 
 func NewReleaseSchemaCmd() *cobra.Command {
-	var env string
+	var (
+		env         string
+		interactive bool
+	)
 	cmd := &cobra.Command{
-		Use:  "schema",
+		Use:   "schema",
+		Short: "Show the Release CRD or chart #values schema",
+		Long: `Show the schema for a release's chart values, or the Release CRD when no release is given.
+
+With -i/--interactive, browse the schema in a terminal tree UI (requires a TTY).`,
 		Args: cobra.RangeArgs(0, 1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 0 && env == "" {
@@ -929,9 +937,12 @@ func NewReleaseSchemaCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if interactive && !term.IsTerminal(int(os.Stdout.Fd())) {
+				return fmt.Errorf("interactive schema browser requires a terminal (stdout is not a TTY)")
+			}
+
 			if len(args) == 0 {
-				_, err := fmt.Fprintln(cmd.OutOrStdout(), v1alpha1.ReleaseSpecification())
-				return err
+				return showSchema(cmd, interactive, v1alpha1.ReleaseSchema(), "#release", v1alpha1.ReleaseSpecification())
 			}
 
 			cat := catalog.FromContext(cmd.Context())
@@ -958,19 +969,29 @@ func NewReleaseSchemaCmd() *cobra.Command {
 			schemaBytes, err := chart.ReadFile("values.cue")
 			if err != nil {
 				if os.IsNotExist(err) {
-					_, err := io.WriteString(cmd.OutOrStdout(), v1alpha1.ReleaseSpecification())
-					return err
+					return showSchema(cmd, interactive, v1alpha1.ReleaseSchema(), "#release", v1alpha1.ReleaseSpecification())
 				}
 				return fmt.Errorf("reading schema: %w", err)
 			}
 
-			schema := cuecontext.New().CompileBytes(schemaBytes).LookupPath(cue.MakePath(cue.Def("values")))
-
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), internal.StringifySchema(schema))
-			return err
+			valuesSchema := cuecontext.New().CompileBytes(schemaBytes).LookupPath(cue.MakePath(cue.Def("values")))
+			return showSchema(cmd, interactive, valuesSchema, "#values", internal.StringifySchema(valuesSchema))
 		},
 	}
 
 	cmd.Flags().StringVar(&env, "env", "", "environment to find release from")
+	cmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "browse schema in an interactive terminal UI")
 	return cmd
+}
+
+func showSchema(cmd *cobra.Command, interactive bool, value cue.Value, rootName, printed string) error {
+	if interactive {
+		tree, err := schema.BuildTree(value, rootName)
+		if err != nil {
+			return err
+		}
+		return schema.RunBrowser(internal.IoFromCommand(cmd), tree)
+	}
+	_, err := fmt.Fprintln(cmd.OutOrStdout(), printed)
+	return err
 }
