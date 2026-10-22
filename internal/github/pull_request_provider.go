@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 )
 
@@ -192,6 +193,10 @@ func (p *PullRequestProvider) ListOpen(label string, bodyContains string) ([]pr.
 		result = append(result, d.toPullRequest())
 	}
 	return result, nil
+}
+
+func (p *PullRequestProvider) FetchHead(number int) error {
+	return git.FetchPullRequestHead(p.dir, number)
 }
 
 func (p *PullRequestProvider) Update(params pr.UpdateParams) error {

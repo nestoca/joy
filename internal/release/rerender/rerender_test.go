@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestoca/joy/internal/catalog/loader"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/pkg/catalog"
@@ -14,15 +15,16 @@ import (
 
 func newLegacyPullRequest() *pr.PullRequest {
 	return &pr.PullRequest{
-		Number: 72789,
-		Branch: "promote-public-application-from-qa-to-production-1401301d-1454-41ac-b052-254b21054a8e",
-		Labels: []string{"environment:production", "release:public-application"},
-		Body:   "\nTriggered by: john.doe -> b724eda4e96a93417e54dc8610e0f413bc395c44\n\n# Promotions\n\n# Rendering Errors: boom",
+		Number:  72789,
+		Branch:  "promote-public-application-from-qa-to-production-1401301d-1454-41ac-b052-254b21054a8e",
+		Labels:  []string{"environment:production", "release:public-application"},
+		Body:    "\nTriggered by: john.doe -> b724eda4e96a93417e54dc8610e0f413bc395c44\n\n# Promotions\n\n# Rendering Errors: boom",
+		Commits: []string{"7bf01f97bc30a80326d4fd12e502a79aee6e2e92"},
 	}
 }
 
-// newSpecificReRenderer returns a re-renderer for a specific pull request, recording the pull requests whose
-// catalog gets loaded, which is the first step of re-rendering past selection.
+// newSpecificReRenderer returns a re-renderer for a specific pull request, recording the pull requests fetched
+// to load their catalog, which is the first step of re-rendering past selection.
 func newSpecificReRenderer(loaded *[]int) ReRenderer {
 	return ReRenderer{
 		PullRequestProvider: &pr.PullRequestProviderMock{
@@ -32,15 +34,48 @@ func newSpecificReRenderer(loaded *[]int) ReRenderer {
 				pullRequest.URL = "https://github.com/nestoca/catalog/pull/72789"
 				return pullRequest, nil
 			},
-		},
-		CatalogLoader: &CatalogLoaderMock{
-			LoadAtPullRequestBaseFunc: func(ctx context.Context, pullRequest *pr.PullRequest) (*catalog.Catalog, func(), error) {
-				*loaded = append(*loaded, pullRequest.Number)
-				return &catalog.Catalog{}, func() {}, nil
+			FetchHeadFunc: func(number int) error {
+				*loaded = append(*loaded, number)
+				return nil
 			},
 		},
-		Out: io.Discard,
+		CatalogLoader: newLoaderMock(),
+		Out:           io.Discard,
 	}
+}
+
+func newLoaderMock() *loader.LoaderMock {
+	return &loader.LoaderMock{
+		LoadAtFunc: func(ctx context.Context, ref string) (*catalog.Catalog, func() error, error) {
+			return &catalog.Catalog{}, func() error { return nil }, nil
+		},
+	}
+}
+
+func TestReRenderLoadsCatalogAtParentOfFirstCommit(t *testing.T) {
+	var loaded []int
+	reRenderer := newSpecificReRenderer(&loaded)
+	catalogLoader := newLoaderMock()
+	reRenderer.CatalogLoader = catalogLoader
+
+	_ = reRenderer.ReRender(context.Background(), "72789")
+	require.Equal(t, []int{72789}, loaded)
+	require.Len(t, catalogLoader.LoadAtCalls(), 1)
+	require.Equal(t, "7bf01f97bc30a80326d4fd12e502a79aee6e2e92^", catalogLoader.LoadAtCalls()[0].Ref)
+}
+
+func TestReRenderPullRequestWithoutCommits(t *testing.T) {
+	var loaded []int
+	reRenderer := newSpecificReRenderer(&loaded)
+	provider := reRenderer.PullRequestProvider.(*pr.PullRequestProviderMock)
+	provider.GetFunc = func(number int) (*pr.PullRequest, error) {
+		pullRequest := newLegacyPullRequest()
+		pullRequest.Commits = nil
+		return pullRequest, nil
+	}
+
+	require.ErrorContains(t, reRenderer.ReRender(context.Background(), "72789"), "pull request has no commits")
+	require.Empty(t, loaded)
 }
 
 func TestReRenderSpecificPullRequestByNumber(t *testing.T) {
@@ -65,7 +100,16 @@ func TestReRenderByURL(t *testing.T) {
 		reRenderer := newSpecificReRenderer(&loaded)
 
 		require.EqualError(t, reRenderer.ReRender(context.Background(), "https://github.com/nestoca/joy/pull/72789"),
-			"pull request https://github.com/nestoca/joy/pull/72789 is not in catalog repository nestoca/catalog")
+			"pull request https://github.com/nestoca/joy/pull/72789 is not in catalog repository github.com/nestoca/catalog")
+		require.Empty(t, loaded)
+	})
+
+	t.Run("rejects pull request url from another host", func(t *testing.T) {
+		var loaded []int
+		reRenderer := newSpecificReRenderer(&loaded)
+
+		require.EqualError(t, reRenderer.ReRender(context.Background(), "https://ghe.example.com/nestoca/catalog/pull/72789"),
+			"pull request https://ghe.example.com/nestoca/catalog/pull/72789 is not in catalog repository github.com/nestoca/catalog")
 		require.Empty(t, loaded)
 	})
 }
@@ -92,15 +136,14 @@ func TestReRenderScanSkipsApprovedAndNonPromotionPullRequests(t *testing.T) {
 				pullRequest.Number = number
 				return pullRequest, nil
 			},
-		},
-		CatalogLoader: &CatalogLoaderMock{
-			LoadAtPullRequestBaseFunc: func(ctx context.Context, pullRequest *pr.PullRequest) (*catalog.Catalog, func(), error) {
-				loaded = append(loaded, pullRequest.Number)
-				return &catalog.Catalog{}, func() {}, nil
+			FetchHeadFunc: func(number int) error {
+				loaded = append(loaded, number)
+				return nil
 			},
 		},
-		Label: "custom:label",
-		Out:   io.Discard,
+		CatalogLoader: newLoaderMock(),
+		Label:         "custom:label",
+		Out:           io.Discard,
 	}
 
 	err := reRenderer.ReRender(context.Background(), "")

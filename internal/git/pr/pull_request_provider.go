@@ -87,6 +87,9 @@ type PullRequestProvider interface {
 	// Only the number, URL, branch, labels and approval are populated, use Get for full details.
 	ListOpen(label string, bodyContains string) ([]PullRequest, error)
 
+	// FetchHead fetches the commits of the pull request with given number into the local repository.
+	FetchHead(number int) error
+
 	// Update applies given changes to an existing pull request.
 	Update(UpdateParams) error
 

@@ -22,7 +22,7 @@ func ResolveMetadata(pullRequest *pr.PullRequest) (*promote.PromotionMetadata, e
 		return metadata, err
 	}
 
-	// Failover code path if there was no PrMetadata embedded in the pull request body.
+	// Failover code path if there was no PromotionMetadata embedded in the pull request body.
 	// This is for backwards compatibility with promotion pull requests
 	metadata = &promote.PromotionMetadata{}
 	for _, label := range pullRequest.Labels {

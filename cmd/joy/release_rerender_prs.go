@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/nestoca/joy/internal/catalog/loader"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/github"
@@ -55,7 +56,7 @@ so the local catalog working copy is left untouched.`, promote.RenderingFailedLa
 
 			reRenderer := rerender.ReRenderer{
 				PullRequestProvider: pullRequestProvider,
-				CatalogLoader:       rerender.NewWorktreeCatalogLoader(cfg.CatalogDir, cfg.KnownChartRefs(), cmd.ErrOrStderr()),
+				CatalogLoader:       loader.NewWorktreeLoader(cfg.CatalogDir),
 				NewPromotion: func(variables map[string]string) *promote.Promotion {
 					return &promote.Promotion{
 						CommitTemplate:      cfg.Templates.Release.Promote.Commit,

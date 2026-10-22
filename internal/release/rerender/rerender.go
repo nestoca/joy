@@ -8,13 +8,15 @@ import (
 	"strings"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/catalog/loader"
 	"github.com/nestoca/joy/internal/git/pr"
 	"github.com/nestoca/joy/internal/release/promote"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 type ReRenderer struct {
 	PullRequestProvider pr.PullRequestProvider
-	CatalogLoader       CatalogLoader
+	CatalogLoader       loader.Loader
 
 	// NewPromotion returns the promotion used for re-rendering, configured with given template variables.
 	NewPromotion func(variables map[string]string) *promote.Promotion
@@ -103,11 +105,15 @@ func (r *ReRenderer) reRender(ctx context.Context, pullRequest *pr.PullRequest) 
 
 	// This is what does the heavy lifting since the versions of the source and target are in the
 	// literal state of the repository at this point in time.
-	cat, cleanup, err := r.CatalogLoader.LoadAtPullRequestBase(ctx, pullRequest)
+	cat, remove, err := r.loadCatalogAtBase(ctx, pullRequest)
 	if err != nil {
 		return fmt.Errorf("loading catalog for pull request #%d: %w", pullRequest.Number, err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := remove(); err != nil {
+			_, _ = fmt.Fprintf(r.Out, "⚠️ Failed to remove catalog checkout of pull request #%d: %v\n", pullRequest.Number, err)
+		}
+	}()
 
 	sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, metadata.Source)
 	if err != nil {
@@ -131,4 +137,18 @@ func (r *ReRenderer) reRender(ctx context.Context, pullRequest *pr.PullRequest) 
 		UpdatePullRequest: pullRequest,
 	})
 	return err
+}
+
+// loadCatalogAtBase loads the catalog at the parent of the pull request's first commit, which is the catalog state
+// the promotion was originally rendered from.
+func (r *ReRenderer) loadCatalogAtBase(ctx context.Context, pullRequest *pr.PullRequest) (*catalog.Catalog, func() error, error) {
+	if len(pullRequest.Commits) == 0 {
+		return nil, nil, fmt.Errorf("pull request has no commits")
+	}
+
+	if err := r.PullRequestProvider.FetchHead(pullRequest.Number); err != nil {
+		return nil, nil, err
+	}
+
+	return r.CatalogLoader.LoadAt(ctx, pullRequest.Commits[0]+"^")
 }

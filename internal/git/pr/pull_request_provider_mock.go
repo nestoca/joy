@@ -29,6 +29,9 @@ var _ PullRequestProvider = &PullRequestProviderMock{}
 //			ExistsFunc: func(branch string) (bool, error) {
 //				panic("mock out the Exists method")
 //			},
+//			FetchHeadFunc: func(number int) error {
+//				panic("mock out the FetchHead method")
+//			},
 //			GetFunc: func(number int) (*PullRequest, error) {
 //				panic("mock out the Get method")
 //			},
@@ -65,6 +68,9 @@ type PullRequestProviderMock struct {
 
 	// ExistsFunc mocks the Exists method.
 	ExistsFunc func(branch string) (bool, error)
+
+	// FetchHeadFunc mocks the FetchHead method.
+	FetchHeadFunc func(number int) error
 
 	// GetFunc mocks the Get method.
 	GetFunc func(number int) (*PullRequest, error)
@@ -103,6 +109,11 @@ type PullRequestProviderMock struct {
 		Exists []struct {
 			// Branch is the branch argument value.
 			Branch string
+		}
+		// FetchHead holds details about calls to the FetchHead method.
+		FetchHead []struct {
+			// Number is the number argument value.
+			Number int
 		}
 		// Get holds details about calls to the Get method.
 		Get []struct {
@@ -143,6 +154,7 @@ type PullRequestProviderMock struct {
 	lockCreateInteractively               sync.RWMutex
 	lockEnsureInstalledAndAuthenticated   sync.RWMutex
 	lockExists                            sync.RWMutex
+	lockFetchHead                         sync.RWMutex
 	lockGet                               sync.RWMutex
 	lockGetBranchesPromotingToEnvironment sync.RWMutex
 	lockGetPromotionEnvironment           sync.RWMutex
@@ -285,6 +297,41 @@ func (mock *PullRequestProviderMock) ExistsCalls() []struct {
 	mock.lockExists.RLock()
 	calls = mock.calls.Exists
 	mock.lockExists.RUnlock()
+	return calls
+}
+
+// FetchHead calls FetchHeadFunc.
+func (mock *PullRequestProviderMock) FetchHead(number int) error {
+	callInfo := struct {
+		Number int
+	}{
+		Number: number,
+	}
+	mock.lockFetchHead.Lock()
+	mock.calls.FetchHead = append(mock.calls.FetchHead, callInfo)
+	mock.lockFetchHead.Unlock()
+	if mock.FetchHeadFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.FetchHeadFunc(number)
+}
+
+// FetchHeadCalls gets all the calls that were made to FetchHead.
+// Check the length with:
+//
+//	len(mockedPullRequestProvider.FetchHeadCalls())
+func (mock *PullRequestProviderMock) FetchHeadCalls() []struct {
+	Number int
+} {
+	var calls []struct {
+		Number int
+	}
+	mock.lockFetchHead.RLock()
+	calls = mock.calls.FetchHead
+	mock.lockFetchHead.RUnlock()
 	return calls
 }
 
