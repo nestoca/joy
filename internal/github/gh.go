@@ -94,3 +94,29 @@ func CloneInteractive(dir string, opts CloneOptions) error {
 	}
 	return executeInteractively(dir, args...)
 }
+
+// Fetch runs git fetch with given args in given repository dir, authenticating to GitHub through gh, the same way
+// gh repo clone does. This allows fetching private repositories where git has no credential helper configured,
+// such as in CI where only gh is authenticated through GH_TOKEN.
+func Fetch(dir string, args ...string) error {
+	if err := EnsureInstalledAndAuthenticated(); err != nil {
+		return err
+	}
+
+	gitArgs := append([]string{
+		// The empty helper resets any other helper configured for github.com before adding gh.
+		"-c", "credential.https://github.com.helper=",
+		"-c", "credential.https://github.com.helper=!gh auth git-credential",
+		"fetch",
+	}, args...)
+
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("git", gitArgs...)
+		cmd.Dir = dir
+		return cmd
+	})
+	if err != nil {
+		return fmt.Errorf("error: %s", output)
+	}
+	return nil
+}

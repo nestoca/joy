@@ -14,7 +14,6 @@ import (
 	"text/template"
 
 	"github.com/nestoca/joy/api/v1alpha1"
-	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/github"
 )
 
@@ -88,11 +87,11 @@ func (p *defaultProvider) GetProjectSourceDir(proj *v1alpha1.Project) (string, e
 		return repoDir, nil
 	}
 
-	if err := git.Fetch(repoDir); err != nil {
+	if err := github.Fetch(repoDir); err != nil {
 		return "", fmt.Errorf("fetching git commits for cached project %s cloned at %q: %w", proj.Name, repoDir, err)
 	}
 
-	if err := git.FetchTags(repoDir); err != nil {
+	if err := github.Fetch(repoDir, "--tags"); err != nil {
 		return "", fmt.Errorf("fetching git tags for cached project %s cloned at %q: %w", proj.Name, repoDir, err)
 	}
 	return repoDir, nil
