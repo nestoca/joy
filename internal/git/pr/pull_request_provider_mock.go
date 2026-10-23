@@ -41,8 +41,8 @@ var _ PullRequestProvider = &PullRequestProviderMock{}
 //			GetPromotionEnvironmentFunc: func(branch string) (string, error) {
 //				panic("mock out the GetPromotionEnvironment method")
 //			},
-//			ListOpenFunc: func(label string, bodyContains string) ([]PullRequest, error) {
-//				panic("mock out the ListOpen method")
+//			ListFunc: func(label string, bodyContains string, limit int) ([]PullRequest, error) {
+//				panic("mock out the List method")
 //			},
 //			SetPromotionEnvironmentFunc: func(branch string, env string) error {
 //				panic("mock out the SetPromotionEnvironment method")
@@ -81,8 +81,8 @@ type PullRequestProviderMock struct {
 	// GetPromotionEnvironmentFunc mocks the GetPromotionEnvironment method.
 	GetPromotionEnvironmentFunc func(branch string) (string, error)
 
-	// ListOpenFunc mocks the ListOpen method.
-	ListOpenFunc func(label string, bodyContains string) ([]PullRequest, error)
+	// ListFunc mocks the List method.
+	ListFunc func(label string, bodyContains string, limit int) ([]PullRequest, error)
 
 	// SetPromotionEnvironmentFunc mocks the SetPromotionEnvironment method.
 	SetPromotionEnvironmentFunc func(branch string, env string) error
@@ -130,12 +130,14 @@ type PullRequestProviderMock struct {
 			// Branch is the branch argument value.
 			Branch string
 		}
-		// ListOpen holds details about calls to the ListOpen method.
-		ListOpen []struct {
+		// List holds details about calls to the List method.
+		List []struct {
 			// Label is the label argument value.
 			Label string
 			// BodyContains is the bodyContains argument value.
 			BodyContains string
+			// Limit is the limit argument value.
+			Limit int
 		}
 		// SetPromotionEnvironment holds details about calls to the SetPromotionEnvironment method.
 		SetPromotionEnvironment []struct {
@@ -158,7 +160,7 @@ type PullRequestProviderMock struct {
 	lockGet                               sync.RWMutex
 	lockGetBranchesPromotingToEnvironment sync.RWMutex
 	lockGetPromotionEnvironment           sync.RWMutex
-	lockListOpen                          sync.RWMutex
+	lockList                              sync.RWMutex
 	lockSetPromotionEnvironment           sync.RWMutex
 	lockUpdate                            sync.RWMutex
 }
@@ -443,43 +445,47 @@ func (mock *PullRequestProviderMock) GetPromotionEnvironmentCalls() []struct {
 	return calls
 }
 
-// ListOpen calls ListOpenFunc.
-func (mock *PullRequestProviderMock) ListOpen(label string, bodyContains string) ([]PullRequest, error) {
+// List calls ListFunc.
+func (mock *PullRequestProviderMock) List(label string, bodyContains string, limit int) ([]PullRequest, error) {
 	callInfo := struct {
 		Label        string
 		BodyContains string
+		Limit        int
 	}{
 		Label:        label,
 		BodyContains: bodyContains,
+		Limit:        limit,
 	}
-	mock.lockListOpen.Lock()
-	mock.calls.ListOpen = append(mock.calls.ListOpen, callInfo)
-	mock.lockListOpen.Unlock()
-	if mock.ListOpenFunc == nil {
+	mock.lockList.Lock()
+	mock.calls.List = append(mock.calls.List, callInfo)
+	mock.lockList.Unlock()
+	if mock.ListFunc == nil {
 		var (
 			pullRequestsOut []PullRequest
 			errOut          error
 		)
 		return pullRequestsOut, errOut
 	}
-	return mock.ListOpenFunc(label, bodyContains)
+	return mock.ListFunc(label, bodyContains, limit)
 }
 
-// ListOpenCalls gets all the calls that were made to ListOpen.
+// ListCalls gets all the calls that were made to List.
 // Check the length with:
 //
-//	len(mockedPullRequestProvider.ListOpenCalls())
-func (mock *PullRequestProviderMock) ListOpenCalls() []struct {
+//	len(mockedPullRequestProvider.ListCalls())
+func (mock *PullRequestProviderMock) ListCalls() []struct {
 	Label        string
 	BodyContains string
+	Limit        int
 } {
 	var calls []struct {
 		Label        string
 		BodyContains string
+		Limit        int
 	}
-	mock.lockListOpen.RLock()
-	calls = mock.calls.ListOpen
-	mock.lockListOpen.RUnlock()
+	mock.lockList.RLock()
+	calls = mock.calls.List
+	mock.lockList.RUnlock()
 	return calls
 }
 

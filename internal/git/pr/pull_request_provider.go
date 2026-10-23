@@ -82,10 +82,10 @@ type PullRequestProvider interface {
 	// Get returns the pull request with given number.
 	Get(number int) (*PullRequest, error)
 
-	// ListOpen returns all open pull requests with given label and whose body contains given text.
-	// Empty label or text means no filtering on it.
+	// List returns up to limit pull requests in any state, most recent first, with given label and whose body
+	// contains given text. Empty label or text means no filtering on it.
 	// Only the number, URL, branch, labels and approval are populated, use Get for full details.
-	ListOpen(label string, bodyContains string) ([]PullRequest, error)
+	List(label string, bodyContains string, limit int) ([]PullRequest, error)
 
 	// FetchHead fetches the commits of the pull request with given number into the local repository.
 	FetchHead(number int) error

@@ -23,12 +23,13 @@ func NewReleaseReRenderPRsCmd(params PromoteParams) *cobra.Command {
 	var dryRun bool
 	var label string
 	var bodyContains string
+	var limit int
 
 	cmd := &cobra.Command{
 		Use:   "re-render-prs",
 		Short: "Re-render promotion pull requests that failed to render",
-		Long: fmt.Sprintf(`Re-render the title, body and reviewers of open and unapproved promotion pull requests labeled %s
-(see --label and --body-contains), without recreating them. Pull requests are only modified when the
+		Long: fmt.Sprintf(`Re-render the title, body and reviewers of unapproved promotion pull requests labeled %s
+(see --label and --body-contains), in any state, without recreating them. Pull requests are only modified when the
 re-rendered content differs.
 
 The catalog is rendered as it was when each pull request was created, using a temporary worktree,
@@ -43,7 +44,7 @@ so the local catalog working copy is left untouched.`, promote.RenderingFailedLa
   # Re-render promotion pull requests whose body contains a given error, regardless of labels
   joy release re-render-prs --label "" --body-contains "No such device or address"
 
-  # Re-render all open and unapproved promotion pull requests, regardless of labels
+  # Re-render all unapproved promotion pull requests, regardless of labels
   joy release re-render-prs --label ""
 
   # Preview changes without modifying pull requests
@@ -73,6 +74,7 @@ so the local catalog working copy is left untouched.`, promote.RenderingFailedLa
 				},
 				Label:        label,
 				BodyContains: bodyContains,
+				Limit:        limit,
 				DryRun:       dryRun,
 				Out:          cmd.OutOrStdout(),
 			}
@@ -84,6 +86,7 @@ so the local catalog working copy is left untouched.`, promote.RenderingFailedLa
 	cmd.Flags().StringVar(&ref, "pr", "", "Number or URL of a specific promotion pull request to re-render, regardless of its labels, approval and state")
 	cmd.Flags().StringVar(&label, "label", promote.RenderingFailedLabel, "Label the pull requests to re-render must have when scanning (empty to disable)")
 	cmd.Flags().StringVar(&bodyContains, "body-contains", "", "Text the body of the pull requests to re-render must contain when scanning (empty to disable).")
+	cmd.Flags().IntVar(&limit, "limit", 25, "Maximum number of most recent pull requests matching the filters to consider when scanning")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the changes that would be applied to pull requests without applying them")
 
 	return cmd

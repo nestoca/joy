@@ -118,7 +118,7 @@ func TestReRenderScanSkipsApprovedAndNonPromotionPullRequests(t *testing.T) {
 	var loaded []int
 	reRenderer := ReRenderer{
 		PullRequestProvider: &pr.PullRequestProviderMock{
-			ListOpenFunc: func(label string, bodyContains string) ([]pr.PullRequest, error) {
+			ListFunc: func(label string, bodyContains string, limit int) ([]pr.PullRequest, error) {
 				require.Equal(t, "custom:label", label)
 				require.Empty(t, bodyContains)
 				approved := *newLegacyPullRequest()
@@ -151,20 +151,26 @@ func TestReRenderScanSkipsApprovedAndNonPromotionPullRequests(t *testing.T) {
 	require.Equal(t, []int{2}, loaded)
 }
 
-func TestReRenderScanFiltersByLabelAndBodyInSingleQuery(t *testing.T) {
-	var queries [][2]string
+func TestReRenderScanPassesFiltersAndLimitInSingleQuery(t *testing.T) {
+	type query struct {
+		label        string
+		bodyContains string
+		limit        int
+	}
+	var queries []query
 	reRenderer := ReRenderer{
 		PullRequestProvider: &pr.PullRequestProviderMock{
-			ListOpenFunc: func(label string, bodyContains string) ([]pr.PullRequest, error) {
-				queries = append(queries, [2]string{label, bodyContains})
+			ListFunc: func(label string, bodyContains string, limit int) ([]pr.PullRequest, error) {
+				queries = append(queries, query{label, bodyContains, limit})
 				return nil, nil
 			},
 		},
 		Label:        promote.RenderingFailedLabel,
 		BodyContains: "No such device or address",
+		Limit:        25,
 		Out:          io.Discard,
 	}
 
 	require.NoError(t, reRenderer.ReRender(context.Background(), ""))
-	require.Equal(t, [][2]string{{promote.RenderingFailedLabel, "No such device or address"}}, queries)
+	require.Equal(t, []query{{promote.RenderingFailedLabel, "No such device or address", 25}}, queries)
 }

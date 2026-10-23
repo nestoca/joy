@@ -28,6 +28,10 @@ type ReRenderer struct {
 	// Empty disables it.
 	BodyContains string
 
+	// Limit is the maximum number of pull requests matching the filters to consider when scanning,
+	// before skipping approved and non-promotion ones.
+	Limit int
+
 	// DryRun prints the changes that would be applied to pull requests instead of applying them.
 	DryRun bool
 
@@ -35,7 +39,7 @@ type ReRenderer struct {
 }
 
 // ReRender re-renders the title, body, reviewers and labels of the promotion pull request referenced by given
-// number or URL, or of all open and unapproved promotion pull requests with the configured label when ref is empty.
+// number or URL, or of all unapproved promotion pull requests matching the configured filters, in any state, when ref is empty.
 func (r *ReRenderer) ReRender(ctx context.Context, ref string) error {
 	pullRequests, err := r.selectPullRequests(ref)
 	if err != nil {
@@ -43,7 +47,7 @@ func (r *ReRenderer) ReRender(ctx context.Context, ref string) error {
 	}
 
 	if len(pullRequests) == 0 {
-		_, _ = fmt.Fprintln(r.Out, "🤷 No open and unapproved promotion pull requests matching filters")
+		_, _ = fmt.Fprintln(r.Out, "🤷 No unapproved promotion pull requests matching filters")
 		return nil
 	}
 
@@ -76,7 +80,7 @@ func (r *ReRenderer) selectPullRequests(ref string) ([]pr.PullRequest, error) {
 		return []pr.PullRequest{*pullRequest}, nil
 	}
 
-	summaries, err := r.PullRequestProvider.ListOpen(r.Label, r.BodyContains)
+	summaries, err := r.PullRequestProvider.List(r.Label, r.BodyContains, r.Limit)
 	if err != nil {
 		return nil, err
 	}

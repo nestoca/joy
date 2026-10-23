@@ -169,8 +169,8 @@ func (p *PullRequestProvider) Get(number int) (*pr.PullRequest, error) {
 	return &result, nil
 }
 
-func (p *PullRequestProvider) ListOpen(label string, bodyContains string) ([]pr.PullRequest, error) {
-	args := []string{"pr", "list", "--state", "open", "--limit", "1000", "--json", pullRequestListFields}
+func (p *PullRequestProvider) List(label string, bodyContains string, limit int) ([]pr.PullRequest, error) {
+	args := []string{"pr", "list", "--state", "all", "--limit", strconv.Itoa(limit), "--json", pullRequestListFields}
 	if label != "" {
 		args = append(args, "--label", label)
 	}
@@ -180,7 +180,7 @@ func (p *PullRequestProvider) ListOpen(label string, bodyContains string) ([]pr.
 
 	output, err := ExecuteAndGetOutput(p.dir, args...)
 	if err != nil {
-		return nil, fmt.Errorf("listing open pull requests: %w", err)
+		return nil, fmt.Errorf("listing pull requests: %w", err)
 	}
 
 	var details []pullRequestDetails
