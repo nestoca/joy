@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 )
 
@@ -81,11 +83,7 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		args = append(args, "--label", label)
 	}
 
-	for _, reviewer := range params.Reviewers {
-		// Bots cannot be requested as reviewers (GitHub returns "not found")
-		if strings.HasSuffix(reviewer, "[bot]") || reviewer == "nestobot" {
-			continue
-		}
+	for _, reviewer := range requestableReviewers(params.Reviewers) {
 		args = append(args, "--reviewer", reviewer)
 	}
 
@@ -99,6 +97,154 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	}
 
 	return strings.TrimSpace(prURL), err
+}
+
+const (
+	pullRequestFields = "number,url,headRefName,title,body,labels,reviewDecision,reviewRequests,latestReviews,commits"
+
+	// Listing many pull requests with nested connections such as commits exceeds GitHub's GraphQL node limit.
+	pullRequestListFields = "number,url,headRefName,labels,reviewDecision"
+)
+
+type pullRequestDetails struct {
+	Number         int     `json:"number"`
+	URL            string  `json:"url"`
+	HeadRefName    string  `json:"headRefName"`
+	Title          string  `json:"title"`
+	Body           string  `json:"body"`
+	Labels         []label `json:"labels"`
+	ReviewDecision string  `json:"reviewDecision"`
+	ReviewRequests []struct {
+		Login string `json:"login"`
+	} `json:"reviewRequests"`
+	LatestReviews []struct {
+		Author struct {
+			Login string `json:"login"`
+		} `json:"author"`
+	} `json:"latestReviews"`
+	Commits []struct {
+		Oid string `json:"oid"`
+	} `json:"commits"`
+}
+
+func (d pullRequestDetails) toPullRequest() pr.PullRequest {
+	result := pr.PullRequest{
+		Number:   d.Number,
+		URL:      d.URL,
+		Branch:   d.HeadRefName,
+		Title:    d.Title,
+		Body:     d.Body,
+		Approved: d.ReviewDecision == "APPROVED",
+	}
+	for _, label := range d.Labels {
+		result.Labels = append(result.Labels, label.Name)
+	}
+	for _, request := range d.ReviewRequests {
+		// Team review requests have no login
+		if request.Login != "" {
+			result.Reviewers = append(result.Reviewers, request.Login)
+		}
+	}
+	for _, review := range d.LatestReviews {
+		result.Reviewers = append(result.Reviewers, review.Author.Login)
+	}
+	for _, commit := range d.Commits {
+		result.Commits = append(result.Commits, commit.Oid)
+	}
+	return result
+}
+
+func (p *PullRequestProvider) Get(number int) (*pr.PullRequest, error) {
+	output, err := ExecuteAndGetOutput(p.dir, "pr", "view", strconv.Itoa(number), "--json", pullRequestFields)
+	if err != nil {
+		return nil, fmt.Errorf("getting pull request #%d: %w", number, err)
+	}
+
+	var details pullRequestDetails
+	if err := json.Unmarshal([]byte(output), &details); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request #%d: %w", number, err)
+	}
+
+	result := details.toPullRequest()
+	return &result, nil
+}
+
+func (p *PullRequestProvider) List(label string, bodyContains string, limit int) ([]pr.PullRequest, error) {
+	args := []string{"pr", "list", "--state", "all", "--limit", strconv.Itoa(limit), "--json", pullRequestListFields}
+	if label != "" {
+		args = append(args, "--label", label)
+	}
+	if bodyContains != "" {
+		args = append(args, "--search", fmt.Sprintf("%q in:body", bodyContains))
+	}
+
+	output, err := ExecuteAndGetOutput(p.dir, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing pull requests: %w", err)
+	}
+
+	var details []pullRequestDetails
+	if err := json.Unmarshal([]byte(output), &details); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request list: %w", err)
+	}
+
+	var result []pr.PullRequest
+	for _, d := range details {
+		result = append(result, d.toPullRequest())
+	}
+	return result, nil
+}
+
+func (p *PullRequestProvider) FetchHead(number int) error {
+	return git.FetchPullRequestHead(p.dir, number)
+}
+
+func (p *PullRequestProvider) Update(params pr.UpdateParams) error {
+	if params.IsEmpty() {
+		return nil
+	}
+
+	args := []string{"pr", "edit", strconv.Itoa(params.Number)}
+
+	if params.Title != "" {
+		args = append(args, "--title", params.Title)
+	}
+
+	if params.Body != "" {
+		args = append(args, "--body", params.Body)
+	}
+
+	for _, reviewer := range requestableReviewers(params.AddReviewers) {
+		args = append(args, "--add-reviewer", reviewer)
+	}
+
+	for _, label := range params.AddLabels {
+		args = append(args, "--add-label", label)
+	}
+
+	for _, label := range params.RemoveLabels {
+		args = append(args, "--remove-label", label)
+	}
+
+	if err := p.createLabels(params.AddLabels...); err != nil {
+		return err
+	}
+
+	if _, err := ExecuteAndGetOutput(p.dir, args...); err != nil {
+		return fmt.Errorf("updating pull request #%d: %w", params.Number, err)
+	}
+	return nil
+}
+
+// requestableReviewers filters out reviewers that GitHub cannot request a review from.
+func requestableReviewers(reviewers []string) []string {
+	var result []string
+	for _, reviewer := range reviewers {
+		if pr.IsRequestableReviewer(reviewer) {
+			result = append(result, reviewer)
+		}
+	}
+	return result
 }
 
 func (p *PullRequestProvider) getPromotionLabels(branch string) ([]string, error) {

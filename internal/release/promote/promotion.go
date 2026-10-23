@@ -75,6 +75,10 @@ type Opts struct {
 
 	// Reviewers are additional reviewers to add to the PR
 	Reviewers []string
+
+	// UpdatePullRequest is an existing promotion PR whose title, body, reviewers and labels must be re-rendered,
+	// instead of creating a new branch and PR. The catalog must be at the state the PR was created from.
+	UpdatePullRequest *pr.PullRequest
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -181,6 +185,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		infoProvider:        p.InfoProvider,
 		linksProvider:       p.LinksProvider,
 		reviewers:           opts.Reviewers,
+		updatePullRequest:   opts.UpdatePullRequest,
 	}
 
 	if opts.NoPrompt || opts.LocalOnly {

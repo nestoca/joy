@@ -83,7 +83,9 @@ spec:
 
 | Message | Author | Commit |
 |:---|:---|:---|
-| Dummy change made by nestobot | @nestobot | [bedd22e](https://github.com/nestoca/joy-release-promote-test/commit/bedd22e73a04141c121bc70ac138e064b01b8fb2) |`
+| Dummy change made by nestobot | @nestobot | [bedd22e](https://github.com/nestoca/joy-release-promote-test/commit/bedd22e73a04141c121bc70ac138e064b01b8fb2) |
+
+<!-- joy-promotion: {"source":"staging","target":"prod","releases":["foo"],"variables":{"triggeredBy":"john.doe"}} -->`
 	require.Equal(t, expectedBody, actualBody)
 
 	require.Equal(t, []string{"environment:prod", "release:foo"}, getPullRequestLabels(t, dir, prURL))

@@ -349,6 +349,10 @@ func (i *InteractivePromptProvider) PrintPullRequestCreated(url string) {
 	i.printf("✅ Created pull request: %s\n", style.Link(url))
 }
 
+func (i *InteractivePromptProvider) PrintPullRequestUpdated(url string) {
+	i.printf("✅ Updated pull request: %s\n", style.Link(url))
+}
+
 func (i *InteractivePromptProvider) PrintCanceled() {
 	i.println("🛑 Operation cancelled, no harm done! 😅")
 }

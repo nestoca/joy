@@ -22,6 +22,7 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal"
+	"github.com/nestoca/joy/internal/catalog/loader"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/formatting"
 	"github.com/nestoca/joy/internal/git"
@@ -51,6 +52,7 @@ func NewReleaseCmd(preRunConfigs PreRunConfigs) *cobra.Command {
 	}
 	cmd.AddCommand(NewReleaseListCmd(preRunConfigs))
 	cmd.AddCommand(NewReleasePromoteCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
+	cmd.AddCommand(NewReleaseReRenderPRsCmd(PromoteParams{PreRunConfigs: preRunConfigs}))
 	cmd.AddCommand(NewReleaseSelectCmd(preRunConfigs))
 	cmd.AddCommand(NewReleaseRenderCmd())
 	cmd.AddCommand(NewReleaseOpenCmd())
@@ -356,15 +358,7 @@ func NewReleaseRenderCmd() *cobra.Command {
 				if ref == "" {
 					return cfg.CatalogDir, func() error { return nil }, nil
 				}
-				sha, err := git.RevParse(cfg.CatalogDir, ref)
-				if err != nil {
-					return "", nil, fmt.Errorf("cannot rev-parse: %w", err)
-				}
-				worktree, err := git.CreateWorktree(cfg.CatalogDir, name, sha)
-				if err != nil {
-					return "", nil, err
-				}
-				return worktree, func() error { return git.RemoveWorktree(cfg.CatalogDir, worktree) }, nil
+				return git.CheckoutWorktree(cfg.CatalogDir, name, ref)
 			}
 
 			diffTree, teardown, err := setupWorktree("diffRef", diffRef)
@@ -385,13 +379,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 				for _, path := range trees {
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load(cmd.Context(), "", path)
+					_, cat, err := loader.Load(cmd.Context(), path)
 					if err != nil {
-						return nil, fmt.Errorf("loading config: %w", err)
-					}
-					cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
-					if err != nil {
-						return nil, fmt.Errorf("loading catalog: %w", err)
+						return nil, err
 					}
 					envs = append(envs, cat.GetEnvironmentNames()...)
 				}
@@ -426,13 +416,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 				for _, path := range trees {
 					// In this case we cannot use the config or catalog loaded from the context
 					// Since we need to reload at whatever git reference we are at.
-					cfg, err := config.Load(cmd.Context(), "", path)
+					_, cat, err := loader.Load(cmd.Context(), path)
 					if err != nil {
-						return nil, fmt.Errorf("loading config: %w", err)
-					}
-					cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
-					if err != nil {
-						return nil, fmt.Errorf("loading catalog: %w", err)
+						return nil, err
 					}
 					cat.WithEnvironments(environments)
 					releases = append(releases, cat.GetReleaseNames()...)
@@ -466,14 +452,9 @@ func NewReleaseRenderCmd() *cobra.Command {
 			render := func(path string) (result map[string]string, err error) {
 				// In this case we cannot use the config or catalog loaded from the context
 				// Since we need to reload at whatever git reference we are at.
-				cfg, err := config.Load(cmd.Context(), "", path)
+				cfg, cat, err := loader.Load(cmd.Context(), path)
 				if err != nil {
-					return nil, fmt.Errorf("loading config: %w", err)
-				}
-
-				cat, err := catalog.Load(cmd.Context(), path, cfg.KnownChartRefs())
-				if err != nil {
-					return nil, fmt.Errorf("loading catalog (%s): %w", path, err)
+					return nil, err
 				}
 
 				cat.WithEnvironments(environments)

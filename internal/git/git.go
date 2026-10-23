@@ -319,9 +319,22 @@ func FetchTags(dir string) error {
 	return nil
 }
 
-// CreateWorktree creates a worktree within joy's cache with the given name at the given ref.
+// FetchPullRequestHead fetches the head commits of given GitHub pull request from origin.
+func FetchPullRequestHead(dir string, number int) error {
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("git", "fetch", "origin", fmt.Sprintf("pull/%d/head", number))
+		cmd.Dir = dir
+		return cmd
+	})
+	if err != nil {
+		return fmt.Errorf("fetching pull request #%d: %s", number, output)
+	}
+	return nil
+}
+
+// createWorktree creates a worktree within joy's cache with the given name at the given ref.
 // It attempts a best effort removal of the worktree if it exists prior to running this command.
-func CreateWorktree(of, name, ref string) (string, error) {
+func createWorktree(of, name, ref string) (string, error) {
 	cache, err := config.CachePath()
 	if err != nil {
 		return "", fmt.Errorf("getting cache path: %w", err)
@@ -339,6 +352,23 @@ func CreateWorktree(of, name, ref string) (string, error) {
 		return "", fmt.Errorf("%w: %s", err, output)
 	}
 	return path, nil
+}
+
+// CheckoutWorktree creates a detached worktree within joy's cache with the given name at the commit the given ref
+// resolves to, returning its path and a function removing it.
+// Resolving the ref first allows checking out branches that are already checked out elsewhere.
+func CheckoutWorktree(of, name, ref string) (string, func() error, error) {
+	sha, err := RevParse(of, ref)
+	if err != nil {
+		return "", nil, fmt.Errorf("resolving ref %s: %w", ref, err)
+	}
+
+	path, err := createWorktree(of, name, sha)
+	if err != nil {
+		return "", nil, fmt.Errorf("creating worktree at %s: %w", ref, err)
+	}
+
+	return path, func() error { return RemoveWorktree(of, path) }, nil
 }
 
 func RemoveWorktree(of, path string) error {
