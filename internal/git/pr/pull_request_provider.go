@@ -1,6 +1,7 @@
 package pr
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 )
@@ -44,6 +45,14 @@ type PullRequest struct {
 	Reviewers []string
 	// Commits are the SHAs of the pull request commits, oldest first.
 	Commits []string
+}
+
+// Link returns the URL of the pull request, or its number when its URL is unknown.
+func (p PullRequest) Link() string {
+	if p.URL == "" {
+		return fmt.Sprintf("#%d", p.Number)
+	}
+	return p.URL
 }
 
 // UpdateParams describes changes to an existing pull request. Empty fields are left unchanged.

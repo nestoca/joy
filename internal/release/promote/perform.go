@@ -219,7 +219,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 // leaving it untouched when nothing changed.
 func (p *Promotion) updatePullRequest(current *pr.PullRequest, title, body string, reviewers []string, renderErr error, dryRun bool) error {
 	if renderErr != nil && !slices.Contains(current.Labels, RenderingFailedLabel) {
-		return fmt.Errorf("re-rendering pull request #%d failed, leaving it unchanged: %w", current.Number, renderErr)
+		return fmt.Errorf("re-rendering pull request %s failed, leaving it unchanged: %w", current.Link(), renderErr)
 	}
 
 	params := pr.UpdateParams{Number: current.Number}
@@ -239,10 +239,10 @@ func (p *Promotion) updatePullRequest(current *pr.PullRequest, title, body strin
 	}
 
 	if params.IsEmpty() {
-		p.printf("✅ Pull request #%d is already up to date\n", current.Number)
+		p.printf("✅ Pull request %s is already up to date\n", style.Link(current.Link()))
 	} else if dryRun {
-		p.printf("ℹ️ Dry-run: skipping update of pull request #%d:\nTitle: %s\nBody:\n%s\nAdd reviewers: %s\nRemove labels: %s\n",
-			current.Number,
+		p.printf("ℹ️ Dry-run: skipping update of pull request %s:\nTitle: %s\nBody:\n%s\nAdd reviewers: %s\nRemove labels: %s\n",
+			style.Link(current.Link()),
 			style.SecondaryInfo(cmp.Or(params.Title, "(unchanged)")),
 			style.SecondaryInfo(cmp.Or(params.Body, "(unchanged)")),
 			style.SecondaryInfo(strings.Join(params.AddReviewers, ", ")),
@@ -251,12 +251,12 @@ func (p *Promotion) updatePullRequest(current *pr.PullRequest, title, body strin
 		if err := p.PullRequestProvider.Update(params); err != nil {
 			return fmt.Errorf("updating pull request: %w", err)
 		}
-		p.PromptProvider.PrintPullRequestUpdated(current.Number)
+		p.PromptProvider.PrintPullRequestUpdated(current.Link())
 	}
 	p.PromptProvider.PrintCompleted()
 
 	if renderErr != nil {
-		return fmt.Errorf("pull request #%d still has rendering errors: %w", current.Number, renderErr)
+		return fmt.Errorf("pull request %s still has rendering errors: %w", current.Link(), renderErr)
 	}
 	return nil
 }

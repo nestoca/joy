@@ -30,3 +30,8 @@ func TestIsRequestableReviewer(t *testing.T) {
 		})
 	}
 }
+
+func TestPullRequestLink(t *testing.T) {
+	require.Equal(t, "https://github.com/nestoca/catalog/pull/123", PullRequest{Number: 123, URL: "https://github.com/nestoca/catalog/pull/123"}.Link())
+	require.Equal(t, "#123", PullRequest{Number: 123}.Link())
+}

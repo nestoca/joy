@@ -515,6 +515,7 @@ func TestPromotionUpdatePullRequest(t *testing.T) {
 	t.Run("updates outdated body, missing reviewers and removes rendering label", func(t *testing.T) {
 		prProvider, promptProvider, yamlWriter, gitProvider, err := run(t, pr.PullRequest{
 			Number: 123,
+			URL:    "https://github.com/owner/repo/pull/123",
 			Title:  title,
 			Body:   "partial body",
 			Labels: []string{"environment:prod", promote.RenderingFailedLabel},
@@ -532,6 +533,7 @@ func TestPromotionUpdatePullRequest(t *testing.T) {
 			RemoveLabels: []string{promote.RenderingFailedLabel},
 		}, prProvider.UpdateCalls()[0].UpdateParams)
 		require.Len(t, promptProvider.PrintPullRequestUpdatedCalls(), 1)
+		require.Equal(t, "https://github.com/owner/repo/pull/123", promptProvider.PrintPullRequestUpdatedCalls()[0].URL)
 	})
 
 	t.Run("leaves up to date pull request unchanged", func(t *testing.T) {
@@ -547,8 +549,8 @@ func TestPromotionUpdatePullRequest(t *testing.T) {
 	})
 
 	t.Run("does not overwrite successfully rendered pull request with rendering errors", func(t *testing.T) {
-		prProvider, _, _, _, err := run(t, pr.PullRequest{Number: 123, Title: title, Body: "good body"}, errors.New("clone failed"))
-		require.ErrorContains(t, err, "re-rendering pull request #123 failed, leaving it unchanged")
+		prProvider, _, _, _, err := run(t, pr.PullRequest{Number: 123, URL: "https://github.com/owner/repo/pull/123", Title: title, Body: "good body"}, errors.New("clone failed"))
+		require.ErrorContains(t, err, "re-rendering pull request https://github.com/owner/repo/pull/123 failed, leaving it unchanged")
 		require.Empty(t, prProvider.UpdateCalls())
 	})
 

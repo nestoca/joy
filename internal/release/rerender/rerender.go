@@ -100,33 +100,33 @@ func (r *ReRenderer) selectPullRequests(ref string) ([]pr.PullRequest, error) {
 }
 
 func (r *ReRenderer) reRender(ctx context.Context, pullRequest *pr.PullRequest) error {
-	_, _ = fmt.Fprintf(r.Out, "🔁 Re-rendering pull request #%d (%s)\n", pullRequest.Number, pullRequest.Branch)
+	_, _ = fmt.Fprintf(r.Out, "🔁 Re-rendering pull request %s (%s)\n", pullRequest.Link(), pullRequest.Branch)
 
 	metadata, err := ResolveMetadata(pullRequest)
 	if err != nil {
-		return fmt.Errorf("resolving metadata of pull request #%d: %w", pullRequest.Number, err)
+		return fmt.Errorf("resolving metadata of pull request %s: %w", pullRequest.Link(), err)
 	}
 
 	// This is what does the heavy lifting since the versions of the source and target are in the
 	// literal state of the repository at this point in time.
 	cat, remove, err := r.loadCatalogAtBase(ctx, pullRequest)
 	if err != nil {
-		return fmt.Errorf("loading catalog for pull request #%d: %w", pullRequest.Number, err)
+		return fmt.Errorf("loading catalog for pull request %s: %w", pullRequest.Link(), err)
 	}
 	defer func() {
 		if err := remove(); err != nil {
-			_, _ = fmt.Fprintf(r.Out, "⚠️ Failed to remove catalog checkout of pull request #%d: %v\n", pullRequest.Number, err)
+			_, _ = fmt.Fprintf(r.Out, "⚠️ Failed to remove catalog checkout of pull request %s: %v\n", pullRequest.Link(), err)
 		}
 	}()
 
 	sourceEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, metadata.Source)
 	if err != nil {
-		return fmt.Errorf("pull request #%d: %w", pullRequest.Number, err)
+		return fmt.Errorf("pull request %s: %w", pullRequest.Link(), err)
 	}
 
 	targetEnv, err := v1alpha1.GetEnvironmentByName(cat.Environments, metadata.Target)
 	if err != nil {
-		return fmt.Errorf("pull request #%d: %w", pullRequest.Number, err)
+		return fmt.Errorf("pull request %s: %w", pullRequest.Link(), err)
 	}
 
 	_, err = r.NewPromotion(metadata.Variables).Promote(promote.Opts{

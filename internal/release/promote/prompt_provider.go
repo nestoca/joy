@@ -59,7 +59,7 @@ type PromptProvider interface {
 	PrintPullRequestCreated(url string)
 
 	// PrintPullRequestUpdated prints message that an existing promotion pull request was updated.
-	PrintPullRequestUpdated(number int)
+	PrintPullRequestUpdated(url string)
 
 	// PrintCanceled prints message that promotion was canceled and no pull request was created.
 	PrintCanceled()

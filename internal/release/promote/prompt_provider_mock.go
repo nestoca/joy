@@ -50,7 +50,7 @@ var _ PromptProvider = &PromptProviderMock{}
 //			PrintPullRequestCreatedFunc: func(url string)  {
 //				panic("mock out the PrintPullRequestCreated method")
 //			},
-//			PrintPullRequestUpdatedFunc: func(number int)  {
+//			PrintPullRequestUpdatedFunc: func(url string)  {
 //				panic("mock out the PrintPullRequestUpdated method")
 //			},
 //			PrintReleasePreviewFunc: func(targetEnvName string, releaseName string, existingTargetFile *yml.File, promotedFile *yml.File) error {
@@ -115,7 +115,7 @@ type PromptProviderMock struct {
 	PrintPullRequestCreatedFunc func(url string)
 
 	// PrintPullRequestUpdatedFunc mocks the PrintPullRequestUpdated method.
-	PrintPullRequestUpdatedFunc func(number int)
+	PrintPullRequestUpdatedFunc func(url string)
 
 	// PrintReleasePreviewFunc mocks the PrintReleasePreview method.
 	PrintReleasePreviewFunc func(targetEnvName string, releaseName string, existingTargetFile *yml.File, promotedFile *yml.File) error
@@ -195,8 +195,8 @@ type PromptProviderMock struct {
 		}
 		// PrintPullRequestUpdated holds details about calls to the PrintPullRequestUpdated method.
 		PrintPullRequestUpdated []struct {
-			// Number is the number argument value.
-			Number int
+			// URL is the url argument value.
+			URL string
 		}
 		// PrintReleasePreview holds details about calls to the PrintReleasePreview method.
 		PrintReleasePreview []struct {
@@ -597,11 +597,11 @@ func (mock *PromptProviderMock) PrintPullRequestCreatedCalls() []struct {
 }
 
 // PrintPullRequestUpdated calls PrintPullRequestUpdatedFunc.
-func (mock *PromptProviderMock) PrintPullRequestUpdated(number int) {
+func (mock *PromptProviderMock) PrintPullRequestUpdated(url string) {
 	callInfo := struct {
-		Number int
+		URL string
 	}{
-		Number: number,
+		URL: url,
 	}
 	mock.lockPrintPullRequestUpdated.Lock()
 	mock.calls.PrintPullRequestUpdated = append(mock.calls.PrintPullRequestUpdated, callInfo)
@@ -609,7 +609,7 @@ func (mock *PromptProviderMock) PrintPullRequestUpdated(number int) {
 	if mock.PrintPullRequestUpdatedFunc == nil {
 		return
 	}
-	mock.PrintPullRequestUpdatedFunc(number)
+	mock.PrintPullRequestUpdatedFunc(url)
 }
 
 // PrintPullRequestUpdatedCalls gets all the calls that were made to PrintPullRequestUpdated.
@@ -617,10 +617,10 @@ func (mock *PromptProviderMock) PrintPullRequestUpdated(number int) {
 //
 //	len(mockedPromptProvider.PrintPullRequestUpdatedCalls())
 func (mock *PromptProviderMock) PrintPullRequestUpdatedCalls() []struct {
-	Number int
+	URL string
 } {
 	var calls []struct {
-		Number int
+		URL string
 	}
 	mock.lockPrintPullRequestUpdated.RLock()
 	calls = mock.calls.PrintPullRequestUpdated
