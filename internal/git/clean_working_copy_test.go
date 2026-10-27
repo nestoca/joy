@@ -95,3 +95,69 @@ func runGit(t *testing.T, dir string, args ...string) string {
 	require.NoError(t, err, string(output))
 	return strings.TrimSpace(string(output))
 }
+
+func TestIsBranchInSyncWithRemote(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Setup    func(t *testing.T, clone, origin string)
+		Expected bool
+	}{
+		{
+			Name:     "in sync",
+			Setup:    func(t *testing.T, clone, origin string) {},
+			Expected: true,
+		},
+		{
+			Name: "in sync while another branch is checked out",
+			Setup: func(t *testing.T, clone, origin string) {
+				runGit(t, clone, "checkout", "-b", "feature")
+				runGit(t, clone, "commit", "--allow-empty", "-m", "feature")
+			},
+			Expected: true,
+		},
+		{
+			Name: "behind while another branch is checked out",
+			Setup: func(t *testing.T, clone, origin string) {
+				runGit(t, origin, "commit", "--allow-empty", "-m", "third")
+				runGit(t, clone, "checkout", "--detach", "HEAD")
+			},
+			Expected: false,
+		},
+		{
+			Name: "ahead",
+			Setup: func(t *testing.T, clone, origin string) {
+				runGit(t, clone, "commit", "--allow-empty", "-m", "local")
+			},
+			Expected: false,
+		},
+		{
+			Name: "diverged",
+			Setup: func(t *testing.T, clone, origin string) {
+				runGit(t, origin, "commit", "--allow-empty", "-m", "remote")
+				runGit(t, clone, "commit", "--allow-empty", "-m", "local")
+			},
+			Expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			clone := setupCatalogClone(t)
+			tc.Setup(t, clone, filepath.Join(filepath.Dir(clone), "origin"))
+
+			inSync, err := IsBranchInSyncWithRemote(clone, "master")
+			require.NoError(t, err)
+			require.Equal(t, tc.Expected, inSync)
+		})
+	}
+}
+
+func TestIsBranchInSyncWithRemoteWithoutLocalBranch(t *testing.T) {
+	clone := setupCatalogClone(t)
+	origin := filepath.Join(filepath.Dir(clone), "origin")
+	runGit(t, origin, "branch", "release")
+
+	inSync, err := IsBranchInSyncWithRemote(clone, "release")
+	require.NoError(t, err)
+	require.False(t, inSync)
+}

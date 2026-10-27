@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/nestoca/survey/v2"
@@ -107,30 +106,30 @@ func StashApply(dir string) error {
 	return nil
 }
 
+// IsBranchInSyncWithRemote fetches given branch from origin and reports whether the local branch points to the same
+// commit as its origin counterpart, regardless of the branch currently checked out. A missing local branch is not in
+// sync.
 func IsBranchInSyncWithRemote(dir string, branch string) (bool, error) {
-	// Fetch the latest changes from the remote
 	fetchCmd := exec.Command("git", "-C", dir, "fetch", "origin", branch)
 	fetchOutput, err := fetchCmd.CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("fetching from remote: %s", string(fetchOutput))
 	}
 
-	// Use git status --porcelain to check the sync status
-	statusCmd := exec.Command("git", "-C", dir, "status", "--porcelain", "-b")
-	statusOutput, err := statusCmd.CombinedOutput()
+	hasLocal, err := refExists(dir, "refs/heads/"+branch)
+	if err != nil || !hasLocal {
+		return false, err
+	}
+
+	local, err := ResolveCommit(dir, "refs/heads/"+branch)
 	if err != nil {
-		return false, fmt.Errorf("checking git status: %s", string(statusOutput))
+		return false, err
 	}
-
-	// Regular expression to match branch status
-	branchStatusRegex := regexp.MustCompile(`## [^ ]+( \[(ahead \d+|behind \d+|diverged \d+ and \d+)\])?`)
-	matches := branchStatusRegex.FindStringSubmatch(string(statusOutput))
-
-	// Check if the branch is either ahead, behind or diverged
-	if len(matches) > 1 && matches[1] != "" {
-		return false, nil
+	remote, err := ResolveCommit(dir, "refs/remotes/origin/"+branch)
+	if err != nil {
+		return false, err
 	}
-	return true, nil
+	return local == remote, nil
 }
 
 func Checkout(dir, branch string) error {
@@ -308,7 +307,12 @@ func Fetch(dir string) error {
 
 // IsRemoteBranch reports whether ref is the name of a branch on origin, as opposed to a tag or commit.
 func IsRemoteBranch(dir, ref string) (bool, error) {
-	cmd := exec.Command("git", "-C", dir, "show-ref", "--verify", "--quiet", "refs/remotes/origin/"+ref)
+	return refExists(dir, "refs/remotes/origin/"+ref)
+}
+
+// refExists reports whether given fully qualified ref, such as refs/heads/master, exists.
+func refExists(dir, ref string) (bool, error) {
+	cmd := exec.Command("git", "-C", dir, "show-ref", "--verify", "--quiet", ref)
 	err := cmd.Run()
 	if err == nil {
 		return true, nil
