@@ -23,10 +23,15 @@ func FlagsFromContext(ctx context.Context) *GlobalFlags {
 	return cfg
 }
 
+// GetCatalogRef returns the catalog git ref, or DefaultCatalogRef if unset.
+func (flags *GlobalFlags) GetCatalogRef() string {
+	if flags == nil || flags.CatalogRef == "" {
+		return DefaultCatalogRef
+	}
+	return flags.CatalogRef
+}
+
 // CatalogRefFromContext returns the catalog git ref from the global flags in context, or DefaultCatalogRef if unset.
 func CatalogRefFromContext(ctx context.Context) string {
-	if flags := FlagsFromContext(ctx); flags != nil && flags.CatalogRef != "" {
-		return flags.CatalogRef
-	}
-	return DefaultCatalogRef
+	return FlagsFromContext(ctx).GetCatalogRef()
 }

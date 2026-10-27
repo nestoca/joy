@@ -88,7 +88,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 					if flags.SkipCatalogUpdate {
 						_, _ = fmt.Fprintln(io.Err, "ℹ️ Skipping catalog update.")
 					} else {
-						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, flags.CatalogRef, io.Err); err != nil {
+						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, flags.GetCatalogRef(), io.Err); err != nil {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
 						var err error
