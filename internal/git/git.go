@@ -158,6 +158,16 @@ func CreateBranch(dir, name string) error {
 	return nil
 }
 
+// ResetBranch creates or resets branch with given name to the current commit and checks it out.
+func ResetBranch(dir, name string) error {
+	cmd := exec.Command("git", "-C", dir, "checkout", "-B", name)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("resetting branch %s: %s", name, string(output))
+	}
+	return nil
+}
+
 func Add(dir string, files []string) error {
 	args := append([]string{"-C", dir, "add", "--"}, files...)
 	cmd := exec.Command("git", args...)
@@ -199,6 +209,17 @@ func PushNewBranch(dir, name string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("pushing new branch %s: %s", name, string(output))
+	}
+	return nil
+}
+
+// ForcePushBranch pushes branch with given name to origin, overwriting its remote history.
+func ForcePushBranch(dir, name string) error {
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		return exec.Command("git", "-C", dir, "push", "--force", "-u", "origin", name)
+	})
+	if err != nil {
+		return fmt.Errorf("force pushing branch %s: %s", name, string(output))
 	}
 	return nil
 }

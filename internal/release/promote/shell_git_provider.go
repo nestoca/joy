@@ -38,6 +38,22 @@ func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files
 	return nil
 }
 
+func (g *ShellGitProvider) ResetAndForcePushBranchWithFiles(branchName string, files []string, message string) error {
+	if err := git.ResetBranch(g.dir, branchName); err != nil {
+		return err
+	}
+	if err := git.Add(g.dir, files); err != nil {
+		return fmt.Errorf("adding files to index: %w", err)
+	}
+	if err := git.Commit(g.dir, message); err != nil {
+		return fmt.Errorf("committing changes: %w", err)
+	}
+	if err := git.ForcePushBranch(g.dir, branchName); err != nil {
+		return fmt.Errorf("pushing changes: %w", err)
+	}
+	return nil
+}
+
 func (g *ShellGitProvider) CheckoutCatalogRef() error {
 	return git.Checkout(g.dir, g.ref)
 }

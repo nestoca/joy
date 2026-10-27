@@ -142,6 +142,8 @@ type PromoteParams struct {
 	Prompt        promote.PromptProvider
 	Writer        yml.Writer
 	PreRunConfigs PreRunConfigs
+	// LoadCatalogAt checks out the catalog at given git ref and returns its config and catalog. Defaults to loadCatalogAt.
+	LoadCatalogAt catalogLoaderFunc
 }
 
 func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
@@ -151,6 +153,9 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	var omit []string
 	var templateVars []string
 	var reviewers []string
+	var updatePR string
+	var updateFailedPRs bool
+	var updateFailedPRsSearch string
 
 	cmd := &cobra.Command{
 		Use:     "promote [flags] [release1,release2...]",
@@ -166,10 +171,25 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
   joy release promote release-a,release-b --source staging --target production
 
   # All releases
-  joy release promote --all --source staging --target production`,
+  joy release promote --all --source staging --target production
+
+  # Update an existing promotion PR with a fresh promotion, instead of creating a new one
+  joy release promote release-a,release-b --source staging --target production --update-pr 123
+
+  # Update all open promotion PRs that failed to render, inferring their releases and environments
+  joy release promote --update-failed-prs
+
+  # Update open promotion PRs matching a custom search, such as older ones without the rendering:failed label
+  joy release promote --update-failed-prs --update-failed-prs-search '"No such device or address" in:body'`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if autoMerge && draft {
 				return fmt.Errorf("flags --auto-merge and --draft cannot be used together")
+			}
+			if updateFailedPRs {
+				if len(args) > 0 || all || sourceEnv != "" || targetEnv != "" {
+					return fmt.Errorf("releases, --all, --source and --target are inferred from each pull request when --update-failed-prs is set")
+				}
+				return nil
 			}
 			if noPrompt {
 				if len(args) == 0 && !all {
@@ -186,6 +206,10 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, releases []string) error {
+			if updateFailedPRs {
+				return updateFailedPullRequests(cmd, params, updateFailedPRsSearch, dryRun)
+			}
+
 			if len(releases) > 1 {
 				fmt.Fprintln(cmd.ErrOrStderr(), color.InYellow("⚠️  Warning: passing releases as space-separated arguments is deprecated, use a single comma-separated argument instead (e.g. release-a,release-b)"))
 			}
@@ -222,20 +246,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 
 			selectedEnvironments := v1alpha1.GetEnvironmentsByNames(cat.Environments, cfg.Environments.Selected)
 
-			infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
-
-			promoter := promote.Promotion{
-				CommitTemplate:      cfg.Templates.Release.Promote.Commit,
-				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
-				TemplateVariables:   templateVariables,
-				PromptProvider:      cmp.Or[promote.PromptProvider](params.Prompt, promote.NewInteractivePromptProvider(cmd.OutOrStdout())),
-				GitProvider:         cmp.Or[promote.GitProvider](params.Git, promote.NewShellGitProvider(cfg.CatalogDir, config.CatalogRefFromContext(cmd.Context()))),
-				PullRequestProvider: cmp.Or[pr.PullRequestProvider](params.PullRequest, github.NewPullRequestProvider(cfg.CatalogDir)),
-				YamlWriter:          cmp.Or[yml.Writer](params.Writer, yml.DiskWriter),
-				InfoProvider:        cmp.Or(params.Info, infoProvider),
-				LinksProvider:       cmp.Or(params.Links, links.NewProvider(infoProvider, cfg.Templates)),
-				Out:                 cmd.OutOrStdout(),
-			}
+			promoter := newPromotion(cmd, params, cfg, templateVariables)
 
 			opts := promote.Opts{
 				Catalog:              cat,
@@ -254,6 +265,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 				LocalOnly:            localOnly,
 				MaxColumnWidth:       cfg.ColumnWidths.Get(narrow, wide),
 				Reviewers:            reviewers,
+				UpdatePullRequest:    updatePR,
 			}
 
 			_, err = promoter.Promote(opts)
@@ -275,11 +287,37 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	cmd.Flags().BoolVar(&keepPrerelease, "keep-prerelease", false, "Do not promote releases that are prereleases in target env")
 	cmd.Flags().StringSliceVar(&omit, "omit", nil, "Releases to omit from promotion")
 	cmd.Flags().StringSliceVar(&reviewers, "reviewers", nil, "Additional reviewers to add to the PR (can be specified multiple times)")
+	cmd.Flags().StringVar(&updatePR, "update-pr", "", "Number, URL or branch of an existing open promotion PR to update instead of creating a new one (its branch is force pushed and its title, body, labels and reviewers are re-rendered)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
+	cmd.Flags().BoolVar(&updateFailedPRs, "update-failed-prs", false, "Update open and unapproved promotion PRs matching --update-failed-prs-search, as with --update-pr, inferring their releases, environments and triggering author from their labels, branch and body")
+	cmd.Flags().StringVar(&updateFailedPRsSearch, "update-failed-prs-search", fmt.Sprintf("label:%q", promote.RenderingFailedLabel), "GitHub search query selecting the PRs to update with --update-failed-prs")
+	cmd.MarkFlagsMutuallyExclusive("update-pr", "draft")
+	cmd.MarkFlagsMutuallyExclusive("update-pr", "local-only")
+	cmd.MarkFlagsMutuallyExclusive("update-pr", "update-failed-prs")
+	cmd.MarkFlagsMutuallyExclusive("update-failed-prs", "draft")
+	cmd.MarkFlagsMutuallyExclusive("update-failed-prs", "local-only")
 
 	params.PreRunConfigs.PullCatalog(cmd)
 
 	return cmd
+}
+
+// newPromotion returns the promotion configured from given joy config, using given params providers when set.
+func newPromotion(cmd *cobra.Command, params PromoteParams, cfg *config.Config, templateVariables map[string]string) *promote.Promotion {
+	infoProvider := info.NewProvider(cfg.GitHubOrganization, cfg.Templates.Project.GitTag, cfg.RepositoriesDir, cfg.JoyCache)
+
+	return &promote.Promotion{
+		CommitTemplate:      cfg.Templates.Release.Promote.Commit,
+		PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
+		TemplateVariables:   templateVariables,
+		PromptProvider:      cmp.Or[promote.PromptProvider](params.Prompt, promote.NewInteractivePromptProvider(cmd.OutOrStdout())),
+		GitProvider:         cmp.Or[promote.GitProvider](params.Git, promote.NewShellGitProvider(cfg.CatalogDir, config.CatalogRefFromContext(cmd.Context()))),
+		PullRequestProvider: cmp.Or[pr.PullRequestProvider](params.PullRequest, github.NewPullRequestProvider(cfg.CatalogDir)),
+		YamlWriter:          cmp.Or[yml.Writer](params.Writer, yml.DiskWriter),
+		InfoProvider:        cmp.Or(params.Info, infoProvider),
+		LinksProvider:       cmp.Or(params.Links, links.NewProvider(infoProvider, cfg.Templates)),
+		Out:                 cmd.OutOrStdout(),
+	}
 }
 
 func parseTemplateVars(templateVars []string) (map[string]string, error) {
