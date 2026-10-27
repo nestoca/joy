@@ -20,6 +20,8 @@ type GitOpts struct {
 	GetCurrentBranch      func(string) (string, error)
 	IsInSyncWithRemote    func(string, string) (bool, error)
 	GetCurrentCommit      func(string) (string, error)
+	IsRemoteBranch        func(string, string) (bool, error)
+	ResolveCommit         func(string, string) (string, error)
 }
 
 type CatalogOpts struct {
@@ -46,6 +48,8 @@ func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) 
 			GetCurrentBranch:      git.GetCurrentBranch,
 			IsInSyncWithRemote:    git.IsBranchInSyncWithRemote,
 			GetCurrentCommit:      git.GetCurrentCommit,
+			IsRemoteBranch:        git.IsRemoteBranch,
+			ResolveCommit:         git.ResolveCommit,
 		}
 	}
 
@@ -61,7 +65,7 @@ func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) 
 		}
 		group.AddMsg(info, label("Directory exists", cfg.CatalogDir))
 
-		if !git.IsValid(cfg.CatalogDir) {
+		if !opts.Git.IsValid(cfg.CatalogDir) {
 			group.AddMsg(failed, "Working copy is invalid")
 			return
 		}
@@ -82,35 +86,14 @@ func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) 
 			group.AddMsg(success, "Working copy has no uncommitted changes")
 		}
 
-		defaultBranch := config.CatalogRefFromContext(ctx)
-		currentBranch, err := opts.Git.GetCurrentBranch(cfg.CatalogDir)
+		catalogRef := config.CatalogRefFromContext(ctx)
+		isBranch, err := opts.Git.IsRemoteBranch(cfg.CatalogDir, catalogRef)
 		if err != nil {
-			group.AddMsg(failed, label("Failed getting current branch", err.Error()))
+			group.AddMsg(failed, label("Failed checking if catalog ref is a branch", err.Error()))
+		} else if isBranch {
+			diagnoseCatalogBranch(&group, cfg.CatalogDir, catalogRef, opts.Git)
 		} else {
-			if currentBranch != defaultBranch {
-				group.AddMsg(
-					warning,
-					fmt.Sprintf("Default branch %s should be checked out (instead of %s)", style.Code(defaultBranch), style.Code(currentBranch)),
-					msg(hint, fmt.Sprintf("Switch to default branch using: %s", style.Code("joy git checkout "+defaultBranch))),
-				)
-			} else {
-				group.AddMsg(success, fmt.Sprintf("Default branch %s is checked out", style.Code(currentBranch)))
-			}
-		}
-
-		isInSync, err := opts.Git.IsInSyncWithRemote(cfg.CatalogDir, defaultBranch)
-		if err != nil {
-			group.AddMsg(failed, label("Failed checking default branch sync state", err.Error()))
-		} else {
-			if isInSync {
-				group.AddMsg(success, "Default branch is in sync with remote")
-			} else {
-				group.AddMsg(
-					warning,
-					"Default branch is not in sync with remote",
-					msg(hint, fmt.Sprintf("Update your working copy using: %s", style.Code("joy pull"))),
-				)
-			}
+			diagnoseCatalogDetachedRef(&group, cfg.CatalogDir, catalogRef, opts.Git)
 		}
 
 		commit, err := opts.Git.GetCurrentCommit(cfg.CatalogDir)
@@ -177,4 +160,63 @@ func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) 
 	}())
 
 	return
+}
+
+// diagnoseCatalogBranch reports whether the given branch is checked out and in sync with its remote.
+func diagnoseCatalogBranch(group *Group, catalogDir string, branch string, gitOpts GitOpts) {
+	currentBranch, err := gitOpts.GetCurrentBranch(catalogDir)
+	if err != nil {
+		group.AddMsg(failed, label("Failed getting current branch", err.Error()))
+	} else {
+		if currentBranch != branch {
+			group.AddMsg(
+				warning,
+				fmt.Sprintf("Default branch %s should be checked out (instead of %s)", style.Code(branch), style.Code(currentBranch)),
+				msg(hint, fmt.Sprintf("Switch to default branch using: %s", style.Code("joy git checkout "+branch))),
+			)
+		} else {
+			group.AddMsg(success, fmt.Sprintf("Default branch %s is checked out", style.Code(currentBranch)))
+		}
+	}
+
+	isInSync, err := gitOpts.IsInSyncWithRemote(catalogDir, branch)
+	if err != nil {
+		group.AddMsg(failed, label("Failed checking default branch sync state", err.Error()))
+	} else {
+		if isInSync {
+			group.AddMsg(success, "Default branch is in sync with remote")
+		} else {
+			group.AddMsg(
+				warning,
+				"Default branch is not in sync with remote",
+				msg(hint, fmt.Sprintf("Update your working copy using: %s", style.Code("joy pull"))),
+			)
+		}
+	}
+}
+
+// diagnoseCatalogDetachedRef reports whether the commit that the given tag or commit ref resolves to is checked out.
+func diagnoseCatalogDetachedRef(group *Group, catalogDir string, ref string, gitOpts GitOpts) {
+	expected, err := gitOpts.ResolveCommit(catalogDir, ref)
+	if err != nil {
+		group.AddMsg(failed, label("Failed resolving catalog ref", err.Error()))
+		return
+	}
+
+	current, err := gitOpts.GetCurrentCommit(catalogDir)
+	if err != nil {
+		group.AddMsg(failed, label("Failed getting current commit", err.Error()))
+		return
+	}
+
+	if current != expected {
+		group.AddMsg(
+			warning,
+			fmt.Sprintf("Catalog ref %s should be checked out (instead of %s)", style.Code(ref), style.Code(current)),
+			msg(hint, fmt.Sprintf("Switch to catalog ref using: %s", style.Code("joy git checkout "+expected))),
+		)
+		return
+	}
+
+	group.AddMsg(success, fmt.Sprintf("Catalog ref %s is checked out", style.Code(ref)))
 }

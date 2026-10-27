@@ -139,6 +139,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 
 	cmd.PersistentFlags().BoolVar(&flags.SkipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check")
 	cmd.PersistentFlags().StringVar(&flags.CatalogRef, "catalog-ref", config.DefaultCatalogRef, "Git ref of the catalog to checkout and keep up to date")
+	cmd.MarkFlagsMutuallyExclusive("skip-catalog-update", "catalog-ref")
 
 	// Core commands
 	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})

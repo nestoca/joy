@@ -319,6 +319,16 @@ func IsRemoteBranch(dir, ref string) (bool, error) {
 	return false, fmt.Errorf("verifying ref %s: %w", ref, err)
 }
 
+// ResolveCommit returns the commit sha that ref points to, failing if ref does not resolve to a commit.
+func ResolveCommit(dir, ref string) (string, error) {
+	cmd := exec.Command("git", "-C", dir, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("resolving %s to a commit: %w", ref, err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func FetchTags(dir string) error {
 	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
 		cmd := exec.Command("git", "fetch", "--tags")
