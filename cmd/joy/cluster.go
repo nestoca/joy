@@ -9,12 +9,13 @@ import (
 
 	"github.com/davidmdm/x/xcontainer"
 	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/cobra"
+	sigsyaml "sigs.k8s.io/yaml"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/k8s"
 	"github.com/nestoca/joy/pkg/catalog"
-	"github.com/spf13/cobra"
-	sigsyaml "sigs.k8s.io/yaml"
 )
 
 func NewClusterCmd() *cobra.Command {
@@ -25,6 +26,7 @@ func NewClusterCmd() *cobra.Command {
 
 	cmd.AddCommand(NewClusterSetupCommand())
 	cmd.AddCommand(NewClusterDeployCommand())
+	cmd.AddCommand(NewClusterAuthCommand())
 
 	return cmd
 }
@@ -90,6 +92,49 @@ func NewClusterSetupCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&envName, "env", "e", "environment", "setup cluster in orbstack defined by environment")
 	cmd.Flags().BoolVar(&cluster.Recreate, "recreate", false, "recreate orbstack cluster")
 	cmd.Flags().BoolVar(&deploy, "deploy", false, "deploy environment resources")
+
+	return cmd
+}
+
+func NewClusterAuthCommand() *cobra.Command {
+	var envName string
+	cmd := &cobra.Command{
+		Use: "auth",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cat := catalog.FromContext(cmd.Context())
+
+			env, err := func() (*v1alpha1.Environment, error) {
+				if envName == "" {
+					return environment.SelectSingle(cat.Environments, nil, "select which environment")
+				}
+				env := environment.FindByName(cat.Environments, envName)
+				if env == nil {
+					return nil, fmt.Errorf("could not find env %q", envName)
+				}
+				return env, nil
+			}()
+			if err != nil {
+				return err
+			}
+
+			data, err := os.ReadFile(filepath.Join(env.Dir, "cluster.yaml"))
+			if err != nil {
+				return fmt.Errorf("reading environment cluster definition file: %w", err)
+			}
+
+			var cluster k8s.ClusterDefinition
+			if err := sigsyaml.Unmarshal(data, &cluster); err != nil {
+				return fmt.Errorf("failed to parse cluster definition: %w", err)
+			}
+
+			cluster.Env = env.Name
+			cluster.KubeContext = cmp.Or(cluster.KubeContext, "orbstack")
+
+			return cluster.Registries.Auth(cmd.Context(), cluster.KubeContext)
+		},
+	}
+
+	cmd.Flags().StringVarP(&envName, "env", "e", "", "environment")
 
 	return cmd
 }
