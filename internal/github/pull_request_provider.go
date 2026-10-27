@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/nestoca/joy/internal/git/pr"
@@ -81,11 +82,7 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		args = append(args, "--label", label)
 	}
 
-	for _, reviewer := range params.Reviewers {
-		// Bots cannot be requested as reviewers (GitHub returns "not found")
-		if strings.HasSuffix(reviewer, "[bot]") || reviewer == "nestobot" {
-			continue
-		}
+	for _, reviewer := range requestableReviewers(params.Reviewers) {
 		args = append(args, "--reviewer", reviewer)
 	}
 
@@ -99,6 +96,116 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	}
 
 	return strings.TrimSpace(prURL), err
+}
+
+const pullRequestFields = "number,url,headRefName,body,labels,state,reviewDecision,commits"
+
+type pullRequestDetails struct {
+	Number         int      `json:"number"`
+	URL            string   `json:"url"`
+	HeadRefName    string   `json:"headRefName"`
+	Body           string   `json:"body"`
+	Labels         []label  `json:"labels"`
+	State          string   `json:"state"`
+	ReviewDecision string   `json:"reviewDecision"`
+	Commits        []commit `json:"commits"`
+}
+
+type commit struct {
+	OID string `json:"oid"`
+}
+
+func (d pullRequestDetails) toPullRequest() pr.PullRequest {
+	result := pr.PullRequest{
+		Number:   d.Number,
+		URL:      d.URL,
+		Branch:   d.HeadRefName,
+		Body:     d.Body,
+		Open:     d.State == "OPEN",
+		Approved: d.ReviewDecision == "APPROVED",
+	}
+	for _, label := range d.Labels {
+		result.Labels = append(result.Labels, label.Name)
+	}
+	for _, commit := range d.Commits {
+		result.Commits = append(result.Commits, commit.OID)
+	}
+	return result
+}
+
+func (p *PullRequestProvider) Get(pullRequest string) (*pr.PullRequest, error) {
+	output, err := ExecuteAndGetOutput(p.dir, "pr", "view", pullRequest, "--json", pullRequestFields)
+	if err != nil {
+		return nil, fmt.Errorf("getting pull request %s: %w", pullRequest, err)
+	}
+
+	var details pullRequestDetails
+	if err := json.Unmarshal([]byte(output), &details); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request %s: %w", pullRequest, err)
+	}
+
+	result := details.toPullRequest()
+	return &result, nil
+}
+
+func (p *PullRequestProvider) List(search string, limit int) ([]pr.PullRequest, error) {
+	output, err := ExecuteAndGetOutput(p.dir, "pr", "list", "--state", "open", "--search", search, "--limit", strconv.Itoa(limit), "--json", pullRequestFields)
+	if err != nil {
+		return nil, fmt.Errorf("listing pull requests: %w", err)
+	}
+
+	var details []pullRequestDetails
+	if err := json.Unmarshal([]byte(output), &details); err != nil {
+		return nil, fmt.Errorf("unmarshaling pull request list: %w", err)
+	}
+
+	var result []pr.PullRequest
+	for _, d := range details {
+		result = append(result, d.toPullRequest())
+	}
+	return result, nil
+}
+
+func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {
+	args := []string{
+		"pr", "edit", params.PullRequest,
+		"--title", params.Title,
+		"--body", params.Body,
+	}
+
+	for _, label := range params.Labels {
+		args = append(args, "--add-label", label)
+	}
+
+	for _, label := range params.RemoveLabels {
+		args = append(args, "--remove-label", label)
+	}
+
+	for _, reviewer := range requestableReviewers(params.Reviewers) {
+		args = append(args, "--add-reviewer", reviewer)
+	}
+
+	if err := p.createLabels(params.Labels...); err != nil {
+		return "", err
+	}
+	prURL, err := ExecuteAndGetOutput(p.dir, args...)
+	if err != nil {
+		return "", fmt.Errorf("updating pull request %s: %w", params.PullRequest, err)
+	}
+
+	return strings.TrimSpace(prURL), nil
+}
+
+// requestableReviewers filters out bots, which cannot be requested as reviewers (GitHub returns "not found").
+func requestableReviewers(reviewers []string) []string {
+	var result []string
+	for _, reviewer := range reviewers {
+		if strings.HasSuffix(reviewer, "[bot]") || reviewer == "nestobot" {
+			continue
+		}
+		result = append(result, reviewer)
+	}
+	return result
 }
 
 func (p *PullRequestProvider) getPromotionLabels(branch string) ([]string, error) {

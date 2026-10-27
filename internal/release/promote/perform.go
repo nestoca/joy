@@ -19,6 +19,9 @@ import (
 
 const (
 	defaultCommitAndPRTemplate = `Promote {{ len .Releases }} releases ({{ .SourceEnvironment.Name }} -> {{ .TargetEnvironment.Name }})`
+
+	// RenderingFailedLabel marks promotion PRs whose message could not be fully rendered.
+	RenderingFailedLabel = "rendering:failed"
 )
 
 type PerformOpts struct {
@@ -33,6 +36,7 @@ type PerformOpts struct {
 	infoProvider        info.Provider
 	linksProvider       links.Provider
 	reviewers           []string
+	updatePullRequest   string
 }
 
 // perform performs the promotion of all releases in given list and returns PR url if any
@@ -43,6 +47,18 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	sourceEnv := opts.list.Environments[0]
 	targetEnv := opts.list.Environments[1]
+
+	var existing *pr.PullRequest
+	if opts.updatePullRequest != "" && !opts.localOnly {
+		var err error
+		existing, err = p.PullRequestProvider.Get(opts.updatePullRequest)
+		if err != nil {
+			return "", fmt.Errorf("getting pull request to update: %w", err)
+		}
+		if !existing.Open {
+			return "", fmt.Errorf("pull request %s to update is not open", opts.updatePullRequest)
+		}
+	}
 
 	info := &PromotionInfo{
 		SourceEnvironment: sourceEnv,
@@ -114,12 +130,23 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		modeName = "Local-Only"
 	}
 
-	branchName := getBranchName(info)
+	var branchName string
+	if existing != nil {
+		branchName = existing.Branch
+	} else {
+		branchName = getBranchName(info)
+	}
 	if opts.dryRun || opts.localOnly {
 		p.printf("ℹ️ %s: skipping creation of branch %s\nFiles:\n%s\nCommit message:\n%s\n",
 			modeName,
 			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
 			style.SecondaryInfo(commitMessage))
+	} else if existing != nil {
+		err = p.GitProvider.ResetAndForcePushBranchWithFiles(branchName, promotedFiles, commitMessage)
+		if err != nil {
+			return "", err
+		}
+		p.printf("✅ Committed and force pushed existing branch %s with message:\n%s\n", style.Resource(branchName), style.SecondaryInfo(commitMessage))
 	} else {
 		err = p.GitProvider.CreateAndPushBranchWithFiles(branchName, promotedFiles, commitMessage)
 		if err != nil {
@@ -136,6 +163,10 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	if opts.autoMerge {
 		labels = append(labels, "auto-merge")
+	}
+
+	if info.Error != nil {
+		labels = append(labels, RenderingFailedLabel)
 	}
 
 	pullRequestTemplate := cmp.Or(opts.pullRequestTemplate, defaultCommitAndPRTemplate)
@@ -163,6 +194,26 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		return "", nil
 	}
 
+	if existing != nil {
+		var removeLabels []string
+		if info.Error == nil && slices.Contains(existing.Labels, RenderingFailedLabel) {
+			removeLabels = append(removeLabels, RenderingFailedLabel)
+		}
+		prURL, err := p.PullRequestProvider.Update(pr.UpdateParams{
+			PullRequest:  opts.updatePullRequest,
+			Title:        prTitle,
+			Body:         prBody,
+			Labels:       labels,
+			RemoveLabels: removeLabels,
+			Reviewers:    reviewers,
+		})
+		if err != nil {
+			return "", fmt.Errorf("updating pull request: %w", err)
+		}
+		p.printf("✅ Updated pull request: %s\n", style.Link(prURL))
+		return prURL, p.completePullRequest()
+	}
+
 	prURL, err := p.PullRequestProvider.Create(pr.CreateParams{
 		Branch:    branchName,
 		Title:     prTitle,
@@ -181,13 +232,17 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		p.PromptProvider.PrintPullRequestCreated(prURL)
 	}
 
+	return prURL, p.completePullRequest()
+}
+
+func (p *Promotion) completePullRequest() error {
+
 	if err := p.GitProvider.CheckoutCatalogRef(); err != nil {
-		return "", fmt.Errorf("checking out catalog ref: %w", err)
+		return fmt.Errorf("checking out catalog ref: %w", err)
 	}
 
 	p.PromptProvider.PrintCompleted()
-
-	return prURL, nil
+	return nil
 }
 
 func getReviewers(info *PromotionInfo) []string {

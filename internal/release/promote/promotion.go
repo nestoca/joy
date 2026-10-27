@@ -75,6 +75,11 @@ type Opts struct {
 
 	// Reviewers are additional reviewers to add to the PR
 	Reviewers []string
+
+	// UpdatePullRequest is the number, URL or branch of an existing open promotion PR to update instead of creating
+	// a new one. Its branch is reset to the promotion and force pushed, and its title, body, labels and reviewers
+	// are re-rendered.
+	UpdatePullRequest string
 }
 
 // Promote prompts user to select source and target environments and releases to promote and creates a pull request,
@@ -181,6 +186,7 @@ func (p *Promotion) Promote(opts Opts) (string, error) {
 		infoProvider:        p.InfoProvider,
 		linksProvider:       p.LinksProvider,
 		reviewers:           opts.Reviewers,
+		updatePullRequest:   opts.UpdatePullRequest,
 	}
 
 	if opts.NoPrompt || opts.LocalOnly {

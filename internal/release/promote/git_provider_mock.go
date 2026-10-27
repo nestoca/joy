@@ -23,6 +23,9 @@ var _ GitProvider = &GitProviderMock{}
 //			CreateAndPushBranchWithFilesFunc: func(branchName string, files []string, message string) error {
 //				panic("mock out the CreateAndPushBranchWithFiles method")
 //			},
+//			ResetAndForcePushBranchWithFilesFunc: func(branchName string, files []string, message string) error {
+//				panic("mock out the ResetAndForcePushBranchWithFiles method")
+//			},
 //		}
 //
 //		// use mockedGitProvider in code that requires GitProvider
@@ -35,6 +38,9 @@ type GitProviderMock struct {
 
 	// CreateAndPushBranchWithFilesFunc mocks the CreateAndPushBranchWithFiles method.
 	CreateAndPushBranchWithFilesFunc func(branchName string, files []string, message string) error
+
+	// ResetAndForcePushBranchWithFilesFunc mocks the ResetAndForcePushBranchWithFiles method.
+	ResetAndForcePushBranchWithFilesFunc func(branchName string, files []string, message string) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -50,9 +56,19 @@ type GitProviderMock struct {
 			// Message is the message argument value.
 			Message string
 		}
+		// ResetAndForcePushBranchWithFiles holds details about calls to the ResetAndForcePushBranchWithFiles method.
+		ResetAndForcePushBranchWithFiles []struct {
+			// BranchName is the branchName argument value.
+			BranchName string
+			// Files is the files argument value.
+			Files []string
+			// Message is the message argument value.
+			Message string
+		}
 	}
-	lockCheckoutCatalogRef           sync.RWMutex
-	lockCreateAndPushBranchWithFiles sync.RWMutex
+	lockCheckoutCatalogRef               sync.RWMutex
+	lockCreateAndPushBranchWithFiles     sync.RWMutex
+	lockResetAndForcePushBranchWithFiles sync.RWMutex
 }
 
 // CheckoutCatalogRef calls CheckoutCatalogRefFunc.
@@ -125,5 +141,48 @@ func (mock *GitProviderMock) CreateAndPushBranchWithFilesCalls() []struct {
 	mock.lockCreateAndPushBranchWithFiles.RLock()
 	calls = mock.calls.CreateAndPushBranchWithFiles
 	mock.lockCreateAndPushBranchWithFiles.RUnlock()
+	return calls
+}
+
+// ResetAndForcePushBranchWithFiles calls ResetAndForcePushBranchWithFilesFunc.
+func (mock *GitProviderMock) ResetAndForcePushBranchWithFiles(branchName string, files []string, message string) error {
+	callInfo := struct {
+		BranchName string
+		Files      []string
+		Message    string
+	}{
+		BranchName: branchName,
+		Files:      files,
+		Message:    message,
+	}
+	mock.lockResetAndForcePushBranchWithFiles.Lock()
+	mock.calls.ResetAndForcePushBranchWithFiles = append(mock.calls.ResetAndForcePushBranchWithFiles, callInfo)
+	mock.lockResetAndForcePushBranchWithFiles.Unlock()
+	if mock.ResetAndForcePushBranchWithFilesFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.ResetAndForcePushBranchWithFilesFunc(branchName, files, message)
+}
+
+// ResetAndForcePushBranchWithFilesCalls gets all the calls that were made to ResetAndForcePushBranchWithFiles.
+// Check the length with:
+//
+//	len(mockedGitProvider.ResetAndForcePushBranchWithFilesCalls())
+func (mock *GitProviderMock) ResetAndForcePushBranchWithFilesCalls() []struct {
+	BranchName string
+	Files      []string
+	Message    string
+} {
+	var calls []struct {
+		BranchName string
+		Files      []string
+		Message    string
+	}
+	mock.lockResetAndForcePushBranchWithFiles.RLock()
+	calls = mock.calls.ResetAndForcePushBranchWithFiles
+	mock.lockResetAndForcePushBranchWithFiles.RUnlock()
 	return calls
 }

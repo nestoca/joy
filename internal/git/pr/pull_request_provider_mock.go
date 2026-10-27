@@ -29,14 +29,23 @@ var _ PullRequestProvider = &PullRequestProviderMock{}
 //			ExistsFunc: func(branch string) (bool, error) {
 //				panic("mock out the Exists method")
 //			},
+//			GetFunc: func(pullRequest string) (*PullRequest, error) {
+//				panic("mock out the Get method")
+//			},
 //			GetBranchesPromotingToEnvironmentFunc: func(env string) ([]string, error) {
 //				panic("mock out the GetBranchesPromotingToEnvironment method")
 //			},
 //			GetPromotionEnvironmentFunc: func(branch string) (string, error) {
 //				panic("mock out the GetPromotionEnvironment method")
 //			},
+//			ListFunc: func(search string, limit int) ([]PullRequest, error) {
+//				panic("mock out the List method")
+//			},
 //			SetPromotionEnvironmentFunc: func(branch string, env string) error {
 //				panic("mock out the SetPromotionEnvironment method")
+//			},
+//			UpdateFunc: func(updateParams UpdateParams) (string, error) {
+//				panic("mock out the Update method")
 //			},
 //		}
 //
@@ -57,14 +66,23 @@ type PullRequestProviderMock struct {
 	// ExistsFunc mocks the Exists method.
 	ExistsFunc func(branch string) (bool, error)
 
+	// GetFunc mocks the Get method.
+	GetFunc func(pullRequest string) (*PullRequest, error)
+
 	// GetBranchesPromotingToEnvironmentFunc mocks the GetBranchesPromotingToEnvironment method.
 	GetBranchesPromotingToEnvironmentFunc func(env string) ([]string, error)
 
 	// GetPromotionEnvironmentFunc mocks the GetPromotionEnvironment method.
 	GetPromotionEnvironmentFunc func(branch string) (string, error)
 
+	// ListFunc mocks the List method.
+	ListFunc func(search string, limit int) ([]PullRequest, error)
+
 	// SetPromotionEnvironmentFunc mocks the SetPromotionEnvironment method.
 	SetPromotionEnvironmentFunc func(branch string, env string) error
+
+	// UpdateFunc mocks the Update method.
+	UpdateFunc func(updateParams UpdateParams) (string, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -86,6 +104,11 @@ type PullRequestProviderMock struct {
 			// Branch is the branch argument value.
 			Branch string
 		}
+		// Get holds details about calls to the Get method.
+		Get []struct {
+			// PullRequest is the pullRequest argument value.
+			PullRequest string
+		}
 		// GetBranchesPromotingToEnvironment holds details about calls to the GetBranchesPromotingToEnvironment method.
 		GetBranchesPromotingToEnvironment []struct {
 			// Env is the env argument value.
@@ -96,6 +119,13 @@ type PullRequestProviderMock struct {
 			// Branch is the branch argument value.
 			Branch string
 		}
+		// List holds details about calls to the List method.
+		List []struct {
+			// Search is the search argument value.
+			Search string
+			// Limit is the limit argument value.
+			Limit int
+		}
 		// SetPromotionEnvironment holds details about calls to the SetPromotionEnvironment method.
 		SetPromotionEnvironment []struct {
 			// Branch is the branch argument value.
@@ -103,14 +133,22 @@ type PullRequestProviderMock struct {
 			// Env is the env argument value.
 			Env string
 		}
+		// Update holds details about calls to the Update method.
+		Update []struct {
+			// UpdateParams is the updateParams argument value.
+			UpdateParams UpdateParams
+		}
 	}
 	lockCreate                            sync.RWMutex
 	lockCreateInteractively               sync.RWMutex
 	lockEnsureInstalledAndAuthenticated   sync.RWMutex
 	lockExists                            sync.RWMutex
+	lockGet                               sync.RWMutex
 	lockGetBranchesPromotingToEnvironment sync.RWMutex
 	lockGetPromotionEnvironment           sync.RWMutex
+	lockList                              sync.RWMutex
 	lockSetPromotionEnvironment           sync.RWMutex
+	lockUpdate                            sync.RWMutex
 }
 
 // Create calls CreateFunc.
@@ -250,6 +288,42 @@ func (mock *PullRequestProviderMock) ExistsCalls() []struct {
 	return calls
 }
 
+// Get calls GetFunc.
+func (mock *PullRequestProviderMock) Get(pullRequest string) (*PullRequest, error) {
+	callInfo := struct {
+		PullRequest string
+	}{
+		PullRequest: pullRequest,
+	}
+	mock.lockGet.Lock()
+	mock.calls.Get = append(mock.calls.Get, callInfo)
+	mock.lockGet.Unlock()
+	if mock.GetFunc == nil {
+		var (
+			pullRequestOut *PullRequest
+			errOut         error
+		)
+		return pullRequestOut, errOut
+	}
+	return mock.GetFunc(pullRequest)
+}
+
+// GetCalls gets all the calls that were made to Get.
+// Check the length with:
+//
+//	len(mockedPullRequestProvider.GetCalls())
+func (mock *PullRequestProviderMock) GetCalls() []struct {
+	PullRequest string
+} {
+	var calls []struct {
+		PullRequest string
+	}
+	mock.lockGet.RLock()
+	calls = mock.calls.Get
+	mock.lockGet.RUnlock()
+	return calls
+}
+
 // GetBranchesPromotingToEnvironment calls GetBranchesPromotingToEnvironmentFunc.
 func (mock *PullRequestProviderMock) GetBranchesPromotingToEnvironment(env string) ([]string, error) {
 	callInfo := struct {
@@ -322,6 +396,46 @@ func (mock *PullRequestProviderMock) GetPromotionEnvironmentCalls() []struct {
 	return calls
 }
 
+// List calls ListFunc.
+func (mock *PullRequestProviderMock) List(search string, limit int) ([]PullRequest, error) {
+	callInfo := struct {
+		Search string
+		Limit  int
+	}{
+		Search: search,
+		Limit:  limit,
+	}
+	mock.lockList.Lock()
+	mock.calls.List = append(mock.calls.List, callInfo)
+	mock.lockList.Unlock()
+	if mock.ListFunc == nil {
+		var (
+			pullRequestsOut []PullRequest
+			errOut          error
+		)
+		return pullRequestsOut, errOut
+	}
+	return mock.ListFunc(search, limit)
+}
+
+// ListCalls gets all the calls that were made to List.
+// Check the length with:
+//
+//	len(mockedPullRequestProvider.ListCalls())
+func (mock *PullRequestProviderMock) ListCalls() []struct {
+	Search string
+	Limit  int
+} {
+	var calls []struct {
+		Search string
+		Limit  int
+	}
+	mock.lockList.RLock()
+	calls = mock.calls.List
+	mock.lockList.RUnlock()
+	return calls
+}
+
 // SetPromotionEnvironment calls SetPromotionEnvironmentFunc.
 func (mock *PullRequestProviderMock) SetPromotionEnvironment(branch string, env string) error {
 	callInfo := struct {
@@ -358,5 +472,41 @@ func (mock *PullRequestProviderMock) SetPromotionEnvironmentCalls() []struct {
 	mock.lockSetPromotionEnvironment.RLock()
 	calls = mock.calls.SetPromotionEnvironment
 	mock.lockSetPromotionEnvironment.RUnlock()
+	return calls
+}
+
+// Update calls UpdateFunc.
+func (mock *PullRequestProviderMock) Update(updateParams UpdateParams) (string, error) {
+	callInfo := struct {
+		UpdateParams UpdateParams
+	}{
+		UpdateParams: updateParams,
+	}
+	mock.lockUpdate.Lock()
+	mock.calls.Update = append(mock.calls.Update, callInfo)
+	mock.lockUpdate.Unlock()
+	if mock.UpdateFunc == nil {
+		var (
+			sOut   string
+			errOut error
+		)
+		return sOut, errOut
+	}
+	return mock.UpdateFunc(updateParams)
+}
+
+// UpdateCalls gets all the calls that were made to Update.
+// Check the length with:
+//
+//	len(mockedPullRequestProvider.UpdateCalls())
+func (mock *PullRequestProviderMock) UpdateCalls() []struct {
+	UpdateParams UpdateParams
+} {
+	var calls []struct {
+		UpdateParams UpdateParams
+	}
+	mock.lockUpdate.RLock()
+	calls = mock.calls.Update
+	mock.lockUpdate.RUnlock()
 	return calls
 }

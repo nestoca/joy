@@ -322,6 +322,83 @@ func TestPromotion(t *testing.T) {
 			expectedErrorMessage:    "",
 			expectedPromoted:        true,
 		},
+		{
+			name: "Update existing pull request instead of creating a new one",
+			opts: newOpts(),
+			setup: func(args setupArgs) func(t *testing.T) {
+				opts := args.opts
+				opts.NoPrompt = true
+				opts.Releases = []string{"release1"}
+				opts.Reviewers = []string{"john.doe"}
+				opts.UpdatePullRequest = "123"
+
+				crossRel0 := opts.Catalog.Releases.Items[0]
+				crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+				crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
+					return &pr.PullRequest{
+						Number: 123,
+						Branch: "promote-release1-from-staging-to-prod-existing",
+						Labels: []string{promote.RenderingFailedLabel},
+						Open:   true,
+					}, nil
+				}
+				args.prProvider.UpdateFunc = func(updateParams pr.UpdateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
+
+				setupDefaultMockInfoProvider(args.infoProvider)
+
+				return func(t *testing.T) {
+					require.Len(t, args.yamlWriter.WriteFileCalls(), 1)
+
+					require.Empty(t, args.gitProvider.CreateAndPushBranchWithFilesCalls())
+					require.Len(t, args.gitProvider.ResetAndForcePushBranchWithFilesCalls(), 1)
+					require.Equal(t, "promote-release1-from-staging-to-prod-existing", args.gitProvider.ResetAndForcePushBranchWithFilesCalls()[0].BranchName)
+
+					require.Empty(t, args.prProvider.CreateCalls())
+					require.Len(t, args.prProvider.UpdateCalls(), 1)
+					require.Equal(t, pr.UpdateParams{
+						PullRequest:  "123",
+						Title:        "PR: Promote 1 releases (staging -> prod)",
+						Labels:       []string{"environment:prod", "release:release1"},
+						RemoveLabels: []string{promote.RenderingFailedLabel},
+						Reviewers:    []string{"john.doe"},
+					}, args.prProvider.UpdateCalls()[0].UpdateParams)
+
+					require.Len(t, args.gitProvider.CheckoutCatalogRefCalls(), 1)
+					require.Len(t, args.promptProvider.PrintCompletedCalls(), 1)
+				}
+			},
+			expectedPromoted: true,
+		},
+		{
+			name: "Update pull request that is not open",
+			opts: newOpts(),
+			setup: func(args setupArgs) func(t *testing.T) {
+				opts := args.opts
+				opts.NoPrompt = true
+				opts.Releases = []string{"release1"}
+				opts.UpdatePullRequest = "123"
+
+				crossRel0 := opts.Catalog.Releases.Items[0]
+				crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+				crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
+					return &pr.PullRequest{Number: 123, Open: false}, nil
+				}
+
+				return func(t *testing.T) {
+					require.Empty(t, args.yamlWriter.WriteFileCalls())
+					require.Empty(t, args.gitProvider.ResetAndForcePushBranchWithFilesCalls())
+					require.Empty(t, args.prProvider.UpdateCalls())
+				}
+			},
+			expectedErrorMessage: "pull request 123 to update is not open",
+			expectedPromoted:     false,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -463,4 +540,40 @@ func newOpts() promote.Opts {
 		ReleasesFiltered:     false,
 		SelectedEnvironments: nil,
 	}
+}
+
+func TestPromotionLabelsPullRequestFailingToRender(t *testing.T) {
+	opts := newOpts()
+	opts.NoPrompt = true
+	opts.Releases = []string{"release1"}
+
+	crossRel0 := opts.Catalog.Releases.Items[0]
+	crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+	crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+	prProvider := &pr.PullRequestProviderMock{
+		CreateFunc: func(createParams pr.CreateParams) (string, error) {
+			return "https://github.com/owner/repo/pull/123", nil
+		},
+	}
+	infoProvider := new(info.ProviderMock)
+	setupDefaultMockInfoProvider(infoProvider)
+	infoProvider.GetProjectSourceDirFunc = func(project *v1alpha1.Project) (string, error) {
+		return "", fmt.Errorf("clone failed")
+	}
+
+	promotion := promote.Promotion{
+		PromptProvider:      new(promote.PromptProviderMock),
+		GitProvider:         new(promote.GitProviderMock),
+		PullRequestProvider: prProvider,
+		YamlWriter:          new(yml.WriterMock),
+		InfoProvider:        infoProvider,
+		LinksProvider:       new(links.ProviderMock),
+		Out:                 io.Discard,
+	}
+	_, err := promotion.Promote(opts)
+	require.NoError(t, err)
+
+	require.Len(t, prProvider.CreateCalls(), 1)
+	require.Contains(t, prProvider.CreateCalls()[0].CreateParams.Labels, promote.RenderingFailedLabel)
 }
