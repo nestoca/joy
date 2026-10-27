@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/git/pr"
 )
 
@@ -149,7 +150,7 @@ func (p *PullRequestProvider) Get(pullRequest string) (*pr.PullRequest, error) {
 }
 
 func (p *PullRequestProvider) List(search string, limit int) ([]pr.PullRequest, error) {
-	output, err := ExecuteAndGetOutput(p.dir, "pr", "list", "--state", "open", "--search", search, "--limit", strconv.Itoa(limit), "--json", pullRequestFields)
+	output, err := ExecuteAndGetOutput(p.dir, "pr", "list", "--state", "all", "--search", search, "--limit", strconv.Itoa(limit), "--json", pullRequestFields)
 	if err != nil {
 		return nil, fmt.Errorf("listing pull requests: %w", err)
 	}
@@ -164,6 +165,10 @@ func (p *PullRequestProvider) List(search string, limit int) ([]pr.PullRequest, 
 		result = append(result, d.toPullRequest())
 	}
 	return result, nil
+}
+
+func (p *PullRequestProvider) FetchHead(number int) error {
+	return git.FetchPullRequestHead(p.dir, number)
 }
 
 func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {

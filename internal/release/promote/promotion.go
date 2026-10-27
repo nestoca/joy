@@ -76,9 +76,9 @@ type Opts struct {
 	// Reviewers are additional reviewers to add to the PR
 	Reviewers []string
 
-	// UpdatePullRequest is the number, URL or branch of an existing open promotion PR to update instead of creating
-	// a new one. Its branch is reset to the promotion and force pushed, and its title, body, labels and reviewers
-	// are re-rendered.
+	// UpdatePullRequest is the number, URL or branch of an existing promotion PR to update instead of creating
+	// a new one. Its title, body, labels and reviewers are re-rendered and, when it is open, its branch is reset to
+	// the promotion and force pushed.
 	UpdatePullRequest string
 }
 

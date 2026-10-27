@@ -58,13 +58,14 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("getting pull request to update: %w", err)
 		}
-		if !existing.Open {
-			return "", fmt.Errorf("pull request %s to update is not open", opts.updatePullRequest)
-		}
 		if !strings.HasPrefix(existing.Branch, BranchPrefix) {
 			return "", fmt.Errorf("pull request %s to update is not a promotion pull request: branch %q does not start with %q", opts.updatePullRequest, existing.Branch, BranchPrefix)
 		}
 	}
+
+	// Closed and merged pull requests only get their title, body, labels and reviewers updated, as their branch is
+	// either abandoned or already merged.
+	messageOnly := existing != nil && !existing.Open
 
 	info := &PromotionInfo{
 		SourceEnvironment: sourceEnv,
@@ -88,7 +89,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 		if opts.dryRun {
 			p.printf("ℹ️ Dry-run: skipping writing promoted release %s to: %s\n", style.Resource(crossRelease.Name), style.SecondaryInfo(promotedFile.Path))
-		} else {
+		} else if !messageOnly {
 			if err := p.YamlWriter.WriteFile(promotedFile); err != nil {
 				return "", fmt.Errorf("writing release %q promoted target yaml to file %q: %w", crossRelease.Name, promotedFile.Path, err)
 			}
@@ -147,6 +148,8 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 			modeName,
 			style.Resource(branchName), style.SecondaryInfo("- "+strings.Join(promotedFiles, "\n- ")),
 			style.SecondaryInfo(commitMessage))
+	} else if messageOnly {
+		p.printf("ℹ️ Pull request %s is not open: skipping push of branch %s\n", opts.updatePullRequest, style.Resource(branchName))
 	} else if existing != nil {
 		err = p.GitProvider.ResetAndForcePushBranchWithFiles(branchName, promotedFiles, commitMessage)
 		if err != nil {

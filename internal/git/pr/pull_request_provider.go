@@ -52,8 +52,11 @@ type PullRequestProvider interface {
 	// Get returns the pull request referenced by given number, URL or branch.
 	Get(pullRequest string) (*PullRequest, error)
 
-	// List returns up to limit open pull requests matching given search query, most recent first.
+	// List returns up to limit pull requests in any state matching given search query, most recent first.
 	List(search string, limit int) ([]PullRequest, error)
+
+	// FetchHead fetches the commits of the pull request with given number into the local repository.
+	FetchHead(number int) error
 
 	// Update updates the title and body of an existing pull request, adding and removing the given labels,
 	// adding the given reviewers, and returns its URL.
