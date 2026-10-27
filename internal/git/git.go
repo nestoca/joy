@@ -306,6 +306,19 @@ func Fetch(dir string) error {
 	return nil
 }
 
+// IsRemoteBranch reports whether ref is the name of a branch on origin, as opposed to a tag or commit.
+func IsRemoteBranch(dir, ref string) (bool, error) {
+	cmd := exec.Command("git", "-C", dir, "show-ref", "--verify", "--quiet", "refs/remotes/origin/"+ref)
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+		return false, nil
+	}
+	return false, fmt.Errorf("verifying ref %s: %w", ref, err)
+}
+
 func FetchTags(dir string) error {
 	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
 		cmd := exec.Command("git", "fetch", "--tags")

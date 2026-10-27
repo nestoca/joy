@@ -229,7 +229,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 				PullRequestTemplate: cfg.Templates.Release.Promote.PullRequest,
 				TemplateVariables:   templateVariables,
 				PromptProvider:      cmp.Or[promote.PromptProvider](params.Prompt, promote.NewInteractivePromptProvider(cmd.OutOrStdout())),
-				GitProvider:         cmp.Or[promote.GitProvider](params.Git, promote.NewShellGitProvider(cfg.CatalogDir)),
+				GitProvider:         cmp.Or[promote.GitProvider](params.Git, promote.NewShellGitProvider(cfg.CatalogDir, config.CatalogRefFromContext(cmd.Context()))),
 				PullRequestProvider: cmp.Or[pr.PullRequestProvider](params.PullRequest, github.NewPullRequestProvider(cfg.CatalogDir)),
 				YamlWriter:          cmp.Or[yml.Writer](params.Writer, yml.DiskWriter),
 				InfoProvider:        cmp.Or(params.Info, infoProvider),
