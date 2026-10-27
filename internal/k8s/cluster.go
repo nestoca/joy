@@ -3,26 +3,22 @@ package k8s
 import (
 	"cmp"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"maps"
-	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	sigsyaml "sigs.k8s.io/yaml"
 
-	"github.com/nestoca/joy/internal/shell"
-	"github.com/nestoca/joy/internal/wait"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	corev1 "k8s.io/api/core/v1"
+	"github.com/nestoca/joy/internal/shell"
+	"github.com/nestoca/joy/internal/wait"
 )
 
 var (
@@ -31,14 +27,14 @@ var (
 )
 
 type ClusterDefinition struct {
-	KubeContext   string                     `json:"kubeContext"`
-	Env           string                     `json:"-"`
-	Recreate      bool                       `json:"-"`
-	CRDs          string                     `json:"crds"`
-	SetupCommands []SetupCommand             `json:"setupCommands"`
-	Registries    map[string]ClusterRegistry `json:"registries"`
-	Sources       map[string]Source          `json:"sources"`
-	JoyOperator   JoyOperatorDefinition      `json:"joyOperator"`
+	KubeContext   string                `json:"kubeContext"`
+	Env           string                `json:"-"`
+	Recreate      bool                  `json:"-"`
+	CRDs          string                `json:"crds"`
+	SetupCommands []SetupCommand        `json:"setupCommands"`
+	Registries    Registries            `json:"registries"`
+	Sources       map[string]Source     `json:"sources"`
+	JoyOperator   JoyOperatorDefinition `json:"joyOperator"`
 }
 
 type JoyOperatorDefinition struct {
@@ -109,114 +105,8 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 		return fmt.Errorf("failed to ensure argocd namespace: %w", err)
 	}
 
-	for name, registry := range cluster.Registries {
-		if err := func() error {
-			fmt.Printf("getting credentials for registry: %s\n", name)
-
-			token, err := sh.ExecfCombined(ctx, registry.AuthCommand, nil)
-			if err != nil {
-				return fmt.Errorf("failed to authenticate with registry: %w", err)
-			}
-
-			registryURL, err := url.Parse(registry.URL)
-			if err != nil {
-				return fmt.Errorf("failed to parse registry url: %w", err)
-			}
-
-			dockerConfig, err := json.Marshal(map[string]any{
-				"auths": map[string]any{
-					registryURL.Host: map[string]any{
-						"username": "oauth2accesstoken",
-						"password": string(token),
-						"auth":     base64.StdEncoding.EncodeToString(append([]byte("oauth2accesstoken:"), token...)),
-					},
-				},
-			})
-
-			if registry.Helm {
-				if err := sh.Execf(
-					ctx,
-					`kubectl --context %s apply -n argocd --server-side -f -`,
-					[]any{cluster.KubeContext},
-					shell.WithStdin(
-						shell.JSONReader(
-							&corev1.Secret{
-								TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-								ObjectMeta: metav1.ObjectMeta{
-									Name:   "argocd-helm-" + name,
-									Labels: map[string]string{"argocd.argoproj.io/secret-type": "repository"},
-								},
-								Type:      corev1.SecretTypeOpaque,
-								Immutable: new(false),
-								StringData: map[string]string{
-									"type":      "helm",
-									"url":       registryURL.Host,
-									"enableOCI": strconv.FormatBool(registryURL.Scheme == "oci:"),
-									"username":  "oauth2accesstoken",
-									"password":  string(token),
-								},
-							},
-						),
-					),
-				); err != nil {
-					return fmt.Errorf("failed to apply argocd repository helm credentials secret: %w", err)
-				}
-
-				if err := sh.Execf(
-					ctx,
-					`kubectl --context %s apply -n argocd --server-side -f -`,
-					[]any{cluster.KubeContext},
-					shell.WithStdin(
-						shell.JSONReader(
-							&corev1.Secret{
-								TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-								ObjectMeta: metav1.ObjectMeta{
-									Name:   "joy-helm-" + name,
-									Labels: map[string]string{"joy.nesto.ca/dockerconfigjson": "helm"},
-								},
-								Type:      corev1.SecretTypeDockerConfigJson,
-								Immutable: new(false),
-								Data:      map[string][]byte{corev1.DockerConfigJsonKey: dockerConfig},
-							},
-						),
-					),
-				); err != nil {
-					return fmt.Errorf("failed to apply joy repository helm credentials secret: %w", err)
-				}
-			}
-
-			if registry.ContainerImages {
-				if err != nil {
-					return fmt.Errorf("failed to serialize registry dockerconfigjson: %w", err)
-				}
-
-				if err := sh.Execf(
-					ctx,
-					`kubectl --context %s apply --server-side -f -`,
-					[]any{cluster.KubeContext},
-					shell.WithStdin(
-						shell.JSONReader(
-							&corev1.Secret{
-								TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-								ObjectMeta: metav1.ObjectMeta{
-									Name: name + "-images",
-									// Labels: map[string]string{"argocd.argoproj.io/secret-type": "repository"},
-								},
-								Type:      corev1.SecretTypeDockerConfigJson,
-								Immutable: new(false),
-								Data:      map[string][]byte{".dockerconfigjson": dockerConfig},
-							},
-						),
-					),
-				); err != nil {
-					return fmt.Errorf("failed to apply images dockerconfigjson secret: %w", err)
-				}
-			}
-
-			return nil
-		}(); err != nil {
-			return fmt.Errorf("failed to setup registry %q: %w", name, err)
-		}
+	if err := cluster.Registries.Auth(ctx, cluster.KubeContext); err != nil {
+		return fmt.Errorf("failed to authenticate registries: %w", err)
 	}
 
 	crds := KubectlSource{

@@ -1,138 +1,142 @@
 package k8s
 
 import (
-	"bytes"
-	"cmp"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"io"
-	"os"
-	"strings"
+	"net/url"
+	"strconv"
 
-	"github.com/nestoca/joy/internal/shell"
+	"github.com/davidmdm/x/xerr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	sigsyaml "sigs.k8s.io/yaml"
+
+	"github.com/nestoca/joy/internal/shell"
 )
 
 type ClusterRegistry struct {
-	URL             string `json:"url"`
-	AuthCommand     string `json:"auth"`
-	Helm            bool   `json:"helm"`
-	ContainerImages bool   `json:"images"`
+	URL             string          `json:"url"`
+	AuthCommand     string          `json:"auth"`
+	Helm            bool            `json:"helm"`
+	ContainerImages bool            `json:"images"`
+	TTL             metav1.Duration `json:"ttl"`
 }
 
-type HelmSource struct {
-	AdditionalArgs string `json:"additionalArgs"`
-	URL            string `json:"url"`
-	Namespace      string `json:"namespace"`
-	Version        string `json:"version"`
-	Release        string `json:"release"`
-	ValuesFile     string `json:"valuesFile"`
-	Values         any    `json:"values"`
-	KubeContext    string `json:"-"`
-}
+type Registries map[string]ClusterRegistry
 
-func (source HelmSource) Apply(ctx context.Context) error {
-	ns := cmp.Or(source.Namespace, "default")
-	if ns != "default" {
-		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
-			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
+func (registries Registries) Auth(ctx context.Context, kubecontext string) error {
+	errs := make([]error, 0, len(registries))
+	for name, registry := range registries {
+		if err := registry.Auth(ctx, name, kubecontext); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", name, err))
 		}
 	}
-	data, err := func() ([]byte, error) {
-		if value := source.Values; value != nil {
-			if reader, ok := source.Values.(io.Reader); ok {
-				return io.ReadAll(reader)
-			}
-			if data, ok := source.Values.(string); ok {
-				return []byte(data), nil
-			}
-			return sigsyaml.Marshal(value)
-		}
-		return os.ReadFile(source.ValuesFile)
-	}()
+	return xerr.JoinOrdered(errs...)
+}
+
+func (registry ClusterRegistry) Auth(ctx context.Context, name, kubecontext string) error {
+	fmt.Printf("getting credentials for registry: %s\n", name)
+
+	token, err := sh.ExecfCombined(ctx, registry.AuthCommand, nil)
 	if err != nil {
-		return fmt.Errorf("failed to get values: %w", err)
+		return fmt.Errorf("failed to authenticate with registry: %w", err)
 	}
-	return sh.Execf(
-		ctx,
-		"helm upgrade --kube-context %s --create-namespace --namespace %s --install --wait --timeout 5m %s %s %s --values - %s",
-		[]any{
-			source.KubeContext,
-			ns,
-			source.Release,
-			source.URL,
-			func() string {
-				if version := source.Version; version != "" {
-					return "--version " + version
-				}
-				return ""
-			}(),
-			source.AdditionalArgs,
+
+	registryURL, err := url.Parse(registry.URL)
+	if err != nil {
+		return fmt.Errorf("failed to parse registry url: %w", err)
+	}
+
+	dockerConfig, err := json.Marshal(map[string]any{
+		"auths": map[string]any{
+			registryURL.Host: map[string]any{
+				"username": "oauth2accesstoken",
+				"password": string(token),
+				"auth":     base64.StdEncoding.EncodeToString(append([]byte("oauth2accesstoken:"), token...)),
+			},
 		},
-		shell.WithStdin(bytes.NewReader(data)),
-	)
-}
+	})
 
-type KubectlSource struct {
-	KubeContext string `json:"-"`
-	Path        string `json:"path"`
-	Input       string `json:"input"`
-	Namespace   string `json:"namespace"`
-	Recursive   bool   `json:"recursive"`
-}
+	if registry.Helm {
+		if err := sh.Execf(
+			ctx,
+			`kubectl --context %s apply -n argocd --server-side -f -`,
+			[]any{kubecontext},
+			shell.WithStdin(
+				shell.JSONReader(
+					&corev1.Secret{
+						TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "argocd-helm-" + name,
+							Labels: map[string]string{"argocd.argoproj.io/secret-type": "repository"},
+						},
+						Type:      corev1.SecretTypeOpaque,
+						Immutable: new(false),
+						StringData: map[string]string{
+							"type":      "helm",
+							"url":       registryURL.Host,
+							"enableOCI": strconv.FormatBool(registryURL.Scheme == "oci:"),
+							"username":  "oauth2accesstoken",
+							"password":  string(token),
+						},
+					},
+				),
+			),
+		); err != nil {
+			return fmt.Errorf("failed to apply argocd repository helm credentials secret: %w", err)
+		}
 
-func (source KubectlSource) Apply(ctx context.Context) error {
-	ns := cmp.Or(source.Namespace, "default")
-	if ns != "default" {
-		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
-			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
+		if err := sh.Execf(
+			ctx,
+			`kubectl --context %s apply -n argocd --server-side -f -`,
+			[]any{kubecontext},
+			shell.WithStdin(
+				shell.JSONReader(
+					&corev1.Secret{
+						TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:   "joy-helm-" + name,
+							Labels: map[string]string{"joy.nesto.ca/dockerconfigjson": "helm"},
+						},
+						Type:      corev1.SecretTypeDockerConfigJson,
+						Immutable: new(false),
+						Data:      map[string][]byte{corev1.DockerConfigJsonKey: dockerConfig},
+					},
+				),
+			),
+		); err != nil {
+			return fmt.Errorf("failed to apply joy repository helm credentials secret: %w", err)
 		}
 	}
-	if source.Input != "" {
-		return sh.Execf(
+
+	if registry.ContainerImages {
+		if err != nil {
+			return fmt.Errorf("failed to serialize registry dockerconfigjson: %w", err)
+		}
+
+		if err := sh.Execf(
 			ctx,
-			"kubectl --context %s apply --server-side -n '%s' -f -",
-			[]any{source.KubeContext, ns},
-			shell.WithStdin(strings.NewReader(source.Input)),
-		)
+			`kubectl --context %s apply --server-side -f -`,
+			[]any{kubecontext},
+			shell.WithStdin(
+				shell.JSONReader(
+					&corev1.Secret{
+						TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: name + "-images",
+							// Labels: map[string]string{"argocd.argoproj.io/secret-type": "repository"},
+						},
+						Type:      corev1.SecretTypeDockerConfigJson,
+						Immutable: new(false),
+						Data:      map[string][]byte{".dockerconfigjson": dockerConfig},
+					},
+				),
+			),
+		); err != nil {
+			return fmt.Errorf("failed to apply images dockerconfigjson secret: %w", err)
+		}
 	}
-	return sh.Execf(
-		ctx,
-		"kubectl --context %s apply --server-side -n '%s' -f '%s' %s",
-		[]any{source.KubeContext, ns, source.Path, func() string {
-			if source.Recursive {
-				return "--recursive"
-			}
-			return ""
-		}()},
-	)
-}
 
-type Source struct {
-	Helm    *HelmSource    `json:"helm"`
-	Kubectl *KubectlSource `json:"kubectl"`
-}
-
-func (source Source) Apply(ctx context.Context) error {
-	if source.Helm != nil {
-		return source.Helm.Apply(ctx)
-	}
-	if source.Kubectl != nil {
-		return source.Kubectl.Apply(ctx)
-	}
 	return nil
-}
-
-func ensureNamespace(ctx context.Context, ns, kubectx string) error {
-	return sh.Execf(
-		ctx,
-		`kubectl --context %s apply -f -`,
-		[]any{kubectx},
-		shell.WithStdin(shell.JSONReader(&corev1.Namespace{
-			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Namespace"},
-			ObjectMeta: metav1.ObjectMeta{Name: ns},
-		})),
-	)
 }
