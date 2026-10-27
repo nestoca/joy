@@ -171,24 +171,24 @@ func diagnoseCatalogBranch(group *Group, catalogDir string, branch string, gitOp
 		if currentBranch != branch {
 			group.AddMsg(
 				warning,
-				fmt.Sprintf("Default branch %s should be checked out (instead of %s)", style.Code(branch), style.Code(currentBranch)),
-				msg(hint, fmt.Sprintf("Switch to default branch using: %s", style.Code("joy git checkout "+branch))),
+				fmt.Sprintf("Catalog branch %s should be checked out (instead of %s)", style.Code(branch), style.Code(currentBranch)),
+				msg(hint, fmt.Sprintf("Switch to catalog branch using: %s", style.Code("joy git checkout "+branch))),
 			)
 		} else {
-			group.AddMsg(success, fmt.Sprintf("Default branch %s is checked out", style.Code(currentBranch)))
+			group.AddMsg(success, fmt.Sprintf("Catalog branch %s is checked out", style.Code(currentBranch)))
 		}
 	}
 
 	isInSync, err := gitOpts.IsInSyncWithRemote(catalogDir, branch)
 	if err != nil {
-		group.AddMsg(failed, label("Failed checking default branch sync state", err.Error()))
+		group.AddMsg(failed, label("Failed checking catalog branch sync state", err.Error()))
 	} else {
 		if isInSync {
-			group.AddMsg(success, "Default branch is in sync with remote")
+			group.AddMsg(success, "Catalog branch is in sync with remote")
 		} else {
 			group.AddMsg(
 				warning,
-				"Default branch is not in sync with remote",
+				"Catalog branch is not in sync with remote",
 				msg(hint, fmt.Sprintf("Update your working copy using: %s", style.Code("joy pull"))),
 			)
 		}
