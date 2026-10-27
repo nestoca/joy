@@ -88,7 +88,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 					if flags.SkipCatalogUpdate {
 						_, _ = fmt.Fprintln(io.Err, "ℹ️ Skipping catalog update.")
 					} else {
-						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, io.Err); err != nil {
+						if err := git.EnsureCleanAndUpToDateWorkingCopy(cfg.CatalogDir, flags.CatalogRef, io.Err); err != nil {
 							return nil, fmt.Errorf("ensuring catalog up to date: %w", err)
 						}
 						var err error
@@ -138,6 +138,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.PersistentFlags().StringVar(&catalogDir, "catalog-dir", "", "Directory containing joy catalog of environments, projects and releases (defaults to $HOME/.joy)")
 
 	cmd.PersistentFlags().BoolVar(&flags.SkipCatalogUpdate, "skip-catalog-update", false, "Skip catalog update and dirty check")
+	cmd.PersistentFlags().StringVar(&flags.CatalogRef, "catalog-ref", config.DefaultCatalogRef, "Git ref of the catalog to checkout and keep up to date")
 
 	// Core commands
 	cmd.AddGroup(&cobra.Group{ID: "core", Title: "Core commands"})

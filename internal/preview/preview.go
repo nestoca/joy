@@ -14,12 +14,13 @@ import (
 	"path/filepath"
 
 	"github.com/davidmdm/x/xerr"
+	"gopkg.in/yaml.v3"
+
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/patch"
 	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
-	"gopkg.in/yaml.v3"
 )
 
 // Replacement is a single regex search/replace applied to the preview file text.

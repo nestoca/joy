@@ -8,10 +8,12 @@ import (
 
 type ShellGitProvider struct {
 	dir string
+	ref string
 }
 
-func NewShellGitProvider(dir string) *ShellGitProvider {
-	return &ShellGitProvider{dir: dir}
+// NewShellGitProvider returns a GitProvider operating on the catalog in dir, returning to ref once done.
+func NewShellGitProvider(dir string, ref string) *ShellGitProvider {
+	return &ShellGitProvider{dir: dir, ref: ref}
 }
 
 func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files []string, message string) error {
@@ -36,6 +38,6 @@ func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files
 	return nil
 }
 
-func (g *ShellGitProvider) CheckoutMasterBranch() error {
-	return git.Checkout(g.dir, "master")
+func (g *ShellGitProvider) CheckoutCatalogRef() error {
+	return git.Checkout(g.dir, g.ref)
 }

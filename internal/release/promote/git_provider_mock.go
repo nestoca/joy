@@ -17,8 +17,8 @@ var _ GitProvider = &GitProviderMock{}
 //
 //		// make and configure a mocked GitProvider
 //		mockedGitProvider := &GitProviderMock{
-//			CheckoutMasterBranchFunc: func() error {
-//				panic("mock out the CheckoutMasterBranch method")
+//			CheckoutCatalogRefFunc: func() error {
+//				panic("mock out the CheckoutCatalogRef method")
 //			},
 //			CreateAndPushBranchWithFilesFunc: func(branchName string, files []string, message string) error {
 //				panic("mock out the CreateAndPushBranchWithFiles method")
@@ -30,16 +30,16 @@ var _ GitProvider = &GitProviderMock{}
 //
 //	}
 type GitProviderMock struct {
-	// CheckoutMasterBranchFunc mocks the CheckoutMasterBranch method.
-	CheckoutMasterBranchFunc func() error
+	// CheckoutCatalogRefFunc mocks the CheckoutCatalogRef method.
+	CheckoutCatalogRefFunc func() error
 
 	// CreateAndPushBranchWithFilesFunc mocks the CreateAndPushBranchWithFiles method.
 	CreateAndPushBranchWithFilesFunc func(branchName string, files []string, message string) error
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// CheckoutMasterBranch holds details about calls to the CheckoutMasterBranch method.
-		CheckoutMasterBranch []struct {
+		// CheckoutCatalogRef holds details about calls to the CheckoutCatalogRef method.
+		CheckoutCatalogRef []struct {
 		}
 		// CreateAndPushBranchWithFiles holds details about calls to the CreateAndPushBranchWithFiles method.
 		CreateAndPushBranchWithFiles []struct {
@@ -51,37 +51,37 @@ type GitProviderMock struct {
 			Message string
 		}
 	}
-	lockCheckoutMasterBranch         sync.RWMutex
+	lockCheckoutCatalogRef           sync.RWMutex
 	lockCreateAndPushBranchWithFiles sync.RWMutex
 }
 
-// CheckoutMasterBranch calls CheckoutMasterBranchFunc.
-func (mock *GitProviderMock) CheckoutMasterBranch() error {
+// CheckoutCatalogRef calls CheckoutCatalogRefFunc.
+func (mock *GitProviderMock) CheckoutCatalogRef() error {
 	callInfo := struct {
 	}{}
-	mock.lockCheckoutMasterBranch.Lock()
-	mock.calls.CheckoutMasterBranch = append(mock.calls.CheckoutMasterBranch, callInfo)
-	mock.lockCheckoutMasterBranch.Unlock()
-	if mock.CheckoutMasterBranchFunc == nil {
+	mock.lockCheckoutCatalogRef.Lock()
+	mock.calls.CheckoutCatalogRef = append(mock.calls.CheckoutCatalogRef, callInfo)
+	mock.lockCheckoutCatalogRef.Unlock()
+	if mock.CheckoutCatalogRefFunc == nil {
 		var (
 			errOut error
 		)
 		return errOut
 	}
-	return mock.CheckoutMasterBranchFunc()
+	return mock.CheckoutCatalogRefFunc()
 }
 
-// CheckoutMasterBranchCalls gets all the calls that were made to CheckoutMasterBranch.
+// CheckoutCatalogRefCalls gets all the calls that were made to CheckoutCatalogRef.
 // Check the length with:
 //
-//	len(mockedGitProvider.CheckoutMasterBranchCalls())
-func (mock *GitProviderMock) CheckoutMasterBranchCalls() []struct {
+//	len(mockedGitProvider.CheckoutCatalogRefCalls())
+func (mock *GitProviderMock) CheckoutCatalogRefCalls() []struct {
 } {
 	var calls []struct {
 	}
-	mock.lockCheckoutMasterBranch.RLock()
-	calls = mock.calls.CheckoutMasterBranch
-	mock.lockCheckoutMasterBranch.RUnlock()
+	mock.lockCheckoutCatalogRef.RLock()
+	calls = mock.calls.CheckoutCatalogRef
+	mock.lockCheckoutCatalogRef.RUnlock()
 	return calls
 }
 

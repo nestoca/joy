@@ -181,8 +181,8 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		p.PromptProvider.PrintPullRequestCreated(prURL)
 	}
 
-	if err := p.GitProvider.CheckoutMasterBranch(); err != nil {
-		return "", fmt.Errorf("checking out master: %w", err)
+	if err := p.GitProvider.CheckoutCatalogRef(); err != nil {
+		return "", fmt.Errorf("checking out catalog ref: %w", err)
 	}
 
 	p.PromptProvider.PrintCompleted()

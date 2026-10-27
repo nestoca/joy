@@ -82,7 +82,7 @@ func diagnoseCatalog(ctx context.Context, cfg *config.Config, opts CatalogOpts) 
 			group.AddMsg(success, "Working copy has no uncommitted changes")
 		}
 
-		const defaultBranch = "master"
+		defaultBranch := config.CatalogRefFromContext(ctx)
 		currentBranch, err := opts.Git.GetCurrentBranch(cfg.CatalogDir)
 		if err != nil {
 			group.AddMsg(failed, label("Failed getting current branch", err.Error()))
