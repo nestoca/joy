@@ -69,7 +69,7 @@ func selectFailedPullRequests(provider pr.PullRequestProvider, search string) ([
 
 	var result []pr.PullRequest
 	for _, pullRequest := range pullRequests {
-		if !pullRequest.Approved && strings.HasPrefix(pullRequest.Branch, "promote-") {
+		if !pullRequest.Approved && strings.HasPrefix(pullRequest.Branch, promote.BranchPrefix) {
 			result = append(result, pullRequest)
 		}
 	}

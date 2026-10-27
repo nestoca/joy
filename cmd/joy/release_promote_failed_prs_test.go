@@ -103,3 +103,54 @@ func TestUpdateFailedPullRequestsLoadsCatalogAtEachPullRequestBaseThenCatalogRef
 	require.ErrorContains(t, err, `environment "qa" not found`)
 	require.Equal(t, []string{"a1^", "b1^", "release/v1"}, loadedRefs)
 }
+
+func TestReleasePromoteRejectsFlagsIgnoredByUpdateFailedPullRequests(t *testing.T) {
+	cases := []struct {
+		Name          string
+		Args          []string
+		ExpectedError string
+	}{
+		{
+			Name:          "reviewers",
+			Args:          []string{"--update-failed-prs", "--reviewers", "john.doe"},
+			ExpectedError: "flag --reviewers cannot be used with --update-failed-prs",
+		},
+		{
+			Name:          "template var",
+			Args:          []string{"--update-failed-prs", "--template-var", "key=value"},
+			ExpectedError: "flag --template-var cannot be used with --update-failed-prs",
+		},
+		{
+			Name:          "omit",
+			Args:          []string{"--update-failed-prs", "--omit", "release"},
+			ExpectedError: "flag --omit cannot be used with --update-failed-prs",
+		},
+		{
+			Name:          "keep prerelease",
+			Args:          []string{"--update-failed-prs", "--keep-prerelease"},
+			ExpectedError: "flag --keep-prerelease cannot be used with --update-failed-prs",
+		},
+		{
+			Name:          "auto merge",
+			Args:          []string{"--update-failed-prs", "--auto-merge"},
+			ExpectedError: "flag --auto-merge cannot be used with --update-failed-prs",
+		},
+		{
+			Name:          "search without update failed prs",
+			Args:          []string{"--update-failed-prs-search", "label:foo", "--source", "staging", "--target", "prod", "foo"},
+			ExpectedError: "flag --update-failed-prs-search requires --update-failed-prs",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			cmd := NewReleasePromoteCmd(PromoteParams{PreRunConfigs: make(PreRunConfigs)})
+			cmd.SetArgs(tc.Args)
+			cmd.SetOut(&bytes.Buffer{})
+			cmd.SetErr(&bytes.Buffer{})
+			cmd.SilenceUsage = true
+
+			require.EqualError(t, cmd.Execute(), tc.ExpectedError)
+		})
+	}
+}
