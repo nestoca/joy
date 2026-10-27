@@ -3,9 +3,10 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	sigsyaml "sigs.k8s.io/yaml"
+
 	"github.com/nestoca/joy/internal/helm"
 	"github.com/nestoca/joy/internal/yml"
-	sigsyaml "sigs.k8s.io/yaml"
 )
 
 type Catalog struct {
