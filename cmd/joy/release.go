@@ -189,7 +189,15 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 				if len(args) > 0 || all || sourceEnv != "" || targetEnv != "" {
 					return fmt.Errorf("releases, --all, --source and --target are inferred from each pull request when --update-failed-prs is set")
 				}
+				for _, name := range []string{"reviewers", "template-var", "omit", "keep-prerelease", "auto-merge"} {
+					if cmd.Flags().Changed(name) {
+						return fmt.Errorf("flag --%s cannot be used with --update-failed-prs", name)
+					}
+				}
 				return nil
+			}
+			if cmd.Flags().Changed("update-failed-prs-search") {
+				return fmt.Errorf("flag --update-failed-prs-search requires --update-failed-prs")
 			}
 			if noPrompt {
 				if len(args) == 0 && !all {

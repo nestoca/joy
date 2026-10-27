@@ -399,6 +399,32 @@ func TestPromotion(t *testing.T) {
 			expectedErrorMessage: "pull request 123 to update is not open",
 			expectedPromoted:     false,
 		},
+		{
+			name: "Update pull request that is not a promotion pull request",
+			opts: newOpts(),
+			setup: func(args setupArgs) func(t *testing.T) {
+				opts := args.opts
+				opts.NoPrompt = true
+				opts.Releases = []string{"release1"}
+				opts.UpdatePullRequest = "123"
+
+				crossRel0 := opts.Catalog.Releases.Items[0]
+				crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+				crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
+					return &pr.PullRequest{Number: 123, Branch: "feature-branch", Open: true}, nil
+				}
+
+				return func(t *testing.T) {
+					require.Empty(t, args.yamlWriter.WriteFileCalls())
+					require.Empty(t, args.gitProvider.ResetAndForcePushBranchWithFilesCalls())
+					require.Empty(t, args.prProvider.UpdateCalls())
+				}
+			},
+			expectedErrorMessage: `pull request 123 to update is not a promotion pull request: branch "feature-branch" does not start with "promote-"`,
+			expectedPromoted:     false,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

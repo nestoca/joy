@@ -22,6 +22,9 @@ const (
 
 	// RenderingFailedLabel marks promotion PRs whose message could not be fully rendered.
 	RenderingFailedLabel = "rendering:failed"
+
+	// BranchPrefix is the prefix of the branches of promotion PRs.
+	BranchPrefix = "promote-"
 )
 
 type PerformOpts struct {
@@ -57,6 +60,9 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		}
 		if !existing.Open {
 			return "", fmt.Errorf("pull request %s to update is not open", opts.updatePullRequest)
+		}
+		if !strings.HasPrefix(existing.Branch, BranchPrefix) {
+			return "", fmt.Errorf("pull request %s to update is not a promotion pull request: branch %q does not start with %q", opts.updatePullRequest, existing.Branch, BranchPrefix)
 		}
 	}
 
