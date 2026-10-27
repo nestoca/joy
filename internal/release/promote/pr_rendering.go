@@ -1,6 +1,7 @@
 package promote
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/nestoca/joy/api/v1alpha1"
+	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/retry"
@@ -136,6 +138,11 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 	projectDir, err := retry.Retriable(func() (string, error) {
 		return opts.infoProvider.GetProjectSourceDir(project)
 	})
+	if errors.Is(err, github.ErrRepositoryNotFound) {
+		fmt.Printf("⚠️ Repository %s not found: skipping its commits\n", repository)
+		releaseInfo.Reviewers = project.Spec.Reviewers
+		return &releaseInfo, nil
+	}
 	if err != nil {
 		// We still want to continue if there is failure
 		fmt.Printf("⚠️ Failed to clone %s repository attempts: %v\n", repository, err)
