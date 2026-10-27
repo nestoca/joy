@@ -72,7 +72,7 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 		"pr", "create",
 		"--head", params.Branch,
 		"--title", params.Title,
-		"--body", params.Body,
+		"--body", truncateBody(params.Body),
 	}
 
 	if params.Draft {
@@ -202,7 +202,7 @@ func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {
 	args := []string{
 		"pr", "edit", params.PullRequest,
 		"--title", params.Title,
-		"--body", params.Body,
+		"--body", truncateBody(params.Body),
 	}
 
 	for _, label := range params.Labels {
@@ -234,6 +234,26 @@ func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {
 	}
 
 	return strings.TrimSpace(prURL), nil
+}
+
+// maxBodyLength is the maximum number of characters GitHub accepts in a pull request body.
+const maxBodyLength = 65536
+
+const truncatedBodyNotice = "\n\n⚠️ Truncated: the body exceeded GitHub's limit of 65536 characters."
+
+// truncateBody returns given body cut at the last line break fitting GitHub's maximum pull request body length,
+// followed by a notice, or the body itself when it fits.
+func truncateBody(body string) string {
+	runes := []rune(body)
+	if len(runes) <= maxBodyLength {
+		return body
+	}
+
+	truncated := string(runes[:maxBodyLength-len([]rune(truncatedBodyNotice))])
+	if i := strings.LastIndex(truncated, "\n"); i > 0 {
+		truncated = truncated[:i]
+	}
+	return truncated + truncatedBodyNotice
 }
 
 func (p *PullRequestProvider) AddLabels(pullRequest string, labels []string) error {
