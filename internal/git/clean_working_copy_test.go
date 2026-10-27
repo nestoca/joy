@@ -40,6 +40,25 @@ func TestEnsureCleanAndUpToDateWorkingCopy(t *testing.T) {
 	}
 }
 
+func TestEnsureCleanAndUpToDateWorkingCopyUnknownRef(t *testing.T) {
+	dir := setupCatalogClone(t)
+	before := runGit(t, dir, "rev-parse", "HEAD")
+
+	require.Error(t, EnsureCleanAndUpToDateWorkingCopy(dir, "does-not-exist", io.Discard))
+	require.Equal(t, before, runGit(t, dir, "rev-parse", "HEAD"))
+}
+
+func TestResolveCommit(t *testing.T) {
+	dir := setupCatalogClone(t)
+
+	commit, err := ResolveCommit(dir, "v1")
+	require.NoError(t, err)
+	require.Equal(t, runGit(t, dir, "rev-parse", "HEAD~1"), commit)
+
+	_, err = ResolveCommit(dir, "does-not-exist")
+	require.Error(t, err)
+}
+
 func TestIsRemoteBranch(t *testing.T) {
 	dir := setupCatalogClone(t)
 

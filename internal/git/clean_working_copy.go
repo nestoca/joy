@@ -28,14 +28,14 @@ func EnsureCleanAndUpToDateWorkingCopy(catalogDir string, ref string, out io.Wri
 		return fmt.Errorf("checking if %s is a remote branch: %w", ref, err)
 	}
 
+	if !isBranch {
+		return checkoutDetachedRef(catalogDir, ref, out)
+	}
+
 	if err := Checkout(catalogDir, ref); err != nil {
 		return fmt.Errorf("checking out %s: %w", ref, err)
 	}
 	_, _ = fmt.Fprintf(out, "ℹ️  Catalog: checking out %s\n", style.Code(ref))
-
-	if !isBranch {
-		return nil
-	}
 
 	if err := Pull(catalogDir); err != nil {
 		return fmt.Errorf("pulling changes: %w", err)
@@ -49,6 +49,29 @@ func EnsureCleanAndUpToDateWorkingCopy(catalogDir string, ref string, out io.Wri
 
 	if len(diffs) > 0 {
 		return fmt.Errorf("diff with %s detected:\n%s", style.Code(originRef), style.Warning(strings.Join(diffs, "\n")))
+	}
+
+	return nil
+}
+
+// checkoutDetachedRef checks out the commit that ref resolves to and verifies that HEAD now points to it.
+func checkoutDetachedRef(catalogDir string, ref string, out io.Writer) error {
+	commit, err := ResolveCommit(catalogDir, ref)
+	if err != nil {
+		return err
+	}
+
+	if err := Checkout(catalogDir, commit); err != nil {
+		return fmt.Errorf("checking out %s: %w", ref, err)
+	}
+	_, _ = fmt.Fprintf(out, "ℹ️  Catalog: checking out %s (%s)\n", style.Code(ref), commit)
+
+	head, err := GetCurrentCommit(catalogDir)
+	if err != nil {
+		return err
+	}
+	if head != commit {
+		return fmt.Errorf("checked out %s but HEAD is at %s instead of %s", ref, head, commit)
 	}
 
 	return nil

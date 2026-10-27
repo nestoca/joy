@@ -18,9 +18,10 @@ import (
 
 func TestCatalogDiagnostics(t *testing.T) {
 	cases := []struct {
-		Name     string
-		Opts     CatalogOpts
-		Expected Group
+		Name       string
+		CatalogRef string
+		Opts       CatalogOpts
+		Expected   Group
 	}{
 		{
 			Name: "happy",
@@ -32,6 +33,7 @@ func TestCatalogDiagnostics(t *testing.T) {
 					GetCurrentBranch:      func(string) (string, error) { return "master", nil },
 					IsInSyncWithRemote:    func(string, string) (bool, error) { return true, nil },
 					GetCurrentCommit:      func(string) (string, error) { return "origin/HEAD", nil },
+					IsRemoteBranch:        func(string, string) (bool, error) { return true, nil },
 				},
 				CheckCatalog: func(s string) error { return nil },
 				LoadCatalog: func(context.Context, string, []string) (*catalog.Catalog, error) {
@@ -49,7 +51,11 @@ func TestCatalogDiagnostics(t *testing.T) {
 					{
 						Title: "Git working copy", Messages: Messages{
 							{Type: "info", Value: "Directory exists: catalogDir"},
-							{Type: "failed", Value: "Working copy is invalid"},
+							{Type: "success", Value: "Working copy is valid"},
+							{Type: "success", Value: "Working copy has no uncommitted changes"},
+							{Type: "success", Value: "Default branch master is checked out"},
+							{Type: "success", Value: "Default branch is in sync with remote"},
+							{Type: "info", Value: "Current commit: origin/HEAD"},
 						},
 					},
 					{
@@ -125,11 +131,90 @@ func TestCatalogDiagnostics(t *testing.T) {
 				}, topLevel: true,
 			},
 		},
+		{
+			Name:       "detached catalog ref checked out",
+			CatalogRef: "v1",
+			Opts: CatalogOpts{
+				Stat:         func(string) (fs.FileInfo, error) { return nil, nil },
+				CheckCatalog: func(string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
+				Git: GitOpts{
+					IsValid:               func(string) bool { return true },
+					GetUncommittedChanges: func(string) ([]string, error) { return nil, nil },
+					GetCurrentBranch:      func(string) (string, error) { return "HEAD", nil },
+					IsInSyncWithRemote: func(string, string) (bool, error) {
+						return false, errors.New("should not be called for detached refs")
+					},
+					GetCurrentCommit: func(string) (string, error) { return "abc123", nil },
+					IsRemoteBranch:   func(string, string) (bool, error) { return false, nil },
+					ResolveCommit:    func(string, string) (string, error) { return "abc123", nil },
+				},
+			},
+			Expected: Group{
+				Title: "Catalog",
+				SubGroups: Groups{
+					{
+						Title: "Git working copy", Messages: Messages{
+							{Type: "info", Value: "Directory exists: catalogDir"},
+							{Type: "success", Value: "Working copy is valid"},
+							{Type: "success", Value: "Working copy has no uncommitted changes"},
+							{Type: "success", Value: "Catalog ref v1 is checked out"},
+							{Type: "info", Value: "Current commit: abc123"},
+						},
+					},
+					{
+						Title: "Loading catalog", Messages: Messages{
+							{Type: "failed", Value: "Catalog not detected: no joy catalog found at \"catalogDir\""},
+						},
+					},
+				}, topLevel: true,
+			},
+		},
+		{
+			Name:       "detached catalog ref not checked out",
+			CatalogRef: "v1",
+			Opts: CatalogOpts{
+				Stat:         func(string) (fs.FileInfo, error) { return nil, nil },
+				CheckCatalog: func(string) error { return errors.New("no joy catalog found at \"catalogDir\"") },
+				Git: GitOpts{
+					IsValid:               func(string) bool { return true },
+					GetUncommittedChanges: func(string) ([]string, error) { return nil, nil },
+					GetCurrentCommit:      func(string) (string, error) { return "def456", nil },
+					IsRemoteBranch:        func(string, string) (bool, error) { return false, nil },
+					ResolveCommit:         func(string, string) (string, error) { return "abc123", nil },
+				},
+			},
+			Expected: Group{
+				Title: "Catalog",
+				SubGroups: Groups{
+					{
+						Title: "Git working copy", Messages: Messages{
+							{Type: "info", Value: "Directory exists: catalogDir"},
+							{Type: "success", Value: "Working copy is valid"},
+							{Type: "success", Value: "Working copy has no uncommitted changes"},
+							{
+								Type:  "warning",
+								Value: "Catalog ref v1 should be checked out (instead of def456)",
+								Details: Messages{
+									{Type: "hint", Value: "Switch to catalog ref using: joy git checkout abc123"},
+								},
+							},
+							{Type: "info", Value: "Current commit: def456"},
+						},
+					},
+					{
+						Title: "Loading catalog", Messages: Messages{
+							{Type: "failed", Value: "Catalog not detected: no joy catalog found at \"catalogDir\""},
+						},
+					},
+				}, topLevel: true,
+			},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
-			require.Equal(t, tc.Expected, diagnoseCatalog(context.Background(), &config.Config{User: config.User{CatalogDir: "catalogDir"}}, tc.Opts).StripAnsi())
+			ctx := config.ToFlagsContext(context.Background(), &config.GlobalFlags{CatalogRef: tc.CatalogRef})
+			require.Equal(t, tc.Expected, diagnoseCatalog(ctx, &config.Config{User: config.User{CatalogDir: "catalogDir"}}, tc.Opts).StripAnsi())
 		})
 	}
 }
