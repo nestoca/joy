@@ -176,7 +176,7 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
   # Update an existing promotion PR with a fresh promotion, instead of creating a new one
   joy release promote release-a,release-b --source staging --target production --update-pr 123
 
-  # Update all open promotion PRs that failed to render, inferring their releases and environments
+  # Update all promotion PRs that failed to render, inferring their releases and environments
   joy release promote --update-failed-prs
 
   # Update open promotion PRs matching a custom search, such as older ones without the rendering:failed label
@@ -295,9 +295,9 @@ func NewReleasePromoteCmd(params PromoteParams) *cobra.Command {
 	cmd.Flags().BoolVar(&keepPrerelease, "keep-prerelease", false, "Do not promote releases that are prereleases in target env")
 	cmd.Flags().StringSliceVar(&omit, "omit", nil, "Releases to omit from promotion")
 	cmd.Flags().StringSliceVar(&reviewers, "reviewers", nil, "Additional reviewers to add to the PR (can be specified multiple times)")
-	cmd.Flags().StringVar(&updatePR, "update-pr", "", "Number, URL or branch of an existing open promotion PR to update instead of creating a new one (its branch is force pushed and its title, body, labels and reviewers are re-rendered)")
+	cmd.Flags().StringVar(&updatePR, "update-pr", "", "Number, URL or branch of an existing promotion PR to update instead of creating a new one (its title, body, labels and reviewers are re-rendered, and its branch is force pushed when open)")
 	cmd.MarkFlagsMutuallyExclusive("narrow", "wide")
-	cmd.Flags().BoolVar(&updateFailedPRs, "update-failed-prs", false, "Update open and unapproved promotion PRs matching --update-failed-prs-search, as with --update-pr, inferring their releases, environments and triggering author from their labels, branch and body")
+	cmd.Flags().BoolVar(&updateFailedPRs, "update-failed-prs", false, "Update promotion PRs matching --update-failed-prs-search, except open and approved ones, as with --update-pr, inferring their releases, environments and triggering author from their labels, branch and body")
 	cmd.Flags().StringVar(&updateFailedPRsSearch, "update-failed-prs-search", fmt.Sprintf("label:%q", promote.RenderingFailedLabel), "GitHub search query selecting the PRs to update with --update-failed-prs")
 	cmd.MarkFlagsMutuallyExclusive("update-pr", "draft")
 	cmd.MarkFlagsMutuallyExclusive("update-pr", "local-only")

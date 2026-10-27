@@ -354,6 +354,20 @@ func ResolveCommit(dir, ref string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// FetchPullRequestHead fetches the head commits of given GitHub pull request from origin, which remain available even
+// once its branch is deleted.
+func FetchPullRequestHead(dir string, number int) error {
+	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
+		cmd := exec.Command("git", "fetch", "origin", fmt.Sprintf("pull/%d/head", number))
+		cmd.Dir = dir
+		return cmd
+	})
+	if err != nil {
+		return fmt.Errorf("fetching pull request #%d: %s", number, output)
+	}
+	return nil
+}
+
 func FetchTags(dir string) error {
 	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
 		cmd := exec.Command("git", "fetch", "--tags")

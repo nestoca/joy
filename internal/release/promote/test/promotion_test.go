@@ -374,7 +374,7 @@ func TestPromotion(t *testing.T) {
 			expectedPromoted: true,
 		},
 		{
-			name: "Update pull request that is not open",
+			name: "Update pull request that is not open only updates its message",
 			opts: newOpts(),
 			setup: func(args setupArgs) func(t *testing.T) {
 				opts := args.opts
@@ -387,17 +387,35 @@ func TestPromotion(t *testing.T) {
 				crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
 
 				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
-					return &pr.PullRequest{Number: 123, Open: false}, nil
+					return &pr.PullRequest{
+						Number: 123,
+						Branch: "promote-release1-from-staging-to-prod-existing",
+						Labels: []string{promote.RenderingFailedLabel},
+						Open:   false,
+					}, nil
 				}
+				args.prProvider.UpdateFunc = func(updateParams pr.UpdateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
+
+				setupDefaultMockInfoProvider(args.infoProvider)
 
 				return func(t *testing.T) {
 					require.Empty(t, args.yamlWriter.WriteFileCalls())
 					require.Empty(t, args.gitProvider.ResetAndForcePushBranchWithFilesCalls())
-					require.Empty(t, args.prProvider.UpdateCalls())
+					require.Empty(t, args.gitProvider.CreateAndPushBranchWithFilesCalls())
+
+					require.Len(t, args.prProvider.UpdateCalls(), 1)
+					require.Equal(t, pr.UpdateParams{
+						PullRequest:  "123",
+						Title:        "PR: Promote 1 releases (staging -> prod)",
+						Labels:       []string{"environment:prod", "release:release1"},
+						RemoveLabels: []string{promote.RenderingFailedLabel},
+						Reviewers:    []string{},
+					}, args.prProvider.UpdateCalls()[0].UpdateParams)
 				}
 			},
-			expectedErrorMessage: "pull request 123 to update is not open",
-			expectedPromoted:     false,
+			expectedPromoted: true,
 		},
 		{
 			name: "Update pull request that is not a promotion pull request",

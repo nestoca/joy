@@ -23,8 +23,8 @@ import (
 
 const failedPullRequestsLimit = 25
 
-// updateFailedPullRequests promotes again the releases of the open and unapproved promotion pull requests matching
-// given search, updating each pull request in place. Each promotion is performed against the catalog checked out at
+// updateFailedPullRequests promotes again the releases of the promotion pull requests matching given search, except
+// open and approved ones, updating each pull request in place. Each promotion is performed against the catalog checked out at
 // the pull request base commit, so that it promotes the same versions as originally, and the catalog ref is checked
 // out again once done.
 func updateFailedPullRequests(cmd *cobra.Command, params PromoteParams, search string, dryRun bool) error {
@@ -40,14 +40,14 @@ func updateFailedPullRequests(cmd *cobra.Command, params PromoteParams, search s
 		return err
 	}
 	if len(pullRequests) == 0 {
-		fmt.Fprintln(cmd.OutOrStdout(), "🤷 No open and unapproved promotion pull requests matching search")
+		fmt.Fprintln(cmd.OutOrStdout(), "🤷 No promotion pull requests to update matching search")
 		return nil
 	}
 
 	var errs error
 	for _, pullRequest := range pullRequests {
 		fmt.Fprintf(cmd.OutOrStdout(), "🔁 Updating pull request %s (%s)\n", pullRequest.URL, pullRequest.Branch)
-		if err := updateFailedPullRequest(cmd, params, cfg, loadCatalog, pullRequest, dryRun); err != nil {
+		if err := updateFailedPullRequest(cmd, params, cfg, provider, loadCatalog, pullRequest, dryRun); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("updating pull request %s: %w", pullRequest.URL, err))
 		}
 	}
@@ -59,8 +59,8 @@ func updateFailedPullRequests(cmd *cobra.Command, params PromoteParams, search s
 	return errs
 }
 
-// selectFailedPullRequests returns the open pull requests matching given search, skipping approved and
-// non-promotion ones.
+// selectFailedPullRequests returns the pull requests in any state matching given search, skipping open and approved
+// ones, as well as non-promotion ones.
 func selectFailedPullRequests(provider pr.PullRequestProvider, search string) ([]pr.PullRequest, error) {
 	pullRequests, err := provider.List(search, failedPullRequestsLimit)
 	if err != nil {
@@ -69,14 +69,14 @@ func selectFailedPullRequests(provider pr.PullRequestProvider, search string) ([
 
 	var result []pr.PullRequest
 	for _, pullRequest := range pullRequests {
-		if !pullRequest.Approved && strings.HasPrefix(pullRequest.Branch, promote.BranchPrefix) {
+		if !(pullRequest.Open && pullRequest.Approved) && strings.HasPrefix(pullRequest.Branch, promote.BranchPrefix) {
 			result = append(result, pullRequest)
 		}
 	}
 	return result, nil
 }
 
-func updateFailedPullRequest(cmd *cobra.Command, params PromoteParams, cfg *config.Config, loadCatalog catalogLoaderFunc, pullRequest pr.PullRequest, dryRun bool) error {
+func updateFailedPullRequest(cmd *cobra.Command, params PromoteParams, cfg *config.Config, provider pr.PullRequestProvider, loadCatalog catalogLoaderFunc, pullRequest pr.PullRequest, dryRun bool) error {
 	promotion, err := promote.ParsePullRequest(pullRequest)
 	if err != nil {
 		return err
@@ -84,6 +84,10 @@ func updateFailedPullRequest(cmd *cobra.Command, params PromoteParams, cfg *conf
 
 	baseRef, err := pullRequestBaseRef(pullRequest)
 	if err != nil {
+		return err
+	}
+
+	if err := provider.FetchHead(pullRequest.Number); err != nil {
 		return err
 	}
 

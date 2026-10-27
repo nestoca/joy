@@ -14,21 +14,27 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
-func TestSelectFailedPullRequestsSkipsApprovedAndNonPromotionPullRequests(t *testing.T) {
+func TestSelectFailedPullRequestsSkipsOpenApprovedAndNonPromotionPullRequests(t *testing.T) {
 	provider := &pr.PullRequestProviderMock{
 		ListFunc: func(search string, limit int) ([]pr.PullRequest, error) {
 			require.Equal(t, `label:"rendering:failed"`, search)
 			return []pr.PullRequest{
-				{Number: 1, Branch: "promote-a-from-qa-to-production-uuid"},
-				{Number: 2, Branch: "promote-b-from-qa-to-production-uuid", Approved: true},
-				{Number: 3, Branch: "feature-branch"},
+				{Number: 1, Branch: "promote-a-from-qa-to-production-uuid", Open: true},
+				{Number: 2, Branch: "promote-b-from-qa-to-production-uuid", Open: true, Approved: true},
+				{Number: 3, Branch: "feature-branch", Open: true},
+				{Number: 4, Branch: "promote-c-from-qa-to-production-uuid", Approved: true},
+				{Number: 5, Branch: "promote-d-from-qa-to-production-uuid"},
 			}, nil
 		},
 	}
 
 	pullRequests, err := selectFailedPullRequests(provider, `label:"rendering:failed"`)
 	require.NoError(t, err)
-	require.Equal(t, []pr.PullRequest{{Number: 1, Branch: "promote-a-from-qa-to-production-uuid"}}, pullRequests)
+	require.Equal(t, []pr.PullRequest{
+		{Number: 1, Branch: "promote-a-from-qa-to-production-uuid", Open: true},
+		{Number: 4, Branch: "promote-c-from-qa-to-production-uuid", Approved: true},
+		{Number: 5, Branch: "promote-d-from-qa-to-production-uuid"},
+	}, pullRequests)
 }
 
 func TestPullRequestBaseRef(t *testing.T) {
@@ -102,6 +108,9 @@ func TestUpdateFailedPullRequestsLoadsCatalogAtEachPullRequestBaseThenCatalogRef
 
 	require.ErrorContains(t, err, `environment "qa" not found`)
 	require.Equal(t, []string{"a1^", "b1^", "release/v1"}, loadedRefs)
+	require.Len(t, provider.FetchHeadCalls(), 2)
+	require.Equal(t, 1, provider.FetchHeadCalls()[0].Number)
+	require.Equal(t, 2, provider.FetchHeadCalls()[1].Number)
 }
 
 func TestReleasePromoteRejectsFlagsIgnoredByUpdateFailedPullRequests(t *testing.T) {
