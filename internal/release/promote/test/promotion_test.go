@@ -12,10 +12,12 @@ import (
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/github"
 	"github.com/nestoca/joy/internal/info"
 	"github.com/nestoca/joy/internal/links"
 	"github.com/nestoca/joy/internal/release/cross"
 	"github.com/nestoca/joy/internal/release/promote"
+	"github.com/nestoca/joy/internal/retry"
 	"github.com/nestoca/joy/internal/yml"
 	"github.com/nestoca/joy/pkg/catalog"
 
@@ -720,4 +722,41 @@ func TestPromotionLabelsPullRequestCreatedDespiteError(t *testing.T) {
 			require.Equal(t, []string{promote.RenderingFailedLabel}, prProvider.AddLabelsCalls()[0].Labels)
 		})
 	}
+}
+
+func TestPromotionIgnoresMissingProjectRepository(t *testing.T) {
+	opts := newOpts()
+	opts.NoPrompt = true
+	opts.Releases = []string{"release1"}
+
+	crossRel0 := opts.Catalog.Releases.Items[0]
+	crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+	crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+	prProvider := &pr.PullRequestProviderMock{
+		CreateFunc: func(createParams pr.CreateParams) (string, error) {
+			return "https://github.com/owner/repo/pull/123", nil
+		},
+	}
+	infoProvider := new(info.ProviderMock)
+	setupDefaultMockInfoProvider(infoProvider)
+	infoProvider.GetProjectSourceDirFunc = func(project *v1alpha1.Project) (string, error) {
+		return "", fmt.Errorf("cloning project: %w", retry.Abort(github.ErrRepositoryNotFound))
+	}
+
+	promotion := promote.Promotion{
+		PromptProvider:      new(promote.PromptProviderMock),
+		GitProvider:         new(promote.GitProviderMock),
+		PullRequestProvider: prProvider,
+		YamlWriter:          new(yml.WriterMock),
+		InfoProvider:        infoProvider,
+		LinksProvider:       new(links.ProviderMock),
+		Out:                 io.Discard,
+	}
+	_, err := promotion.Promote(opts)
+	require.NoError(t, err)
+
+	require.Len(t, infoProvider.GetProjectSourceDirCalls(), 1)
+	require.Len(t, prProvider.CreateCalls(), 1)
+	require.NotContains(t, prProvider.CreateCalls()[0].CreateParams.Labels, promote.RenderingFailedLabel)
 }

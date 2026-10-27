@@ -78,13 +78,37 @@ type CloneOptions struct {
 	OutDir string
 }
 
+// ErrRepositoryNotFound is returned when cloning a repository that does not exist or is not accessible.
+var ErrRepositoryNotFound = errors.New("repository not found")
+
+// Clone clones given repository, returning ErrRepositoryNotFound without retrying when it does not exist.
 func Clone(dir string, opts CloneOptions) error {
+	if err := EnsureInstalledAndAuthenticated(); err != nil {
+		return err
+	}
+
 	args := []string{"repo", "clone", opts.Repo}
 	if opts.OutDir != "" {
 		args = append(args, opts.OutDir)
 	}
-	_, err := ExecuteAndGetOutput(dir, args...)
+
+	_, err := retry.Retriable(func() ([]byte, error) {
+		cmd := exec.Command("gh", args...)
+		cmd.Dir = dir
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			if isRepositoryNotFound(string(output)) {
+				return output, retry.Abort(fmt.Errorf("%w: %s", ErrRepositoryNotFound, opts.Repo))
+			}
+			return output, fmt.Errorf("running gh command with args %q: %w: %q", strings.Join(args, " "), err, output)
+		}
+		return output, nil
+	})
 	return err
+}
+
+func isRepositoryNotFound(output string) bool {
+	return strings.Contains(output, "Could not resolve to a Repository")
 }
 
 func CloneInteractive(dir string, opts CloneOptions) error {
