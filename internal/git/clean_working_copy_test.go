@@ -2,6 +2,7 @@ package git
 
 import (
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -160,4 +161,61 @@ func TestIsBranchInSyncWithRemoteWithoutLocalBranch(t *testing.T) {
 	inSync, err := IsBranchInSyncWithRemote(clone, "release")
 	require.NoError(t, err)
 	require.False(t, inSync)
+}
+
+func TestForcePushBranch(t *testing.T) {
+	cases := []struct {
+		Name          string
+		MoveRemote    bool
+		ExpectedError bool
+	}{
+		{
+			Name: "remote branch at expected head",
+		},
+		{
+			Name:          "remote branch moved since",
+			MoveRemote:    true,
+			ExpectedError: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			clone := setupCatalogClone(t)
+			origin := filepath.Join(filepath.Dir(clone), "origin")
+			runGit(t, origin, "branch", "promote-x")
+			runGit(t, clone, "fetch", "origin")
+			expectedHead := runGit(t, clone, "rev-parse", "origin/promote-x")
+
+			if tc.MoveRemote {
+				runGit(t, origin, "commit", "--allow-empty", "-m", "manual fix")
+				runGit(t, origin, "branch", "-f", "promote-x", "HEAD")
+			}
+			remoteHead := runGit(t, origin, "rev-parse", "promote-x")
+
+			runGit(t, clone, "checkout", "-B", "promote-x", "origin/master~1")
+			runGit(t, clone, "commit", "--allow-empty", "-m", "promotion")
+
+			err := ForcePushBranch(clone, "promote-x", expectedHead)
+
+			if tc.ExpectedError {
+				require.Error(t, err)
+				require.Equal(t, remoteHead, runGit(t, origin, "rev-parse", "promote-x"))
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, runGit(t, clone, "rev-parse", "HEAD"), runGit(t, origin, "rev-parse", "promote-x"))
+		})
+	}
+}
+
+func TestDiscardChanges(t *testing.T) {
+	clone := setupCatalogClone(t)
+	require.NoError(t, os.WriteFile(filepath.Join(clone, "promoted.yaml"), []byte("version: 1"), 0o644))
+
+	require.NoError(t, DiscardChanges(clone))
+
+	changes, err := GetUncommittedChanges(clone)
+	require.NoError(t, err)
+	require.Empty(t, changes)
 }

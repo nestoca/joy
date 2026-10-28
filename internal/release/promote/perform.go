@@ -61,6 +61,9 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		if !strings.HasPrefix(existing.Branch, BranchPrefix) {
 			return "", fmt.Errorf("pull request %s to update is not a promotion pull request: branch %q does not start with %q", opts.updatePullRequest, existing.Branch, BranchPrefix)
 		}
+		if existing.CrossRepository {
+			return "", fmt.Errorf("pull request %s to update is not a promotion pull request: branch %q is in a fork", opts.updatePullRequest, existing.Branch)
+		}
 	}
 
 	// Closed and merged pull requests only get their title, body, labels and reviewers updated, as their branch is
@@ -151,7 +154,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	} else if messageOnly {
 		p.printf("ℹ️ Pull request %s is not open: skipping push of branch %s\n", opts.updatePullRequest, style.Resource(branchName))
 	} else if existing != nil {
-		err = p.GitProvider.ResetAndForcePushBranchWithFiles(branchName, promotedFiles, commitMessage)
+		err = p.GitProvider.ResetAndForcePushBranchWithFiles(branchName, existing.HeadSHA, promotedFiles, commitMessage)
 		if err != nil {
 			return "", err
 		}
@@ -232,7 +235,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		Reviewers: reviewers,
 	})
 	if err != nil {
-		return "", fmt.Errorf("creating pull request: %w", err)
+		return "", p.labelPartialPullRequest(branchName, fmt.Errorf("creating pull request: %w", err))
 	}
 
 	if opts.draft {
@@ -242,6 +245,22 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 	}
 
 	return prURL, p.completePullRequest()
+}
+
+// labelPartialPullRequest labels the pull request of given branch as failing to render when it was created despite
+// given creation error, so that it can be found and updated later, and returns the error.
+func (p *Promotion) labelPartialPullRequest(branch string, err error) error {
+	exists, existsErr := p.PullRequestProvider.Exists(branch)
+	if existsErr != nil {
+		return errors.Join(err, existsErr)
+	}
+	if !exists {
+		return err
+	}
+	if labelErr := p.PullRequestProvider.AddLabels(branch, []string{RenderingFailedLabel}); labelErr != nil {
+		return errors.Join(err, labelErr)
+	}
+	return err
 }
 
 func (p *Promotion) completePullRequest() error {

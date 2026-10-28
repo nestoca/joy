@@ -168,6 +168,17 @@ func ResetBranch(dir, name string) error {
 	return nil
 }
 
+// DiscardChanges discards all uncommitted changes and untracked files, excluding ignored ones.
+func DiscardChanges(dir string) error {
+	if output, err := exec.Command("git", "-C", dir, "reset", "--hard").CombinedOutput(); err != nil {
+		return fmt.Errorf("resetting changes: %s", output)
+	}
+	if output, err := exec.Command("git", "-C", dir, "clean", "-fd").CombinedOutput(); err != nil {
+		return fmt.Errorf("removing untracked files: %s", output)
+	}
+	return nil
+}
+
 func Add(dir string, files []string) error {
 	args := append([]string{"-C", dir, "add", "--"}, files...)
 	cmd := exec.Command("git", args...)
@@ -213,10 +224,12 @@ func PushNewBranch(dir, name string) error {
 	return nil
 }
 
-// ForcePushBranch pushes branch with given name to origin, overwriting its remote history.
-func ForcePushBranch(dir, name string) error {
+// ForcePushBranch pushes branch with given name to origin, overwriting its remote history only if the remote branch
+// is still at given expected commit.
+func ForcePushBranch(dir, name, expectedHead string) error {
+	lease := fmt.Sprintf("--force-with-lease=refs/heads/%s:%s", name, expectedHead)
 	output, err := retry.RunWithCombinedOutput(func() *exec.Cmd {
-		return exec.Command("git", "-C", dir, "push", "--force", "-u", "origin", name)
+		return exec.Command("git", "-C", dir, "push", lease, "-u", "origin", name)
 	})
 	if err != nil {
 		return fmt.Errorf("force pushing branch %s: %s", name, string(output))

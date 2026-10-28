@@ -38,7 +38,7 @@ func (g *ShellGitProvider) CreateAndPushBranchWithFiles(branchName string, files
 	return nil
 }
 
-func (g *ShellGitProvider) ResetAndForcePushBranchWithFiles(branchName string, files []string, message string) error {
+func (g *ShellGitProvider) ResetAndForcePushBranchWithFiles(branchName string, expectedHead string, files []string, message string) error {
 	if err := git.ResetBranch(g.dir, branchName); err != nil {
 		return err
 	}
@@ -48,10 +48,14 @@ func (g *ShellGitProvider) ResetAndForcePushBranchWithFiles(branchName string, f
 	if err := git.Commit(g.dir, message); err != nil {
 		return fmt.Errorf("committing changes: %w", err)
 	}
-	if err := git.ForcePushBranch(g.dir, branchName); err != nil {
+	if err := git.ForcePushBranch(g.dir, branchName, expectedHead); err != nil {
 		return fmt.Errorf("pushing changes: %w", err)
 	}
 	return nil
+}
+
+func (g *ShellGitProvider) DiscardChanges() error {
+	return git.DiscardChanges(g.dir)
 }
 
 func (g *ShellGitProvider) CheckoutCatalogRef() error {
