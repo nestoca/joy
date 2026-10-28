@@ -108,7 +108,7 @@ func Clone(dir string, opts CloneOptions) error {
 }
 
 func isRepositoryNotFound(output string) bool {
-	return strings.Contains(output, "Could not resolve to a repository")
+	return strings.Contains(strings.ToLower(output), "could not resolve to a repository")
 }
 
 func CloneInteractive(dir string, opts CloneOptions) error {
