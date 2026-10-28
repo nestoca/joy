@@ -3,14 +3,19 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/git/pr"
+	"github.com/nestoca/joy/internal/release/cross"
+	"github.com/nestoca/joy/internal/release/promote"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -162,4 +167,50 @@ func TestReleasePromoteRejectsFlagsIgnoredByUpdateFailedPullRequests(t *testing.
 			require.EqualError(t, cmd.Execute(), tc.ExpectedError)
 		})
 	}
+}
+
+func TestUpdateFailedPullRequestsCleansUpAfterFailedPromotion(t *testing.T) {
+	newEnvironment := func(name string, fromEnvironments ...string) *v1alpha1.Environment {
+		return &v1alpha1.Environment{
+			EnvironmentMetadata: v1alpha1.EnvironmentMetadata{ObjectMeta: metav1.ObjectMeta{Name: name}},
+			Spec:                v1alpha1.EnvironmentSpec{Promotion: v1alpha1.Promotion{FromEnvironments: fromEnvironments}},
+		}
+	}
+
+	provider := &pr.PullRequestProviderMock{
+		ListFunc: func(string, int) ([]pr.PullRequest, error) {
+			return []pr.PullRequest{{
+				Number:  1,
+				Branch:  "promote-a-from-qa-to-production-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+				Labels:  []string{"environment:production", "release:a"},
+				Commits: []string{"a1"},
+			}}, nil
+		},
+		GetFunc: func(string) (*pr.PullRequest, error) {
+			return nil, errors.New("github unavailable")
+		},
+	}
+	gitProvider := new(promote.GitProviderMock)
+	params := PromoteParams{
+		PullRequest: provider,
+		Git:         gitProvider,
+		LoadCatalogAt: func(_ context.Context, cfg *config.Config, ref string, _ io.Writer) (*config.Config, *catalog.Catalog, error) {
+			return cfg, &catalog.Catalog{
+				Environments: []*v1alpha1.Environment{newEnvironment("qa"), newEnvironment("production", "qa")},
+				Releases:     cross.ReleaseList{},
+			}, nil
+		},
+	}
+
+	ctx := config.ToContext(context.Background(), &config.Config{})
+	cmd := &cobra.Command{}
+	cmd.SetContext(ctx)
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetErr(&bytes.Buffer{})
+
+	err := updateFailedPullRequests(cmd, params, `label:"rendering:failed"`, false)
+
+	require.Error(t, err)
+	require.Len(t, gitProvider.DiscardChangesCalls(), 1)
+	require.Len(t, gitProvider.CheckoutCatalogRefCalls(), 1)
 }

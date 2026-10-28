@@ -99,12 +99,14 @@ func (p *PullRequestProvider) Create(params pr.CreateParams) (string, error) {
 	return strings.TrimSpace(prURL), err
 }
 
-const pullRequestFields = "number,url,headRefName,body,labels,state,reviewDecision,commits"
+const pullRequestFields = "number,url,headRefName,headRefOid,isCrossRepository,body,labels,state,reviewDecision,commits"
 
 type pullRequestDetails struct {
 	Number         int      `json:"number"`
 	URL            string   `json:"url"`
 	HeadRefName    string   `json:"headRefName"`
+	HeadRefOid     string   `json:"headRefOid"`
+	IsCrossRepo    bool     `json:"isCrossRepository"`
 	Body           string   `json:"body"`
 	Labels         []label  `json:"labels"`
 	State          string   `json:"state"`
@@ -118,12 +120,14 @@ type commit struct {
 
 func (d pullRequestDetails) toPullRequest() pr.PullRequest {
 	result := pr.PullRequest{
-		Number:   d.Number,
-		URL:      d.URL,
-		Branch:   d.HeadRefName,
-		Body:     d.Body,
-		Open:     d.State == "OPEN",
-		Approved: d.ReviewDecision == "APPROVED",
+		Number:          d.Number,
+		URL:             d.URL,
+		Branch:          d.HeadRefName,
+		Body:            d.Body,
+		Open:            d.State == "OPEN",
+		Approved:        d.ReviewDecision == "APPROVED",
+		HeadSHA:         d.HeadRefOid,
+		CrossRepository: d.IsCrossRepo,
 	}
 	for _, label := range d.Labels {
 		result.Labels = append(result.Labels, label.Name)
@@ -145,8 +149,31 @@ func (p *PullRequestProvider) Get(pullRequest string) (*pr.PullRequest, error) {
 		return nil, fmt.Errorf("unmarshaling pull request %s: %w", pullRequest, err)
 	}
 
+	repository, err := repositoryFromPullRequestURL(details.URL)
+	if err != nil {
+		return nil, err
+	}
+	catalogRepository, err := ExecuteAndGetOutput(p.dir, "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner")
+	if err != nil {
+		return nil, fmt.Errorf("getting repository: %w", err)
+	}
+	if !strings.EqualFold(repository, catalogRepository) {
+		return nil, fmt.Errorf("pull request %s belongs to %s instead of %s", pullRequest, repository, catalogRepository)
+	}
+
 	result := details.toPullRequest()
 	return &result, nil
+}
+
+// repositoryFromPullRequestURL returns the owner/name of the repository of given pull request URL, such as
+// https://github.com/owner/name/pull/123.
+func repositoryFromPullRequestURL(url string) (string, error) {
+	path, ok := strings.CutPrefix(url, "https://github.com/")
+	parts := strings.Split(path, "/")
+	if !ok || len(parts) < 4 || parts[2] != "pull" {
+		return "", fmt.Errorf("unexpected pull request url %q", url)
+	}
+	return parts[0] + "/" + parts[1], nil
 }
 
 func (p *PullRequestProvider) List(search string, limit int) ([]pr.PullRequest, error) {
@@ -182,10 +209,6 @@ func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {
 		args = append(args, "--add-label", label)
 	}
 
-	for _, label := range params.RemoveLabels {
-		args = append(args, "--remove-label", label)
-	}
-
 	for _, reviewer := range requestableReviewers(params.Reviewers) {
 		args = append(args, "--add-reviewer", reviewer)
 	}
@@ -198,7 +221,33 @@ func (p *PullRequestProvider) Update(params pr.UpdateParams) (string, error) {
 		return "", fmt.Errorf("updating pull request %s: %w", params.PullRequest, err)
 	}
 
+	// Labels such as rendering:failed are only removed once the update fully succeeded, so that a partially updated
+	// pull request can still be found by them.
+	if len(params.RemoveLabels) > 0 {
+		args := []string{"pr", "edit", params.PullRequest}
+		for _, label := range params.RemoveLabels {
+			args = append(args, "--remove-label", label)
+		}
+		if _, err := ExecuteAndGetOutput(p.dir, args...); err != nil {
+			return "", fmt.Errorf("removing labels from pull request %s: %w", params.PullRequest, err)
+		}
+	}
+
 	return strings.TrimSpace(prURL), nil
+}
+
+func (p *PullRequestProvider) AddLabels(pullRequest string, labels []string) error {
+	if err := p.createLabels(labels...); err != nil {
+		return err
+	}
+	args := []string{"pr", "edit", pullRequest}
+	for _, label := range labels {
+		args = append(args, "--add-label", label)
+	}
+	if _, err := ExecuteAndGetOutput(p.dir, args...); err != nil {
+		return fmt.Errorf("adding labels to pull request %s: %w", pullRequest, err)
+	}
+	return nil
 }
 
 // requestableReviewers filters out bots, which cannot be requested as reviewers (GitHub returns "not found").

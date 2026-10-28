@@ -17,6 +17,9 @@ var _ PullRequestProvider = &PullRequestProviderMock{}
 //
 //		// make and configure a mocked PullRequestProvider
 //		mockedPullRequestProvider := &PullRequestProviderMock{
+//			AddLabelsFunc: func(pullRequest string, labels []string) error {
+//				panic("mock out the AddLabels method")
+//			},
 //			CreateFunc: func(createParams CreateParams) (string, error) {
 //				panic("mock out the Create method")
 //			},
@@ -57,6 +60,9 @@ var _ PullRequestProvider = &PullRequestProviderMock{}
 //
 //	}
 type PullRequestProviderMock struct {
+	// AddLabelsFunc mocks the AddLabels method.
+	AddLabelsFunc func(pullRequest string, labels []string) error
+
 	// CreateFunc mocks the Create method.
 	CreateFunc func(createParams CreateParams) (string, error)
 
@@ -92,6 +98,13 @@ type PullRequestProviderMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// AddLabels holds details about calls to the AddLabels method.
+		AddLabels []struct {
+			// PullRequest is the pullRequest argument value.
+			PullRequest string
+			// Labels is the labels argument value.
+			Labels []string
+		}
 		// Create holds details about calls to the Create method.
 		Create []struct {
 			// CreateParams is the createParams argument value.
@@ -150,6 +163,7 @@ type PullRequestProviderMock struct {
 			UpdateParams UpdateParams
 		}
 	}
+	lockAddLabels                         sync.RWMutex
 	lockCreate                            sync.RWMutex
 	lockCreateInteractively               sync.RWMutex
 	lockEnsureInstalledAndAuthenticated   sync.RWMutex
@@ -161,6 +175,45 @@ type PullRequestProviderMock struct {
 	lockList                              sync.RWMutex
 	lockSetPromotionEnvironment           sync.RWMutex
 	lockUpdate                            sync.RWMutex
+}
+
+// AddLabels calls AddLabelsFunc.
+func (mock *PullRequestProviderMock) AddLabels(pullRequest string, labels []string) error {
+	callInfo := struct {
+		PullRequest string
+		Labels      []string
+	}{
+		PullRequest: pullRequest,
+		Labels:      labels,
+	}
+	mock.lockAddLabels.Lock()
+	mock.calls.AddLabels = append(mock.calls.AddLabels, callInfo)
+	mock.lockAddLabels.Unlock()
+	if mock.AddLabelsFunc == nil {
+		var (
+			errOut error
+		)
+		return errOut
+	}
+	return mock.AddLabelsFunc(pullRequest, labels)
+}
+
+// AddLabelsCalls gets all the calls that were made to AddLabels.
+// Check the length with:
+//
+//	len(mockedPullRequestProvider.AddLabelsCalls())
+func (mock *PullRequestProviderMock) AddLabelsCalls() []struct {
+	PullRequest string
+	Labels      []string
+} {
+	var calls []struct {
+		PullRequest string
+		Labels      []string
+	}
+	mock.lockAddLabels.RLock()
+	calls = mock.calls.AddLabels
+	mock.lockAddLabels.RUnlock()
+	return calls
 }
 
 // Create calls CreateFunc.

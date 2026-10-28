@@ -338,10 +338,11 @@ func TestPromotion(t *testing.T) {
 
 				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
 					return &pr.PullRequest{
-						Number: 123,
-						Branch: "promote-release1-from-staging-to-prod-existing",
-						Labels: []string{promote.RenderingFailedLabel},
-						Open:   true,
+						Number:  123,
+						Branch:  "promote-release1-from-staging-to-prod-existing",
+						Labels:  []string{promote.RenderingFailedLabel},
+						Open:    true,
+						HeadSHA: "abc123",
 					}, nil
 				}
 				args.prProvider.UpdateFunc = func(updateParams pr.UpdateParams) (string, error) {
@@ -356,6 +357,7 @@ func TestPromotion(t *testing.T) {
 					require.Empty(t, args.gitProvider.CreateAndPushBranchWithFilesCalls())
 					require.Len(t, args.gitProvider.ResetAndForcePushBranchWithFilesCalls(), 1)
 					require.Equal(t, "promote-release1-from-staging-to-prod-existing", args.gitProvider.ResetAndForcePushBranchWithFilesCalls()[0].BranchName)
+					require.Equal(t, "abc123", args.gitProvider.ResetAndForcePushBranchWithFilesCalls()[0].ExpectedHead)
 
 					require.Empty(t, args.prProvider.CreateCalls())
 					require.Len(t, args.prProvider.UpdateCalls(), 1)
@@ -620,4 +622,102 @@ func TestPromotionLabelsPullRequestFailingToRender(t *testing.T) {
 
 	require.Len(t, prProvider.CreateCalls(), 1)
 	require.Contains(t, prProvider.CreateCalls()[0].CreateParams.Labels, promote.RenderingFailedLabel)
+}
+
+func TestPromotionRejectsUpdatingPullRequestFromFork(t *testing.T) {
+	opts := newOpts()
+	opts.NoPrompt = true
+	opts.Releases = []string{"release1"}
+	opts.UpdatePullRequest = "123"
+
+	crossRel0 := opts.Catalog.Releases.Items[0]
+	crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+	crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+	prProvider := &pr.PullRequestProviderMock{
+		GetFunc: func(pullRequest string) (*pr.PullRequest, error) {
+			return &pr.PullRequest{Number: 123, Branch: "promote-release1-from-staging-to-prod-fork", Open: true, CrossRepository: true}, nil
+		},
+	}
+	gitProvider := new(promote.GitProviderMock)
+	yamlWriter := new(yml.WriterMock)
+	infoProvider := new(info.ProviderMock)
+	setupDefaultMockInfoProvider(infoProvider)
+
+	promotion := promote.Promotion{
+		PromptProvider:      new(promote.PromptProviderMock),
+		GitProvider:         gitProvider,
+		PullRequestProvider: prProvider,
+		YamlWriter:          yamlWriter,
+		InfoProvider:        infoProvider,
+		LinksProvider:       new(links.ProviderMock),
+		Out:                 io.Discard,
+	}
+	_, err := promotion.Promote(opts)
+
+	require.EqualError(t, err, `pull request 123 to update is not a promotion pull request: branch "promote-release1-from-staging-to-prod-fork" is in a fork`)
+	require.Empty(t, yamlWriter.WriteFileCalls())
+	require.Empty(t, gitProvider.ResetAndForcePushBranchWithFilesCalls())
+	require.Empty(t, prProvider.UpdateCalls())
+}
+
+func TestPromotionLabelsPullRequestCreatedDespiteError(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Exists bool
+	}{
+		{
+			Name:   "pull request created despite error",
+			Exists: true,
+		},
+		{
+			Name:   "pull request not created",
+			Exists: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			opts := newOpts()
+			opts.NoPrompt = true
+			opts.Releases = []string{"release1"}
+
+			crossRel0 := opts.Catalog.Releases.Items[0]
+			crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+			crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+			gitProvider := new(promote.GitProviderMock)
+			prProvider := &pr.PullRequestProviderMock{
+				CreateFunc: func(createParams pr.CreateParams) (string, error) {
+					return "", fmt.Errorf("requesting reviewers: timeout")
+				},
+				ExistsFunc: func(branch string) (bool, error) {
+					return tc.Exists, nil
+				},
+			}
+			infoProvider := new(info.ProviderMock)
+			setupDefaultMockInfoProvider(infoProvider)
+
+			promotion := promote.Promotion{
+				PromptProvider:      new(promote.PromptProviderMock),
+				GitProvider:         gitProvider,
+				PullRequestProvider: prProvider,
+				YamlWriter:          new(yml.WriterMock),
+				InfoProvider:        infoProvider,
+				LinksProvider:       new(links.ProviderMock),
+				Out:                 io.Discard,
+			}
+			_, err := promotion.Promote(opts)
+
+			require.EqualError(t, err, "creating pull request: requesting reviewers: timeout")
+			branch := gitProvider.CreateAndPushBranchWithFilesCalls()[0].BranchName
+			if !tc.Exists {
+				require.Empty(t, prProvider.AddLabelsCalls())
+				return
+			}
+			require.Len(t, prProvider.AddLabelsCalls(), 1)
+			require.Equal(t, branch, prProvider.AddLabelsCalls()[0].PullRequest)
+			require.Equal(t, []string{promote.RenderingFailedLabel}, prProvider.AddLabelsCalls()[0].Labels)
+		})
+	}
 }

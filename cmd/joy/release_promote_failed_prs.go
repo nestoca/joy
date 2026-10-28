@@ -106,7 +106,8 @@ func updateFailedPullRequest(cmd *cobra.Command, params PromoteParams, cfg *conf
 		return err
 	}
 
-	_, err = newPromotion(cmd, params, cfg, promotion.TemplateVariables).Promote(promote.Opts{
+	promoter := newPromotion(cmd, params, cfg, promotion.TemplateVariables)
+	_, err = promoter.Promote(promote.Opts{
 		Catalog:           cat,
 		SourceEnv:         sourceEnv,
 		TargetEnv:         targetEnv,
@@ -117,6 +118,11 @@ func updateFailedPullRequest(cmd *cobra.Command, params PromoteParams, cfg *conf
 		Reviewers:         promotion.Reviewers,
 		UpdatePullRequest: strconv.Itoa(pullRequest.Number),
 	})
+	if err != nil && !dryRun {
+		// The catalog was clean when checked out above, so changes left behind are from this failed promotion and
+		// would otherwise prevent checking out the catalog for the next pull request.
+		err = errors.Join(err, promoter.GitProvider.DiscardChanges(), promoter.GitProvider.CheckoutCatalogRef())
+	}
 	return err
 }
 

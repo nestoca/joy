@@ -57,7 +57,10 @@ jobs:
         env:
           CATALOG_TEST_REPO: https://x-access-token:${{ steps.generate-joy-ci-token.outputs.token }}@github.com/nestoca/joy-catalog-test
           GH_TOKEN: ${{ steps.generate-joy-ci-token.outputs.token }}
-        run: make test-cov
+        run: |
+          # Let plain git commands (e.g. fetching cached project clones) authenticate through gh
+          gh auth setup-git
+          make test-cov
 
       - name: Build cli binary
         run: make build
