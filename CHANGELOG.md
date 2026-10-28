@@ -1,3 +1,13 @@
+## [0.102.1](https://github.com/nestoca/joy/compare/v0.102.0...v0.102.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **PLT-7145:** fix test ([21d6f90](https://github.com/nestoca/joy/commit/21d6f90d225d015b513e1fe3a1380439bec7215d))
+* **PLT-7145:** skip missing project repositories ([110af1a](https://github.com/nestoca/joy/commit/110af1af99c21ffc47edc645499a5405cd32ac76))
+* **PLT-7145:** truncate long PR bodies ([8c35958](https://github.com/nestoca/joy/commit/8c359588136e839f34e15565191f55c7df3eaa2b))
+* typo ([a496c87](https://github.com/nestoca/joy/commit/a496c87f6dd6785966f780dc1bf298d83c623736))
+
 ## [0.102.0](https://github.com/nestoca/joy/compare/v0.101.0...v0.102.0) (2026-10-28)
 
 
