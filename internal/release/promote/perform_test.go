@@ -163,6 +163,12 @@ func TestRenderMessage(t *testing.T) {
 	require.Equal(t, expectedMessage, message)
 }
 
+func TestRenderMessageErrorsFollowTitle(t *testing.T) {
+	message, err := renderMessage("Promote releases\n\n# Promotions", &PromotionInfo{Error: errors.New("boom")})
+	require.NoError(t, err)
+	require.Equal(t, "Promote releases\n\n# Rendering Errors: boom\n\n# Promotions", message)
+}
+
 func TestGetReviewers(t *testing.T) {
 	require.Equal(
 		t,

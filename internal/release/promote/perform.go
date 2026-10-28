@@ -177,7 +177,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 		labels = append(labels, "auto-merge")
 	}
 
-	if info.Error != nil {
+	if info.isRenderingFailed() {
 		labels = append(labels, RenderingFailedLabel)
 	}
 
@@ -208,7 +208,7 @@ func (p *Promotion) perform(opts PerformOpts) (string, error) {
 
 	if existing != nil {
 		var removeLabels []string
-		if info.Error == nil && slices.Contains(existing.Labels, RenderingFailedLabel) {
+		if !info.isRenderingFailed() && slices.Contains(existing.Labels, RenderingFailedLabel) {
 			removeLabels = append(removeLabels, RenderingFailedLabel)
 		}
 		prURL, err := p.PullRequestProvider.Update(pr.UpdateParams{

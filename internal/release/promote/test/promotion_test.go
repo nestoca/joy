@@ -1,10 +1,12 @@
 package promote_test
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -378,6 +380,55 @@ func TestPromotion(t *testing.T) {
 			expectedPromoted: true,
 		},
 		{
+			name:                "Update pull request with body exceeding GitHub limit removes rendering failed label",
+			opts:                newOpts(),
+			pullRequestTemplate: "Title\n{{ range .Releases }}{{ range .Commits }}{{ .Message }}\n{{ end }}{{ end }}",
+			setup: func(args setupArgs) func(t *testing.T) {
+				opts := args.opts
+				opts.NoPrompt = true
+				opts.Releases = []string{"release1"}
+				opts.UpdatePullRequest = "123"
+
+				crossRel0 := opts.Catalog.Releases.Items[0]
+				crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+				crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+				args.prProvider.GetFunc = func(pullRequest string) (*pr.PullRequest, error) {
+					return &pr.PullRequest{
+						Number: 123,
+						Branch: "promote-release1-from-staging-to-prod-existing",
+						Labels: []string{promote.RenderingFailedLabel},
+						Open:   false,
+					}, nil
+				}
+				args.prProvider.UpdateFunc = func(updateParams pr.UpdateParams) (string, error) {
+					return "https://github.com/owner/repo/pull/123", nil
+				}
+
+				setupDefaultMockInfoProvider(args.infoProvider)
+				args.infoProvider.GetCommitsMetadataFunc = func(projectDir, fromTag, toTag string) ([]*info.CommitMetadata, error) {
+					var commits []*info.CommitMetadata
+					for i := range 1000 {
+						commits = append(commits, &info.CommitMetadata{
+							Sha:     fmt.Sprintf("%040d", i),
+							Author:  "John Doe",
+							Message: strings.Repeat("long commit message ", 5),
+						})
+					}
+					return commits, nil
+				}
+
+				return func(t *testing.T) {
+					require.Len(t, args.prProvider.UpdateCalls(), 1)
+					params := args.prProvider.UpdateCalls()[0].UpdateParams
+					require.Greater(t, len(params.Body), 65536)
+					require.Equal(t, []string{promote.RenderingFailedLabel}, params.RemoveLabels)
+					require.NotContains(t, params.Labels, promote.RenderingFailedLabel)
+				}
+			},
+			expectedPromoted: true,
+		},
+		{
 			name: "Update pull request that is not open only updates its message",
 			opts: newOpts(),
 			setup: func(args setupArgs) func(t *testing.T) {
@@ -476,7 +527,7 @@ func TestPromotion(t *testing.T) {
 				PullRequestProvider: prProvider,
 				YamlWriter:          yamlWriter,
 				CommitTemplate:      simpleCommitTemplate,
-				PullRequestTemplate: simplePullRequestTemplate,
+				PullRequestTemplate: cmp.Or(c.pullRequestTemplate, simplePullRequestTemplate),
 				InfoProvider:        infoProvider,
 				LinksProvider:       linksProvider,
 				Out:                 io.Discard,
@@ -624,6 +675,43 @@ func TestPromotionLabelsPullRequestFailingToRender(t *testing.T) {
 
 	require.Len(t, prProvider.CreateCalls(), 1)
 	require.Contains(t, prProvider.CreateCalls()[0].CreateParams.Labels, promote.RenderingFailedLabel)
+}
+
+func TestPromotionDoesNotLabelPullRequestWithMissingGitTag(t *testing.T) {
+	opts := newOpts()
+	opts.NoPrompt = true
+	opts.Releases = []string{"release1"}
+
+	crossRel0 := opts.Catalog.Releases.Items[0]
+	crossRel0.Releases[sourceEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value1", sourceEnvName)
+	crossRel0.Releases[targetEnvIndex] = newRelease("release1", "spec:\n  values:\n    key: value2", targetEnvName)
+
+	prProvider := &pr.PullRequestProviderMock{
+		CreateFunc: func(createParams pr.CreateParams) (string, error) {
+			return "https://github.com/owner/repo/pull/123", nil
+		},
+	}
+	infoProvider := new(info.ProviderMock)
+	setupDefaultMockInfoProvider(infoProvider)
+	infoProvider.GetCommitsMetadataFunc = func(projectDir, fromTag, toTag string) ([]*info.CommitMetadata, error) {
+		return nil, fmt.Errorf("%w: %s", info.ErrGitTagNotFound, fromTag)
+	}
+
+	promotion := promote.Promotion{
+		PromptProvider:      new(promote.PromptProviderMock),
+		GitProvider:         new(promote.GitProviderMock),
+		PullRequestProvider: prProvider,
+		YamlWriter:          new(yml.WriterMock),
+		InfoProvider:        infoProvider,
+		LinksProvider:       new(links.ProviderMock),
+		Out:                 io.Discard,
+	}
+	_, err := promotion.Promote(opts)
+	require.NoError(t, err)
+
+	require.Len(t, prProvider.CreateCalls(), 1)
+	require.NotContains(t, prProvider.CreateCalls()[0].CreateParams.Labels, promote.RenderingFailedLabel)
+	require.Contains(t, prProvider.CreateCalls()[0].CreateParams.Body, "gitTagTemplate")
 }
 
 func TestPromotionRejectsUpdatingPullRequestFromFork(t *testing.T) {

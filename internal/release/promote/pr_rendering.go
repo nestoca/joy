@@ -57,6 +57,18 @@ type PromotionInfo struct {
 	Error             error
 }
 
+// isRenderingFailed reports whether any release failed to render for a reason that updating the pull request later may
+// fix, as opposed to misconfigurations such as a gitTagTemplate not matching the repository tags, which are only
+// reported in the message.
+func (p *PromotionInfo) isRenderingFailed() bool {
+	for _, release := range p.Releases {
+		if release.Error != nil && !errors.Is(release.Error, info.ErrGitTagNotFound) {
+			return true
+		}
+	}
+	return false
+}
+
 type CommitInfo struct {
 	Sha          string
 	ShortSha     string
@@ -151,6 +163,15 @@ func getReleaseInfo(cross *cross.Release, sourceRelease, targetRelease *v1alpha1
 	}
 
 	commitsMetadata, err := opts.infoProvider.GetCommitsMetadata(projectDir, olderTag, newerTag)
+	if errors.Is(err, info.ErrGitTagNotFound) {
+		hint := fmt.Sprintf("check that gitTagTemplate of project %s matches the tags of repository %s", project.Name, repository)
+		if project.File != nil {
+			hint += fmt.Sprintf(" (%s)", project.File.Path)
+		}
+		fmt.Printf("⚠️ %v: %s\n", err, hint)
+		releaseInfo.Error = fmt.Errorf("getting commits metadata: %w: %s", err, hint)
+		return &releaseInfo, nil
+	}
 	if err != nil {
 		releaseInfo.Error = fmt.Errorf("getting commits metadata: %w", err)
 		return &releaseInfo, nil
@@ -216,7 +237,9 @@ func renderMessage(messageTemplate string, info *PromotionInfo) (string, error) 
 	}
 
 	if info.Error != nil {
-		return fmt.Sprintf("%s\n\n# Rendering Errors: %v", message.String(), info.Error), nil
+		// Errors go right after the title, so that they survive the truncation of long pull request bodies.
+		title, body, _ := strings.Cut(message.String(), "\n")
+		return fmt.Sprintf("%s\n\n# Rendering Errors: %v\n%s", title, info.Error, body), nil
 	}
 
 	return message.String(), nil

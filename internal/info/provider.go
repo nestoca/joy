@@ -16,7 +16,12 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/git"
 	"github.com/nestoca/joy/internal/github"
+	"github.com/nestoca/joy/internal/retry"
 )
+
+// ErrGitTagNotFound is returned when a release's git tag does not exist in its project repository, typically because
+// the project's gitTagTemplate does not match how the repository is tagged.
+var ErrGitTagNotFound = errors.New("git tag not found")
 
 //go:generate moq -stub -out ./provider_mock.go . Provider
 type Provider interface {
@@ -127,6 +132,12 @@ type commitInfo struct {
 }
 
 func (p *defaultProvider) GetCommitsMetadata(dir, from, to string) ([]*CommitMetadata, error) {
+	for _, tag := range []string{from, to} {
+		if _, err := git.ResolveCommit(dir, tag); err != nil {
+			return nil, retry.Abort(fmt.Errorf("%w: %s", ErrGitTagNotFound, tag))
+		}
+	}
+
 	gitArgs := []string{"log", "--pretty=format:%H%n%an%n%s%n---END---%n", from + ".." + to}
 	cmd := exec.Command("git", gitArgs...)
 	cmd.Dir = dir

@@ -2,9 +2,11 @@ package promote
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/info"
@@ -160,6 +162,40 @@ func TestGetReleaseInfo(t *testing.T) {
 				require.Equal(t, "api/v1.0.0", releaseInfo.Target.GitTag)
 				require.Equal(t, "1.0.1", releaseInfo.Source.DisplayVersion)
 				require.Equal(t, "1.0.0", releaseInfo.Target.DisplayVersion)
+			},
+		},
+		{
+			Name:  "missing git tag hints at gitTagTemplate",
+			Cross: &cross.Release{},
+			Source: &v1alpha1.Release{
+				Project: &v1alpha1.Project{
+					ProjectMetadata: v1alpha1.ProjectMetadata{ObjectMeta: metav1.ObjectMeta{Name: "brightwise"}},
+					File:            &yml.File{Path: "projects/brightwise.yaml"},
+				},
+				Spec: v1alpha1.ReleaseSpec{Version: "0.18.2"},
+			},
+			Target: &v1alpha1.Release{
+				Spec: v1alpha1.ReleaseSpec{Version: "0.18.1"},
+			},
+			Opts: PerformOpts{
+				infoProvider: &info.ProviderMock{
+					GetReleaseGitTagFunc: func(release *v1alpha1.Release) (string, error) {
+						return "v" + release.Spec.Version, nil
+					},
+					GetProjectSourceDirFunc: func(_ *v1alpha1.Project) (string, error) {
+						return "/some/dir", nil
+					},
+					GetCommitsMetadataFunc: func(_, _, _ string) ([]*info.CommitMetadata, error) {
+						return nil, fmt.Errorf("%w: v0.18.1", info.ErrGitTagNotFound)
+					},
+				},
+				linksProvider: new(links.ProviderMock),
+			},
+			Expectations: func(t *testing.T, releaseInfo *ReleaseInfo, err error) {
+				require.NoError(t, err)
+				require.ErrorIs(t, releaseInfo.Error, info.ErrGitTagNotFound)
+				require.ErrorContains(t, releaseInfo.Error, "gitTagTemplate")
+				require.ErrorContains(t, releaseInfo.Error, "projects/brightwise.yaml")
 			},
 		},
 		{
