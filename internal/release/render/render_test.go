@@ -57,7 +57,7 @@ func TestRenderRelease(t *testing.T) {
 					return func(t *testing.T) {}
 				},
 			},
-			ExpectedError: `hydrating values: template: :2: unexpected "}" in operand`,
+			ExpectedError: `hydrating values: parsing chart mapping template at image.tag: template: image.tag:1: unexpected "}" in operand`,
 		},
 		{
 			Name: "fail to render",
@@ -186,6 +186,25 @@ func TestRenderRelease(t *testing.T) {
 							},
 							mock.RenderCalls()[0].Opts,
 						)
+					}
+				},
+			},
+		},
+		{
+			Name: "chart mappings are resolved before values are marshalled",
+			Params: RenderTestParams{
+				Release: func() *v1alpha1.Release {
+					rel := buildRelease("env", "release")
+					rel.Spec.Version = "it's: v1"
+					return rel
+				}(),
+				Chart: helm.Chart{
+					Mappings: map[string]any{"image.tag": "{{ .Release.Spec.Version }}"},
+				},
+				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
+					return func(t *testing.T) {
+						require.Len(t, mock.RenderCalls(), 1)
+						require.Equal(t, map[string]any{"image": map[string]any{"tag": "it's: v1"}}, mock.RenderCalls()[0].Opts.Values)
 					}
 				},
 			},
