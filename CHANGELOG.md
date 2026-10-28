@@ -1,3 +1,19 @@
+## [0.101.0](https://github.com/nestoca/joy/compare/v0.100.0...v0.101.0) (2026-10-28)
+
+
+### Features
+
+* **PLT-7145:** allow to checkout any catalog refs ([aafe265](https://github.com/nestoca/joy/commit/aafe26543a15a69ff7a97ef9c26bb0216b44880a))
+* **PLT-7145:** coderabbit, enable auto-review ([503182a](https://github.com/nestoca/joy/commit/503182aad9f044b4e2826f54963c748e54d06d3f))
+* **PLT-7145:** verify catalog ref checkout for tags and commits ([db22e2f](https://github.com/nestoca/joy/commit/db22e2fdd6be21f5413cd339933764e9b7ebcb8c))
+* **PLT-7433:** resolve chart mapping templates early ([63d94be](https://github.com/nestoca/joy/commit/63d94be9f4e0d33c376f034a2ad39704f1e611bb))
+
+
+### Bug Fixes
+
+* **PLT-7145:** check catalog branch sync by commit ([12ce9ec](https://github.com/nestoca/joy/commit/12ce9ec604adbc0573ad79bcfc6777065ec33335))
+* **PLT-7145:** normalize catalog ref and wording ([245eea7](https://github.com/nestoca/joy/commit/245eea7cce1b1c66a3360103a50a78681a171c35))
+
 ## [0.100.0](https://github.com/nestoca/joy/compare/v0.99.4...v0.100.0) (2026-10-06)
 
 
