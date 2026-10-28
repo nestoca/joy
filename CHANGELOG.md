@@ -1,3 +1,17 @@
+## [0.102.0](https://github.com/nestoca/joy/compare/v0.101.0...v0.102.0) (2026-10-28)
+
+
+### Features
+
+* **PLT-7145:** address coderabbit comments ([d6195b8](https://github.com/nestoca/joy/commit/d6195b846dab16b8f586b84ecb9849e5e1c403c2))
+* **PLT-7145:** update closed and merged promotion PRs ([71e055c](https://github.com/nestoca/joy/commit/71e055cad533abc5031c79cb3933109606bf217e))
+* **PLT-7145:** update promotion PRs in place ([4f12d32](https://github.com/nestoca/joy/commit/4f12d3279a4ed6802fa55d11dab92683d676f086))
+
+
+### Bug Fixes
+
+* **PLT-7145:** harden promotion PR updates for CI ([52f3c0b](https://github.com/nestoca/joy/commit/52f3c0b5f7f675a3f87fca72c81b1cb0103f364d))
+
 ## [0.101.0](https://github.com/nestoca/joy/compare/v0.100.0...v0.101.0) (2026-10-28)
 
 
