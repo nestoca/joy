@@ -84,27 +84,38 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 	}
 
 	for key, value := range chart.Mappings {
+		if rawTemplate, ok := value.(string); ok {
+			tpl, err := template.New(key).Funcs(sprig.FuncMap()).Parse(rawTemplate)
+			if err != nil {
+				return nil, fmt.Errorf("parsing chart mapping template at %s: %v", key, err)
+			}
+			var buffer bytes.Buffer
+			if err := tpl.Execute(&buffer, params); err != nil {
+				return nil, fmt.Errorf("executing chart mapping template at %s: %v", key, err)
+			}
+			value = buffer.String()
+		}
 		setInMap(values, yml.SplitIntoPathSegments(key), value)
 	}
 
 	data, err := yaml.Marshal(values)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshalling: %v", err)
 	}
 
 	tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(string(data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing template: %v", err)
 	}
 
 	var builder bytes.Buffer
 	if err := tmpl.Execute(&builder, params); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("executing template: %v", err)
 	}
 
 	var result map[string]any
 	if err := yaml.Unmarshal(builder.Bytes(), &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarhalling: %v", err)
 	}
 
 	result, err = unifyValues(result, chart)
