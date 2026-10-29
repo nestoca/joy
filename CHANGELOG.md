@@ -1,3 +1,10 @@
+## [0.102.2](https://github.com/nestoca/joy/compare/v0.102.1...v0.102.2) (2026-10-29)
+
+
+### Bug Fixes
+
+* **PLT-7145:** handle missing tags gracefully ([e224397](https://github.com/nestoca/joy/commit/e22439727b02fba60468c7341b8af20cdc27a475))
+
 ## [0.102.1](https://github.com/nestoca/joy/compare/v0.102.0...v0.102.1) (2026-10-28)
 
 
