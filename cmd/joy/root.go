@@ -164,5 +164,7 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewExecuteCmd())
 	cmd.AddCommand(NewCatalogCmd())
 
+	cmd.AddCommand(NewClusterCmd())
+
 	return cmd
 }
