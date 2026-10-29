@@ -1,3 +1,10 @@
+## [0.103.0](https://github.com/nestoca/joy/compare/v0.102.2...v0.103.0) (2026-10-29)
+
+
+### Features
+
+* **PLT-7382:** add interactive schema browser for release values ([#305](https://github.com/nestoca/joy/issues/305)) ([8552b6f](https://github.com/nestoca/joy/commit/8552b6f49c92df9adfdce501f2ab63f1e8c1b2a4))
+
 ## [0.102.2](https://github.com/nestoca/joy/compare/v0.102.1...v0.102.2) (2026-10-29)
 
 
