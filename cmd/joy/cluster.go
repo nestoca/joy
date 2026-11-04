@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidmdm/x/xcontainer"
 	"github.com/fsnotify/fsnotify"
@@ -70,7 +71,7 @@ func NewClusterSetupCommand() *cobra.Command {
 				cluster.CRDs = filepath.Join(env.Dir, cluster.CRDs)
 			}
 			for _, source := range cluster.Sources {
-				if source.Kubectl != nil && source.Kubectl.Path != "" && !filepath.IsAbs(source.Kubectl.Path) {
+				if source.Kubectl != nil && source.Kubectl.Path != "" && !strings.HasPrefix(source.Kubectl.Path, "https://") && !strings.HasPrefix(source.Kubectl.Path, "oci://") && !filepath.IsAbs(source.Kubectl.Path) {
 					source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
 				}
 			}
