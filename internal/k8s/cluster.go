@@ -135,6 +135,11 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
             server.insecure: true
           cm:
             users.anonymous.enabled: "true"
+            resource.customizations.health.gateway.networking.k8s.io_HTTPRoute: |
+              hs = {}
+              hs.status = "Healthy"
+              hs.message = "HTTPRoute health checks are disabled for local clusters"
+              return hs
           rbac:
             policy.default: role:admin
       `),
