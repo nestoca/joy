@@ -64,6 +64,8 @@ func NewClusterCmd() *cobra.Command {
 				}
 			}
 			cluster.Env = env
+			cluster.Cat = cat
+			cluster.Cat.WithEnvironments([]string{env.Name})
 			cluster.KubeContext = cmp.Or(cluster.KubeContext, "orbstack")
 
 			return nil
@@ -72,25 +74,25 @@ func NewClusterCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&envName, "env", "e", "", "environment name")
 
-	cmd.AddCommand(NewClusterSetupCommand(cluster))
-	cmd.AddCommand(NewClusterDeployCommand(cluster))
-	cmd.AddCommand(NewClusterAuthCommand(cluster))
+	cmd.AddCommand(NewClusterSetupCommand(&cluster))
+	cmd.AddCommand(NewClusterDeployCommand(&cluster))
+	cmd.AddCommand(NewClusterAuthCommand(&cluster))
 
 	return cmd
 }
 
-func NewClusterSetupCommand(cluster k8s.ClusterDefinition) *cobra.Command {
+func NewClusterSetupCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 	var deploy bool
 
 	cmd := &cobra.Command{
 		Use:  "setup",
 		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := k8s.Setup(cmd.Context(), cluster); err != nil {
+			if err := k8s.Setup(cmd.Context(), *cluster); err != nil {
 				return fmt.Errorf("failed to setup cluster: %w", err)
 			}
 			if deploy {
-				return Deploy(cmd.Context(), cluster.Env, true, nil)
+				return Deploy(cmd.Context(), *cluster, true, nil)
 			}
 			return nil
 		},
@@ -102,7 +104,7 @@ func NewClusterSetupCommand(cluster k8s.ClusterDefinition) *cobra.Command {
 	return cmd
 }
 
-func NewClusterAuthCommand(cluster k8s.ClusterDefinition) *cobra.Command {
+func NewClusterAuthCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 	var envName string
 	cmd := &cobra.Command{
 		Use: "auth",
@@ -116,30 +118,14 @@ func NewClusterAuthCommand(cluster k8s.ClusterDefinition) *cobra.Command {
 	return cmd
 }
 
-func NewClusterDeployCommand(cluster k8s.ClusterDefinition) *cobra.Command {
+func NewClusterDeployCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 	var envName string
 	var watch bool
 
 	cmd := &cobra.Command{
 		Use: "deploy",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-
-			env, err := func() (*v1alpha1.Environment, error) {
-				if envName == "" {
-					return environment.SelectSingle(cat.Environments, nil, "select which environment")
-				}
-				env := environment.FindByName(cat.Environments, envName)
-				if env == nil {
-					return nil, fmt.Errorf("could not find env %q", envName)
-				}
-				return env, nil
-			}()
-			if err != nil {
-				return err
-			}
-
-			return Deploy(cmd.Context(), env, watch, args)
+			return Deploy(cmd.Context(), *cluster, watch, args)
 		},
 	}
 
@@ -149,10 +135,8 @@ func NewClusterDeployCommand(cluster k8s.ClusterDefinition) *cobra.Command {
 	return cmd
 }
 
-func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool, projects []string) error {
+func Deploy(ctx context.Context, cluster k8s.ClusterDefinition, watch bool, projects []string) error {
 	cat := catalog.FromContext(ctx)
-
-	cat.WithEnvironments([]string{env.Name})
 
 	projectSet := func() xcontainer.Set[string] {
 		if len(projects) == 0 {
@@ -175,7 +159,7 @@ func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool, projects
 			add(cat.Root.File.Path)
 		}
 
-		add(env.File.Path)
+		add(cluster.Env.File.Path)
 
 		for _, project := range cat.Projects {
 			if projectSet != nil && !projectSet.Has(project.Name) {
@@ -252,9 +236,8 @@ func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool, projects
 	}
 
 	k8s.DeployResources(ctx, k8s.DeployResourcesParams{
-		Namespace: env.Name,
-		RootDir:   cat.Dir,
-		Files:     fileChan,
+		Cluster: cluster,
+		Files:   fileChan,
 	})
 
 	return nil
