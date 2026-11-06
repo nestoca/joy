@@ -40,7 +40,8 @@ func NewClusterSetupCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use: "setup",
+		Use:  "setup",
+		Args: cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cat := catalog.FromContext(cmd.Context())
 
@@ -83,7 +84,7 @@ func NewClusterSetupCommand() *cobra.Command {
 			}
 
 			if deploy {
-				return Deploy(cmd.Context(), env, true)
+				return Deploy(cmd.Context(), env, true, nil)
 			}
 
 			return nil
@@ -163,7 +164,7 @@ func NewClusterDeployCommand() *cobra.Command {
 				return err
 			}
 
-			return Deploy(cmd.Context(), env, watch)
+			return Deploy(cmd.Context(), env, watch, args)
 		},
 	}
 
@@ -173,10 +174,17 @@ func NewClusterDeployCommand() *cobra.Command {
 	return cmd
 }
 
-func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool) error {
+func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool, projects []string) error {
 	cat := catalog.FromContext(ctx)
 
 	cat.WithEnvironments([]string{env.Name})
+
+	projectSet := func() xcontainer.Set[string] {
+		if len(projects) == 0 {
+			return nil
+		}
+		return xcontainer.ToSet(projects)
+	}()
 
 	filepaths, fileDirs := func() (xcontainer.Set[string], xcontainer.Set[string]) {
 		paths := make(xcontainer.Set[string])
@@ -195,12 +203,18 @@ func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool) error {
 		add(env.File.Path)
 
 		for _, project := range cat.Projects {
+			if projectSet != nil && !projectSet.Has(project.Name) {
+				continue
+			}
 			add(project.File.Path)
 		}
 
 		for _, cross := range cat.Releases.Items {
 			for _, release := range cross.Releases {
 				if release == nil {
+					continue
+				}
+				if projectSet != nil && !projectSet.Has(release.Project.Name) {
 					continue
 				}
 				add(release.File.Path)
