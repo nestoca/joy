@@ -20,32 +20,19 @@ import (
 )
 
 func NewClusterCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:  "cluster",
-		Args: cobra.ArbitraryArgs,
-	}
-
-	cmd.AddCommand(NewClusterSetupCommand())
-	cmd.AddCommand(NewClusterDeployCommand())
-	cmd.AddCommand(NewClusterAuthCommand())
-
-	return cmd
-}
-
-func NewClusterSetupCommand() *cobra.Command {
 	var (
 		envName string
+		env     *v1alpha1.Environment
 		cluster k8s.ClusterDefinition
-		deploy  bool
 	)
 
 	cmd := &cobra.Command{
-		Use:  "setup",
-		Args: cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Use:  "cluster",
+		Args: cobra.ArbitraryArgs,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			cat := catalog.FromContext(cmd.Context())
 
-			env, err := func() (*v1alpha1.Environment, error) {
+			env, err = func() (*v1alpha1.Environment, error) {
 				if envName == "" {
 					return environment.SelectSingle(cat.Environments, nil, "select which environment")
 				}
@@ -76,62 +63,50 @@ func NewClusterSetupCommand() *cobra.Command {
 					source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
 				}
 			}
-			cluster.Env = env.Name
+			cluster.Env = env
 			cluster.KubeContext = cmp.Or(cluster.KubeContext, "orbstack")
-
-			if err := k8s.Setup(cmd.Context(), cluster); err != nil {
-				return fmt.Errorf("failed to setup cluster: %w", err)
-			}
-
-			if deploy {
-				return Deploy(cmd.Context(), env, true, nil)
-			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&envName, "env", "e", "environment", "setup cluster in orbstack defined by environment")
+	cmd.PersistentFlags().StringVarP(&envName, "env", "e", "", "environment name")
+
+	cmd.AddCommand(NewClusterSetupCommand(cluster))
+	cmd.AddCommand(NewClusterDeployCommand(cluster))
+	cmd.AddCommand(NewClusterAuthCommand(cluster))
+
+	return cmd
+}
+
+func NewClusterSetupCommand(cluster k8s.ClusterDefinition) *cobra.Command {
+	var deploy bool
+
+	cmd := &cobra.Command{
+		Use:  "setup",
+		Args: cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := k8s.Setup(cmd.Context(), cluster); err != nil {
+				return fmt.Errorf("failed to setup cluster: %w", err)
+			}
+			if deploy {
+				return Deploy(cmd.Context(), cluster.Env, true, nil)
+			}
+			return nil
+		},
+	}
+
 	cmd.Flags().BoolVar(&cluster.Recreate, "recreate", false, "recreate orbstack cluster")
 	cmd.Flags().BoolVar(&deploy, "deploy", false, "deploy environment resources")
 
 	return cmd
 }
 
-func NewClusterAuthCommand() *cobra.Command {
+func NewClusterAuthCommand(cluster k8s.ClusterDefinition) *cobra.Command {
 	var envName string
 	cmd := &cobra.Command{
 		Use: "auth",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cat := catalog.FromContext(cmd.Context())
-
-			env, err := func() (*v1alpha1.Environment, error) {
-				if envName == "" {
-					return environment.SelectSingle(cat.Environments, nil, "select which environment")
-				}
-				env := environment.FindByName(cat.Environments, envName)
-				if env == nil {
-					return nil, fmt.Errorf("could not find env %q", envName)
-				}
-				return env, nil
-			}()
-			if err != nil {
-				return err
-			}
-
-			data, err := os.ReadFile(filepath.Join(env.Dir, "cluster.yaml"))
-			if err != nil {
-				return fmt.Errorf("reading environment cluster definition file: %w", err)
-			}
-
-			var cluster k8s.ClusterDefinition
-			if err := sigsyaml.Unmarshal(data, &cluster); err != nil {
-				return fmt.Errorf("failed to parse cluster definition: %w", err)
-			}
-
-			cluster.Env = env.Name
-			cluster.KubeContext = cmp.Or(cluster.KubeContext, "orbstack")
-
 			return cluster.Registries.Auth(cmd.Context(), cluster.KubeContext)
 		},
 	}
@@ -141,7 +116,7 @@ func NewClusterAuthCommand() *cobra.Command {
 	return cmd
 }
 
-func NewClusterDeployCommand() *cobra.Command {
+func NewClusterDeployCommand(cluster k8s.ClusterDefinition) *cobra.Command {
 	var envName string
 	var watch bool
 
@@ -277,10 +252,9 @@ func Deploy(ctx context.Context, env *v1alpha1.Environment, watch bool, projects
 	}
 
 	k8s.DeployResources(ctx, k8s.DeployResourcesParams{
-		Namespace:   env.Name,
-		RootDir:     cat.Dir,
-		Files:       fileChan,
-		KubeContext: "orbstack",
+		Namespace: env.Name,
+		RootDir:   cat.Dir,
+		Files:     fileChan,
 	})
 
 	return nil

@@ -18,6 +18,10 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
+func init() {
+	cobra.EnableTraverseRunHooks = true
+}
+
 type PreRunConfig struct {
 	PullCatalog bool
 }
