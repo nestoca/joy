@@ -17,6 +17,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/shell"
 	"github.com/nestoca/joy/internal/wait"
 )
@@ -27,14 +28,15 @@ var (
 )
 
 type ClusterDefinition struct {
-	KubeContext   string                `json:"kubeContext"`
-	Env           string                `json:"-"`
-	Recreate      bool                  `json:"-"`
-	CRDs          string                `json:"crds"`
-	SetupCommands []SetupCommand        `json:"setupCommands"`
-	Registries    Registries            `json:"registries"`
-	Sources       map[string]Source     `json:"sources"`
-	JoyOperator   JoyOperatorDefinition `json:"joyOperator"`
+	KubeContext      string                `json:"kubeContext"`
+	Env              *v1alpha1.Environment `json:"-"`
+	Recreate         bool                  `json:"-"`
+	CRDs             string                `json:"crds"`
+	SetupCommands    []SetupCommand        `json:"setupCommands"`
+	Registries       Registries            `json:"registries"`
+	Sources          map[string]Source     `json:"sources"`
+	JoyOperator      JoyOperatorDefinition `json:"joyOperator"`
+	RequiredProjects []string              `json:"requiredProjects"`
 }
 
 type JoyOperatorDefinition struct {
@@ -159,7 +161,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 				"image":   cmp.Or(cluster.JoyOperator.Image, "ghcr.io/nestoca/joy-operator"),
 				"version": joyOperatorVersion,
 				"environmentDestinations": map[string]any{
-					cluster.Env: map[string]any{
+					cluster.Env.Name: map[string]any{
 						"server":    "https://kubernetes.default.svc",
 						"namespace": "default",
 					},
@@ -228,10 +230,10 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 }
 
 type DeployResourcesParams struct {
-	Namespace   string
-	RootDir     string
-	Files       chan string
-	KubeContext string
+	Namespace string
+	RootDir   string
+	Files     chan string
+	Cluster   ClusterDefinition
 }
 
 func DeployResources(ctx context.Context, params DeployResourcesParams) {
@@ -263,7 +265,7 @@ func DeployResources(ctx context.Context, params DeployResourcesParams) {
 					return sh.Execf(
 						ctx,
 						"kubectl --context %s apply -f %s %s",
-						[]any{params.KubeContext, path, nsOption},
+						[]any{params.Cluster.KubeContext, path, nsOption},
 					)
 				}()
 				if err != nil {
