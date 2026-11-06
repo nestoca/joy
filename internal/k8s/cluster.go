@@ -17,9 +17,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/davidmdm/x/xcontainer"
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/shell"
 	"github.com/nestoca/joy/internal/wait"
+	"github.com/nestoca/joy/pkg/catalog"
 )
 
 var (
@@ -29,7 +31,6 @@ var (
 
 type ClusterDefinition struct {
 	KubeContext      string                `json:"kubeContext"`
-	Env              *v1alpha1.Environment `json:"-"`
 	Recreate         bool                  `json:"-"`
 	CRDs             string                `json:"crds"`
 	SetupCommands    []SetupCommand        `json:"setupCommands"`
@@ -37,6 +38,8 @@ type ClusterDefinition struct {
 	Sources          map[string]Source     `json:"sources"`
 	JoyOperator      JoyOperatorDefinition `json:"joyOperator"`
 	RequiredProjects []string              `json:"requiredProjects"`
+	Env              *v1alpha1.Environment `json:"-"`
+	Cat              *catalog.Catalog      `json:"-"`
 }
 
 type JoyOperatorDefinition struct {
@@ -84,11 +87,11 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	if err := wait.Eventually(
 		ctx,
 		func(ctx context.Context) error {
-			return sh.Execf(ctx, "kubectl --context %s get ns default", []any{cluster.KubeContext})
+			return sh.Execf(ctx, "kubectl get --context %s ns default", []any{cluster.KubeContext})
 		},
 		wait.WithTicker("testing for cluster readiness"),
 	); err != nil {
-		return fmt.Errorf("failed to ping cluster")
+		return fmt.Errorf("failed to ping cluster: %w", err)
 	}
 
 	for _, cmd := range cluster.SetupCommands {
@@ -224,31 +227,132 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 		return fmt.Errorf("failed to setup cluster dependencies")
 	}
 
+	if requiredProjects := xcontainer.ToSet(cluster.RequiredProjects); len(requiredProjects) > 0 {
+		fmt.Println("setting up required projects")
+
+		catalogRelative := func(value string) string {
+			result, _ := filepath.Rel(cluster.Cat.Dir, value)
+			return result
+		}
+
+		files := []string{
+			"catalog.yaml",
+			catalogRelative(filepath.Join(cluster.Env.Dir, "env.yaml")),
+		}
+
+		var projects []string
+		for _, proj := range cluster.Cat.Projects {
+			if requiredProjects.Has(proj.Name) {
+				files = append(files, catalogRelative(proj.File.Path))
+				projects = append(projects, proj.Name)
+			}
+		}
+
+		if missingProjects := requiredProjects.Difference(xcontainer.ToSet(projects)); len(missingProjects) > 0 {
+			return fmt.Errorf("required projects not found: %s", strings.Join(missingProjects.Collect(), ", "))
+		}
+
+		var releases []string
+		for _, cross := range cluster.Cat.Releases.Items {
+			for _, rel := range cross.Releases {
+				if rel == nil || rel.Project == nil || !requiredProjects.Has(rel.Project.Name) {
+					continue
+				}
+				files = append(files, catalogRelative(rel.File.Path))
+				releases = append(releases, rel.Name)
+			}
+		}
+
+		DeployResources(ctx, DeployResourcesParams{
+			Files:   asClosedChan(files),
+			Cluster: cluster,
+		})
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		e := make(chan error, len(releases))
+
+		fmt.Println("waiting for required project releases to become ready:", strings.Join(releases, ", "))
+
+		var wg sync.WaitGroup
+		for _, release := range releases {
+			wg.Go(func() {
+				var deployment string
+				if err := wait.Eventually(
+					ctx,
+					func(ctx context.Context) error {
+						output, err := sh.ExecfCombined(ctx, "kubectl --context %s get deployment -l release=%s -o name", []any{cluster.KubeContext, release})
+						if err != nil {
+							return err
+						}
+						fields := strings.Fields(string(output))
+						if len(fields) == 0 {
+							return fmt.Errorf("no deployment for release found")
+						}
+						for _, suffix := range []string{"-api", "-frontend", "-redis"} {
+							for _, field := range fields {
+								if strings.HasSuffix(field, suffix) {
+									deployment = field
+									return nil
+								}
+							}
+						}
+						return nil
+					},
+					wait.WithInterval(time.Second),
+					wait.WithTimeout(time.Minute),
+				); err != nil {
+					e <- fmt.Errorf("error waiting release %s deployment to be created: %w", release, err)
+					return
+				}
+				if deployment == "" {
+					e <- fmt.Errorf("failed to find corresponding api/frontend/redis deployment for release: %s", release)
+					return
+				}
+
+				fmt.Printf("found release %s deployment: %s: waiting for it to become healthy\n", release, deployment)
+
+				if err := sh.Execf(ctx, "kubectl --context %s rollout status %s", []any{cluster.KubeContext, deployment}); err != nil {
+					e <- fmt.Errorf("failed to watch release %s deployment become healthy: %w", release, err)
+				}
+			})
+		}
+
+		go func() {
+			wg.Wait()
+			close(e)
+		}()
+
+		if err := <-e; err != nil {
+			return fmt.Errorf("failed to wait for releases to become ready: %w", err)
+		}
+
+	}
+
 	fmt.Println("cluster setup and operational")
 
 	return nil
 }
 
 type DeployResourcesParams struct {
-	Namespace string
-	RootDir   string
-	Files     chan string
-	Cluster   ClusterDefinition
+	Files   <-chan string
+	Cluster ClusterDefinition
 }
 
 func DeployResources(ctx context.Context, params DeployResourcesParams) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	ensureNamespace(ctx, params.Namespace, "orbstack")
+	ensureNamespace(ctx, params.Cluster.Env.Name, "orbstack")
 
-	sh := sh.Dir(params.RootDir)
+	sh := sh.Dir(params.Cluster.Cat.Dir)
 
 	for range 8 {
 		wg.Go(func() {
 			for path := range params.Files {
 				err := func() error {
-					data, err := os.ReadFile(filepath.Join(params.RootDir, path))
+					data, err := os.ReadFile(filepath.Join(params.Cluster.Cat.Dir, path))
 					if err != nil {
 						return err
 					}
@@ -259,7 +363,7 @@ func DeployResources(ctx context.Context, params DeployResourcesParams) {
 
 					var nsOption string
 					if resource.Kind == "Release" {
-						nsOption = "-n " + params.Namespace
+						nsOption = "-n " + params.Cluster.Env.Name
 					}
 
 					return sh.Execf(
@@ -276,4 +380,13 @@ func DeployResources(ctx context.Context, params DeployResourcesParams) {
 			}
 		})
 	}
+}
+
+func asClosedChan[T any](list []T) <-chan T {
+	c := make(chan T, len(list))
+	for _, value := range list {
+		c <- value
+	}
+	close(c)
+	return c
 }
