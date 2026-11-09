@@ -76,6 +76,10 @@ func mergeMap(dst, src *yaml.Node) *yaml.Node {
 		dstKV, srcKV := dstMap[key], srcMap[key]
 		if value := merge(dstKV.Value, srcKV.Value); value != nil {
 			content = append(content, mergeKey(dstKV.Key, srcKV.Key), value)
+			continue
+		}
+		if IsProtected(dstKV.Key) || IsProtected(dstKV.Value) {
+			content = append(content, dstKV.Key, dstKV.Value)
 		}
 	}
 
@@ -182,6 +186,10 @@ func IsLocked(node *yaml.Node) bool {
 
 func IsLocal(node *yaml.Node) bool {
 	return node != nil && node.Tag == TagLocal
+}
+
+func IsProtected(node *yaml.Node) bool {
+	return node != nil && node.Tag == TagProtect
 }
 
 func IsOrgLocal(node *yaml.Node) bool {

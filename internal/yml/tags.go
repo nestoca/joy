@@ -17,11 +17,13 @@ const (
 	TagLocal            = "!local"
 	TagOrgLocal         = "!org-local"
 	TagOrgLocalPlusLock = "!org-local+lock"
+	TagProtect          = "!protect"
 )
 
 var CustomTags = []string{
 	TagLock,
 	TagLocal,
+	TagProtect,
 	TagOrgLocal,
 	TagOrgLocalPlusLock,
 }
