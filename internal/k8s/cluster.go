@@ -145,6 +145,11 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
               hs.status = "Healthy"
               hs.message = "HTTPRoute health checks are disabled for local clusters"
               return hs
+            resource.customizations.health.keda.sh_ScaledObject: |
+              hs = {}
+              hs.status = "Healthy"
+              hs.message = "ScaledObject health checks are disabled for local clusters"
+              return hs
           rbac:
             policy.default: role:admin
       `),
