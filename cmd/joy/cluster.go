@@ -105,7 +105,6 @@ func NewClusterSetupCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 }
 
 func NewClusterAuthCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
-	var envName string
 	cmd := &cobra.Command{
 		Use: "auth",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -113,13 +112,10 @@ func NewClusterAuthCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&envName, "env", "e", "", "environment")
-
 	return cmd
 }
 
 func NewClusterDeployCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
-	var envName string
 	var watch bool
 
 	cmd := &cobra.Command{
@@ -129,7 +125,6 @@ func NewClusterDeployCommand(cluster *k8s.ClusterDefinition) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&envName, "env", "e", "environment", "setup cluster in orbstack defined by environment")
 	cmd.Flags().BoolVar(&watch, "watch", false, "watch deployed resources for changes")
 
 	return cmd
