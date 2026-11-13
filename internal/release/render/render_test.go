@@ -519,6 +519,86 @@ func TestHydrateObjectValues(t *testing.T) {
 	}
 }
 
+func TestHydrateValuesOmitsMappingSentinel(t *testing.T) {
+	cases := []struct {
+		Name           string
+		Release        *v1alpha1.Release
+		Mappings       map[string]any
+		ExpectedValues map[string]any
+	}{
+		{
+			Name: "omits key when template renders omit sentinel",
+			Release: &v1alpha1.Release{
+				Spec:        v1alpha1.ReleaseSpec{Values: map[string]any{}},
+				Environment: &v1alpha1.Environment{},
+				Project:     &v1alpha1.Project{},
+			},
+			Mappings: map[string]any{
+				"meta.tier": fmt.Sprintf("{{ if .Release.Project.Spec.Tier }}{{ .Release.Project.Spec.Tier }}{{ else }}%s{{ end }}", OmitMappingValue),
+				"meta.stream": "platform",
+			},
+			ExpectedValues: map[string]any{
+				"meta": map[string]any{
+					"stream": "platform",
+				},
+			},
+		},
+		{
+			Name: "sets key when project tier is present",
+			Release: &v1alpha1.Release{
+				Spec:        v1alpha1.ReleaseSpec{Values: map[string]any{}},
+				Environment: &v1alpha1.Environment{},
+				Project: &v1alpha1.Project{
+					Spec: v1alpha1.ProjectSpec{Tier: 2},
+				},
+			},
+			Mappings: map[string]any{
+				"meta.tier": fmt.Sprintf("{{ if .Release.Project.Spec.Tier }}{{ .Release.Project.Spec.Tier }}{{ else }}%s{{ end }}", OmitMappingValue),
+			},
+			ExpectedValues: map[string]any{
+				"meta": map[string]any{
+					"tier": "2",
+				},
+			},
+		},
+		{
+			Name: "still sets intentionally empty mapping values",
+			Release: &v1alpha1.Release{
+				Spec:        v1alpha1.ReleaseSpec{Values: map[string]any{}},
+				Environment: &v1alpha1.Environment{},
+			},
+			Mappings: map[string]any{
+				"environment.temporal.hostPort": "",
+			},
+			ExpectedValues: map[string]any{
+				"environment": map[string]any{
+					"temporal": map[string]any{
+						"hostPort": "",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			result, err := HydrateValues(
+				tc.Release,
+				&helm.ChartFS{
+					Chart: helm.Chart{Mappings: tc.Mappings},
+					FS: &xfs.FSMock{
+						ReadFileFunc: func(name string) ([]byte, error) {
+							return nil, os.ErrNotExist
+						},
+					},
+				},
+			)
+			require.NoError(t, err)
+			require.Equal(t, tc.ExpectedValues, result)
+		})
+	}
+}
+
 func TestSchemaUnification(t *testing.T) {
 	cases := []struct {
 		Name           string
