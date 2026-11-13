@@ -69,6 +69,12 @@ package v1alpha1
 		// It can be any string that uniquely identifies the owners, such as email addresses or backstage group names
 		owners?: [...string]
 
+		// Tier is the service criticality tier.
+		tier?: 1 | 2 | 3 | 4
+
+		// Type is the list of service classifications for the project.
+		type?: [..."api" | "frontend" | "gateway"]
+
 		// Reviewers is the list of GitHub users who should always added a reviewer for the project.
 		reviewers?: [...string]
 		repository?: string
