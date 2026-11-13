@@ -761,6 +761,30 @@ func TestYmlMerge(t *testing.T) {
 			Dst:      "{}",
 			Expected: "{!lock key: TODO}",
 		},
+		{
+			Name:     "protected map value is not removed",
+			Src:      "{}",
+			Dst:      "{key: !protect {a: b}, foo: bar}",
+			Expected: "{key: !protect {a: b}}",
+		},
+		{
+			Name:     "protected map key is not removed",
+			Src:      "{}",
+			Dst:      "{!protect key: {a: b}, foo: bar}",
+			Expected: "{!protect key: {a: b}}",
+		},
+		{
+			Name:     "nested protected map is not removed",
+			Src:      "{outer: {}}",
+			Dst:      "{outer: {!protect key: {a: b}, foo: bar}}",
+			Expected: "{outer: {!protect key: {a: b}}}",
+		},
+		{
+			Name:     "protected map is still merged when present in source",
+			Src:      "{key: {a: c}}",
+			Dst:      "{!protect key: {a: b}}",
+			Expected: "{key: !protect {a: c}}",
+		},
 	}
 
 	for _, tc := range cases {

@@ -18,6 +18,10 @@ import (
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
+func init() {
+	cobra.EnableTraverseRunHooks = true
+}
+
 type PreRunConfig struct {
 	PullCatalog bool
 }
@@ -163,6 +167,8 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(diagnoseCmd)
 	cmd.AddCommand(NewExecuteCmd())
 	cmd.AddCommand(NewCatalogCmd())
+
+	cmd.AddCommand(NewClusterCmd())
 
 	return cmd
 }
