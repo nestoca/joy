@@ -67,6 +67,11 @@ func Render(ctx context.Context, params RenderParams) (string, error) {
 	return params.Helm.Render(ctx, opts)
 }
 
+// OmitMappingValue is the sentinel a chart mapping template may render to skip
+// setInMap for that key. Use it for optional injections. Bare empty strings are still applied so
+// mappings that intentionally inject "" keep working.
+const OmitMappingValue = "__joy.omit__"
+
 func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]any, error) {
 	params := struct {
 		Release     *v1alpha1.Release
@@ -94,6 +99,11 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 				return nil, fmt.Errorf("executing chart mapping template at %s: %v", key, err)
 			}
 			value = buffer.String()
+		}
+		// Mapping templates may render OmitMappingValue to leave the key unset.
+		// Empty strings are still set: some mappings intentionally inject "".
+		if s, ok := value.(string); ok && s == OmitMappingValue {
+			continue
 		}
 		setInMap(values, yml.SplitIntoPathSegments(key), value)
 	}
