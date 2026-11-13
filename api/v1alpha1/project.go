@@ -25,12 +25,8 @@ type ProjectSpec struct {
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 
 	// Tier is the service criticality tier (1-4). Injected into release values as
-	// meta.tier via catalog chart mappings; drives SLO targets and monitor priority.
+	// meta.tier via catalog chart mappings.
 	Tier int `yaml:"tier,omitempty" json:"tier,omitempty"`
-
-	// Type is the list of service classifications for the project
-	// (e.g. "api", "frontend", "gateway"). Injected into release values as meta.type.
-	Type []string `yaml:"type,omitempty" json:"type,omitempty"`
 
 	// Reviewers is the list of GitHub users who should always added a reviewer for the project.
 	Reviewers []string `yaml:"reviewers,omitempty" json:"reviewers,omitempty"`
