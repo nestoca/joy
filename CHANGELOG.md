@@ -1,3 +1,10 @@
+## [0.104.0](https://github.com/nestoca/joy/compare/v0.103.0...v0.104.0) (2026-11-13)
+
+
+### Features
+
+* **PLT-7551:** add Project tier ([#314](https://github.com/nestoca/joy/issues/314)) ([639920a](https://github.com/nestoca/joy/commit/639920abaf091ee258f077c88eb5736eb93b2041))
+
 ## [0.103.0](https://github.com/nestoca/joy/compare/v0.102.2...v0.103.0) (2026-10-29)
 
 
