@@ -69,6 +69,10 @@ package v1alpha1
 		// It can be any string that uniquely identifies the owners, such as email addresses or backstage group names
 		owners?: [...string]
 
+		// Tier is the service criticality tier (1-4). Injected into release values as
+		// meta.tier via catalog chart mappings.
+		tier?: 1 | 2 | 3 | 4
+
 		// Reviewers is the list of GitHub users who should always added a reviewer for the project.
 		reviewers?: [...string]
 		repository?: string
