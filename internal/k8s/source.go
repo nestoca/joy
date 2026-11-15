@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
+	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	sigsyaml "sigs.k8s.io/yaml"
 
 	"github.com/nestoca/joy/internal/shell"
@@ -77,13 +81,73 @@ type KubectlSource struct {
 	Recursive   bool   `json:"recursive"`
 }
 
-func (source KubectlSource) Apply(ctx context.Context) error {
+func (source KubectlSource) Apply(ctx context.Context) (err error) {
 	ns := cmp.Or(source.Namespace, "default")
 	if ns != "default" {
 		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
 			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
 		}
 	}
+
+	reader := func() io.Reader {
+		if source.Input != "" {
+			return strings.NewReader(source.Input)
+		}
+		reader, err := os.Open(source.Path)
+		if err != nil {
+			return strings.NewReader("")
+		}
+		return reader
+	}()
+
+	decoder := yaml.NewYAMLToJSONDecoder(reader)
+
+	var workloads []unstructured.Unstructured
+	for {
+		var resource unstructured.Unstructured
+		if err := decoder.Decode(&resource); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("failed to decode kubectl source input: %w", err)
+		}
+		if resource.GetAPIVersion() == "apps/v1" && slices.Contains([]string{"Deployment", "Statefulset", "Daemonset"}, resource.GetKind()) {
+			workloads = append(workloads, resource)
+		}
+	}
+
+	defer func() {
+		if err != nil {
+			return
+		}
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		e := make(chan error, len(workloads))
+
+		for _, workload := range workloads {
+			wg.Go(func() {
+				if err := sh.Execf(
+					ctx,
+					"kubectl --context %s rollout status -n %s --timeout 5m %s/%s",
+					[]any{source.KubeContext, source.Namespace, strings.ToLower(workload.GetKind()), workload.GetName()},
+				); err != nil {
+					e <- fmt.Errorf("failed to wait for %s/%s to rollout: %w", workload.GetKind(), workload.GetName(), err)
+				}
+			})
+		}
+
+		go func() {
+			wg.Wait()
+			close(e)
+		}()
+
+		err = <-e
+	}()
+
 	if source.Input != "" {
 		return sh.Execf(
 			ctx,
