@@ -49,6 +49,8 @@ type ProjectSpec struct {
 	ReleaseLinks map[string]string `yaml:"releaseLinks,omitempty" json:"releaseLinks,omitempty"`
 
 	SkipPreReleaseCheck bool `yaml:"skipPreReleaseCheck,omitempty" json:"skipPreReleaseCheck,omitempty"`
+
+	DependsOn []string `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
 }
 
 type Project struct {

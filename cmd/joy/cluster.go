@@ -135,7 +135,18 @@ func Deploy(ctx context.Context, cluster k8s.ClusterDefinition, watch bool, proj
 		if len(projects) == 0 {
 			return nil
 		}
-		return xcontainer.ToSet(projects)
+
+		projectMappings := map[string]*v1alpha1.Project{}
+		for _, project := range cat.Projects {
+			projectMappings[project.Name] = project
+		}
+
+		result := xcontainer.Set[string]{}
+		for _, name := range projects {
+			visit(projectMappings, result, name)
+		}
+
+		return result
 	}()
 
 	filepaths, fileDirs := func() (xcontainer.Set[string], xcontainer.Set[string]) {
@@ -234,4 +245,18 @@ func Deploy(ctx context.Context, cluster k8s.ClusterDefinition, watch bool, proj
 	})
 
 	return nil
+}
+
+func visit(mappings map[string]*v1alpha1.Project, result xcontainer.Set[string], name string) {
+	proj, ok := mappings[name]
+	if !ok {
+		return
+	}
+	for _, dep := range proj.Spec.DependsOn {
+		if !result.Has(dep) {
+			result.Add(dep)
+			visit(mappings, result, dep)
+			continue
+		}
+	}
 }
