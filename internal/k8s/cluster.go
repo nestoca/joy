@@ -31,13 +31,12 @@ var (
 
 type ClusterDefinition struct {
 	KubeContext      string                `json:"kubeContext"`
-	Recreate         bool                  `json:"-"`
-	CRDs             string                `json:"crds"`
 	SetupCommands    []SetupCommand        `json:"setupCommands"`
 	Registries       Registries            `json:"registries"`
 	Sources          map[string]Source     `json:"sources"`
 	JoyOperator      JoyOperatorDefinition `json:"joyOperator"`
 	RequiredProjects []string              `json:"requiredProjects"`
+	Recreate         bool                  `json:"-"`
 	Env              *v1alpha1.Environment `json:"-"`
 	Cat              *catalog.Catalog      `json:"-"`
 }
@@ -49,6 +48,7 @@ type JoyOperatorDefinition struct {
 }
 
 type SetupCommand struct {
+	Msg          string `json:"msg"`
 	Value        string `json:"cmd"`
 	InheritStdio bool   `json:"inheritStdio"`
 }
@@ -101,7 +101,10 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 			}
 			return withStdio
 		}()
-		if err := sh.Execf(ctx, cmd.Value, nil, options...); err != nil {
+		if cmd.Msg != "" {
+			fmt.Println(cmd.Msg)
+		}
+		if err := sh.Dir(cluster.Env.File.Dir()).Execf(ctx, cmd.Value, nil, options...); err != nil {
 			return fmt.Errorf("failed to run:\n%s\n\n%w", cmd.Value, err)
 		}
 	}
@@ -112,16 +115,6 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 
 	if err := cluster.Registries.Auth(ctx, cluster.KubeContext); err != nil {
 		return fmt.Errorf("failed to authenticate registries: %w", err)
-	}
-
-	crds := KubectlSource{
-		KubeContext: cluster.KubeContext,
-		Path:        cluster.CRDs,
-		Recursive:   true,
-	}
-
-	if err := wait.TickFunc(ctx, "applying crds", crds.Apply); err != nil {
-		return fmt.Errorf("failed to apply crds: %w", err)
 	}
 
 	if cluster.Sources == nil {

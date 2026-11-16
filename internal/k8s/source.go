@@ -84,7 +84,7 @@ type KubectlSource struct {
 func (source KubectlSource) Apply(ctx context.Context) (err error) {
 	ns := cmp.Or(source.Namespace, "default")
 	if ns != "default" {
-		if err := ensureNamespace(ctx, ns, "orbstack"); err != nil {
+		if err := ensureNamespace(ctx, ns, source.KubeContext); err != nil {
 			return fmt.Errorf("failed to ensure namespace %s: %w", ns, err)
 		}
 	}
