@@ -55,14 +55,12 @@ func NewClusterCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse cluster definition: %w", err)
 			}
 
-			if cluster.CRDs != "" {
-				cluster.CRDs = filepath.Join(env.Dir, cluster.CRDs)
-			}
 			for _, source := range cluster.Sources {
 				if source.Kubectl != nil && source.Kubectl.Path != "" && !strings.HasPrefix(source.Kubectl.Path, "https://") && !strings.HasPrefix(source.Kubectl.Path, "oci://") && !filepath.IsAbs(source.Kubectl.Path) {
 					source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
 				}
 			}
+
 			cluster.Env = env
 			cluster.Cat = cat
 			cluster.Cat.WithEnvironments([]string{env.Name})

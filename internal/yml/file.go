@@ -32,6 +32,10 @@ type File struct {
 	Indent int
 }
 
+func (file *File) Dir() string {
+	return filepath.Dir(file.Path)
+}
+
 func (file *File) Yaml() ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := yaml.NewEncoder(&buffer)
