@@ -56,8 +56,15 @@ func NewClusterCmd() *cobra.Command {
 			}
 
 			for _, source := range cluster.Sources {
-				if source.Kubectl != nil && source.Kubectl.Path != "" && !strings.HasPrefix(source.Kubectl.Path, "https://") && !strings.HasPrefix(source.Kubectl.Path, "oci://") && !filepath.IsAbs(source.Kubectl.Path) {
-					source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
+				if source.Kubectl != nil {
+					if path := source.Kubectl.Path; path != "" && !strings.HasPrefix(path, "https://") && !strings.HasPrefix(path, "oci://") && !filepath.IsAbs(path) {
+						source.Kubectl.Path = filepath.Join(env.Dir, source.Kubectl.Path)
+					}
+				}
+				if source.Helm != nil {
+					if path := source.Helm.URL; path != "" && !strings.HasPrefix(path, "https://") && !strings.HasPrefix(path, "oci://") && !filepath.IsAbs(path) {
+						source.Helm.URL = filepath.Join(env.Dir, path)
+					}
 				}
 			}
 
