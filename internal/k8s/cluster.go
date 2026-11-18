@@ -185,6 +185,9 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 	for name, source := range cluster.Sources {
 		wg.Go(func() {
 			if source.Helm != nil {
+				if source.Helm.Release == "" {
+					source.Helm.Release = name
+				}
 				source.Helm.KubeContext = cluster.KubeContext
 			}
 			if source.Kubectl != nil {
