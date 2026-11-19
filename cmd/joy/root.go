@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/nestoca/joy/internal/config"
 	"github.com/nestoca/joy/internal/dependencies"
 	"github.com/nestoca/joy/internal/git"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -168,7 +170,20 @@ func NewRootCmd(version string, preRunConfigs PreRunConfigs) *cobra.Command {
 	cmd.AddCommand(NewExecuteCmd())
 	cmd.AddCommand(NewCatalogCmd())
 
-	cmd.AddCommand(NewClusterCmd())
+	alpha := cobra.Command{
+		Use:  "alpha",
+		Long: "home of commands that are not stabilized",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			io.WriteString(cmd.OutOrStdout(), style.Notice(
+				"You are running an alpha command: it has not yet stabilized and its behaviour and signatures may change.\n",
+			))
+			io.WriteString(cmd.OutOrStdout(), style.Warning("⚠️ Use with caution.\n\n"))
+		},
+	}
+
+	alpha.AddCommand(NewClusterCmd())
+
+	cmd.AddCommand(&alpha)
 
 	return cmd
 }
