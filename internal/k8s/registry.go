@@ -21,6 +21,7 @@ type ClusterRegistry struct {
 	Helm            bool            `json:"helm"`
 	ContainerImages bool            `json:"images"`
 	TTL             metav1.Duration `json:"ttl"`
+	Namespaces      []string        `json:"namespaces"`
 }
 
 type Registries map[string]ClusterRegistry
@@ -111,30 +112,25 @@ func (registry ClusterRegistry) Auth(ctx context.Context, name, kubecontext stri
 	}
 
 	if registry.ContainerImages {
-		if err != nil {
-			return fmt.Errorf("failed to serialize registry dockerconfigjson: %w", err)
-		}
-
-		if err := sh.Execf(
-			ctx,
-			`kubectl --context %s apply --server-side -f -`,
-			[]any{kubecontext},
-			shell.WithStdin(
-				shell.JSONReader(
-					&corev1.Secret{
-						TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-						ObjectMeta: metav1.ObjectMeta{
-							Name: name + "-images",
-							// Labels: map[string]string{"argocd.argoproj.io/secret-type": "repository"},
+		for _, ns := range registry.Namespaces {
+			if err := sh.Execf(
+				ctx,
+				`kubectl --context %s apply -n %s --server-side -f -`,
+				[]any{kubecontext, ns},
+				shell.WithStdin(
+					shell.JSONReader(
+						&corev1.Secret{
+							TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+							ObjectMeta: metav1.ObjectMeta{Name: name + "-images"},
+							Type:       corev1.SecretTypeDockerConfigJson,
+							Immutable:  new(false),
+							Data:       map[string][]byte{".dockerconfigjson": dockerConfig},
 						},
-						Type:      corev1.SecretTypeDockerConfigJson,
-						Immutable: new(false),
-						Data:      map[string][]byte{".dockerconfigjson": dockerConfig},
-					},
+					),
 				),
-			),
-		); err != nil {
-			return fmt.Errorf("failed to apply images dockerconfigjson secret: %w", err)
+			); err != nil {
+				return fmt.Errorf("failed to apply images dockerconfigjson secret to ns %q: %w", ns, err)
+			}
 		}
 	}
 
