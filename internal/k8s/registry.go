@@ -112,6 +112,9 @@ func (registry ClusterRegistry) Auth(ctx context.Context, name, kubecontext stri
 	}
 
 	if registry.ContainerImages {
+		if len(registry.Namespaces) == 0 {
+			registry.Namespaces = []string{"default"}
+		}
 		for _, ns := range registry.Namespaces {
 			if err := sh.Execf(
 				ctx,
