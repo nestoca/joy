@@ -5,10 +5,8 @@ import (
 	"cmp"
 	"context"
 	"encoding/json/v2"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -19,8 +17,6 @@ import (
 
 	sigsyaml "sigs.k8s.io/yaml"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/davidmdm/x/xcontainer"
@@ -98,94 +94,6 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 		wait.WithTicker("testing for cluster readiness"),
 	); err != nil {
 		return fmt.Errorf("failed to ping cluster: %w", err)
-	}
-
-	assetPath := filepath.Join(cluster.Env.Dir, "assets")
-
-	stat, err := os.Stat(assetPath)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("failed to stat for cluster assets: %w", err)
-	}
-
-	if stat != nil && stat.IsDir() {
-		if err := wait.TickFunc(ctx, "creating assets PV & PVC", func(ctx context.Context) error {
-			pv := &corev1.PersistentVolume{
-				APIVersion: "v1",
-				Kind:       "PersistentVolume",
-				ObjectMeta: metav1.ObjectMeta{Name: "assets"},
-				Spec: corev1.PersistentVolumeSpec{
-					StorageClassName: "custom",
-					AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Capacity:         corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1Gi")},
-					PersistentVolumeSource: corev1.PersistentVolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: assetPath,
-							Type: new(corev1.HostPathDirectory),
-						},
-					},
-				},
-			}
-			if err := sh.Execf(ctx, "kubectl --context %s apply --server-side -f -", []any{cluster.KubeContext}, shell.WithStdin(toJSONStream(pv))); err != nil {
-				return fmt.Errorf("failed to create PersistentVolume for cluster assets")
-			}
-
-			if err := wait.Eventually(ctx, func(ctx context.Context) error {
-				data, err := sh.ExecfCombined(ctx, "kubectl --context %s get pv %s -o json", []any{cluster.KubeContext, pv.Name})
-				if err != nil {
-					return fmt.Errorf("failed to get assets persistent volume: %w", err)
-				}
-				var live corev1.PersistentVolume
-				if err := json.Unmarshal(data, &live); err != nil {
-					return fmt.Errorf("failed to unmarshal assets PV: %w", err)
-				}
-				if phase := live.Status.Phase; phase != "Available" {
-					return fmt.Errorf("assets PV failed to become available: last seen: %s", phase)
-				}
-				return nil
-			}); err != nil {
-				return fmt.Errorf("assets PV never reached expected state: %w", err)
-			}
-
-			pvc := &corev1.PersistentVolumeClaim{
-				APIVersion: "v1",
-				Kind:       "PersistentVolumeClaim",
-				ObjectMeta: metav1.ObjectMeta{Name: pv.Name},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					StorageClassName: &pv.Spec.StorageClassName,
-					VolumeName:       pv.Name,
-					AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse("1Mi"),
-						},
-					},
-				},
-			}
-
-			if err := sh.Execf(ctx, "kubectl --context %s apply --server-side -f -", []any{cluster.KubeContext}, shell.WithStdin(toJSONStream(pvc))); err != nil {
-				return fmt.Errorf("failed to create PersistentVolumeClaim for cluster assets")
-			}
-
-			if err := wait.Eventually(ctx, func(ctx context.Context) error {
-				data, err := sh.ExecfCombined(ctx, "kubectl --context %s get pvc %s -o json", []any{cluster.KubeContext, pvc.Name})
-				if err != nil {
-					return fmt.Errorf("failed to get assets persistent volume claim: %w", err)
-				}
-				var live corev1.PersistentVolumeClaim
-				if err := json.Unmarshal(data, &live); err != nil {
-					return fmt.Errorf("failed to unmarshal assets PVC: %w", err)
-				}
-				if phase := live.Status.Phase; phase != "Bound" {
-					return fmt.Errorf("assets PVC failed to become bound: last seen: %s", phase)
-				}
-				return nil
-			}); err != nil {
-				return fmt.Errorf("assets PVC never reached expected state: %w", err)
-			}
-			return nil
-		}); err != nil {
-			return err
-		}
 	}
 
 	for _, cmd := range cluster.SetupCommands {
