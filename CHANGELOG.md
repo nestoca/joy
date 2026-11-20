@@ -1,3 +1,46 @@
+## [0.105.0](https://github.com/nestoca/joy/compare/v0.104.0...v0.105.0) (2026-11-20)
+
+
+### Features
+
+* **PLT-7100:** add !protect promotion directive ([ee7b6c0](https://github.com/nestoca/joy/commit/ee7b6c00768e731ef0619686ee18f50918caba00))
+* **PLT-7100:** add additionalArgs to helm source ([eb610b3](https://github.com/nestoca/joy/commit/eb610b3817d58d2107042571557792fda86ba1a7))
+* **PLT-7100:** add cluster auth command ([ef3c802](https://github.com/nestoca/joy/commit/ef3c802855c49169619aa415b3d9c022306f5964))
+* **PLT-7100:** add health customization for httproute in local cluster ([35c9eed](https://github.com/nestoca/joy/commit/35c9eed494963045b9aae86a11d0f9ff8c0afdf3))
+* **PLT-7100:** add joy cluster setup command ([68c228e](https://github.com/nestoca/joy/commit/68c228e33699a0672ee16456fe97abd686d1356f))
+* **PLT-7100:** all cluster setup to deploy and propagate kube-context ([70c0168](https://github.com/nestoca/joy/commit/70c01687cc51a58e7a6418cbd88f35f08013d71c))
+* **PLT-7100:** allow joy-operator configuration and use joy helm secret ([2259d74](https://github.com/nestoca/joy/commit/2259d74da86978247c3a1884c60215f1c10f5d97))
+* **PLT-7100:** code review ([f3d2e4f](https://github.com/nestoca/joy/commit/f3d2e4f62a55e542c5b9f3a35c4c7ceafe9f553e))
+* **PLT-7100:** code-review ([8e7c97d](https://github.com/nestoca/joy/commit/8e7c97da0a3390c2a9e91b2525fd09f13980c2a4))
+* **PLT-7100:** create assets PV and PVC for local cluster if assets are present ([2d6ec10](https://github.com/nestoca/joy/commit/2d6ec10c1e894215e4cf3f4e7dbf7df6eb8a357a))
+* **PLT-7100:** default registry namespaces to default ([21f2aef](https://github.com/nestoca/joy/commit/21f2aefce43aa3426338925739a7bfd85fb044e6))
+* **PLT-7100:** drop crds from cluster definition and run setup cmds in environment dir ([c9fb965](https://github.com/nestoca/joy/commit/c9fb965980cd550cc9c890c89e0f0a8a6a988231))
+* **PLT-7100:** imporve cluster setup by applying sources concurrently ([b639a7d](https://github.com/nestoca/joy/commit/b639a7d43c845ea14b8eec94dcb39e56aa886467))
+* **PLT-7100:** move cluster commands under alpha with warning message ([9b785b6](https://github.com/nestoca/joy/commit/9b785b69f3ad633a9dfe00ac591bb7a620b1480b))
+* **PLT-7100:** remove builtin pv and pvc setup ([2ba0785](https://github.com/nestoca/joy/commit/2ba07853c42baa2d280f8a8d895a2fbc8bec7120))
+* **PLT-7100:** remove env flag override in cluster subcommands ([5d798d2](https://github.com/nestoca/joy/commit/5d798d2ca760eb2ca5d29fc60e8135fa604646be))
+* **PLT-7100:** remove load-balancer config from cluster argocd ([ea9ec69](https://github.com/nestoca/joy/commit/ea9ec69ee2ac0789a535da6ba95b971cc28ec144))
+* **PLT-7100:** resolve kubectl source paths relative to env folder ([bfa435f](https://github.com/nestoca/joy/commit/bfa435f37c24a35d5c3828bf5027ba5775f2a2cc))
+* **PLT-7100:** run helm source from env directory ([3beb10c](https://github.com/nestoca/joy/commit/3beb10c54b6655a49e95592fd1c96069a43d62ca))
+* **PLT-7100:** support project dependencies ([663b929](https://github.com/nestoca/joy/commit/663b929282882c773f8e11f057f102acbd348da7))
+* **PLT-7100:** support registry secrets for multiple namespaces ([16e3f0b](https://github.com/nestoca/joy/commit/16e3f0b93bdfdec12f5e9baf92b38a53d1d54812))
+* **PLT-7100:** support remote kubectl paths ([5e68966](https://github.com/nestoca/joy/commit/5e689664b653eca54b9a7638c5a7d2beec54ad7d))
+* **PLT-7100:** support requiredProjects in cluster definition for setup ([e9b469a](https://github.com/nestoca/joy/commit/e9b469ae912b5f00676b35ab434746f5f32a39ba))
+* **PLT-7100:** support specifying projects to cluster deploy ([22462dd](https://github.com/nestoca/joy/commit/22462dd4207184928ee1ee71dfc7ef905973333f))
+* **PLT-7100:** support stdio for cluster setup ([bd534fd](https://github.com/nestoca/joy/commit/bd534fd942576eb35c05545165f0bc7288a1051b))
+* **PLT-7100:** wait for kubectl source workloads to be ready ([cead10b](https://github.com/nestoca/joy/commit/cead10b9f748b34457114ad12181dd6d4a61151a))
+* **PLT-7101:** add cluster deploy command that can watch files ([4989b42](https://github.com/nestoca/joy/commit/4989b42a34c7a4c29740d09c3143a55f50438ff7))
+
+
+### Bug Fixes
+
+* **PLT-7100:** fix dockerconfigjson auth format to be proper basic auth ([05336b4](https://github.com/nestoca/joy/commit/05336b41ed79ba08a36681df90ecf4576ad5c751))
+* **PLT-7100:** fix project dependsOn not adding top level project ([9367568](https://github.com/nestoca/joy/commit/936756827107ee819e7687856eb0d2a71413efcc))
+* **PLT-7100:** fix race condition in defers of wait package ([550d135](https://github.com/nestoca/joy/commit/550d135ec8ab018782ea0660025ffb9947ba3078))
+* **PLT-7100:** image pull secret should be applied to default namespace for local cluster ([c7303aa](https://github.com/nestoca/joy/commit/c7303aa716fd06e980be31d3cb19cfcd9c560e72))
+* **PLT-7100:** print message about logging into registry during cluster setup ([a6a684d](https://github.com/nestoca/joy/commit/a6a684dd2ce1c035fe95ebeaeb097e3f7fe24a5d))
+* **PLT-7100:** small improvement to the internal/shell package ([f132d93](https://github.com/nestoca/joy/commit/f132d936beaff4a4a655817d8574ed7f3e45732f))
+
 ## [0.104.0](https://github.com/nestoca/joy/compare/v0.103.0...v0.104.0) (2026-11-13)
 
 
