@@ -16,6 +16,7 @@ import (
 	"github.com/nestoca/joy/api/v1alpha1"
 	"github.com/nestoca/joy/internal/environment"
 	"github.com/nestoca/joy/internal/k8s"
+	"github.com/nestoca/joy/internal/style"
 	"github.com/nestoca/joy/pkg/catalog"
 )
 
@@ -211,11 +212,14 @@ func Deploy(ctx context.Context, cluster k8s.ClusterDefinition, watch bool, proj
 		}
 
 		for dir := range fileDirs {
-			watcher.Add(dir)
+			if err := watcher.Add(dir); err != nil {
+				fmt.Fprintln(os.Stderr, style.Warning(fmt.Sprintf("failed to setup watch on directory: %s: %v\n", dir, err)))
+			}
 		}
 
 		go func() {
 			defer close(c)
+			defer watcher.Close()
 			for {
 				select {
 				case <-ctx.Done():
@@ -232,7 +236,6 @@ func Deploy(ctx context.Context, cluster k8s.ClusterDefinition, watch bool, proj
 					}
 				case err, ok := <-watcher.Errors:
 					if !ok {
-						watcher.Errors = nil
 						continue
 					}
 					fmt.Fprintln(os.Stderr, fmt.Errorf("error from file watcher: %v", err))
