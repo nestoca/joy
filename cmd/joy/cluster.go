@@ -266,4 +266,5 @@ func visit(mappings map[string]*v1alpha1.Project, result xcontainer.Set[string],
 			continue
 		}
 	}
+	result.Add(name)
 }
