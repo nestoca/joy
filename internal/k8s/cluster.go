@@ -1,12 +1,10 @@
 package k8s
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"encoding/json/v2"
 	"fmt"
-	"io"
 	"maps"
 	"os"
 	"path/filepath"
@@ -322,7 +320,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 
 				fmt.Printf("found release %s deployment: %s: waiting for it to become healthy\n", release, deployment)
 
-				if err := sh.Execf(ctx, "kubectl --context %s rollout status %s", []any{cluster.KubeContext, deployment}); err != nil {
+				if err := sh.Execf(ctx, "kubectl --context %s rollout status --timeout=2m %s", []any{cluster.KubeContext, deployment}); err != nil {
 					e <- fmt.Errorf("failed to watch release %s deployment become healthy: %w", release, err)
 				}
 			})
@@ -398,14 +396,4 @@ func asClosedChan[T any](list []T) <-chan T {
 	}
 	close(c)
 	return c
-}
-
-func toJSONStream(value any) io.Reader {
-	data, err := json.Marshal(value)
-	if err != nil {
-		pr, pw := io.Pipe()
-		pw.CloseWithError(err)
-		return pr
-	}
-	return bytes.NewReader(data)
 }

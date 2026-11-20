@@ -48,7 +48,10 @@ func (source HelmSource) Apply(ctx context.Context) error {
 			}
 			return sigsyaml.Marshal(value)
 		}
-		return os.ReadFile(source.ValuesFile)
+		if filepath := source.ValuesFile; filepath != "" {
+			return os.ReadFile(filepath)
+		}
+		return []byte{}, nil
 	}()
 	if err != nil {
 		return fmt.Errorf("failed to get values: %w", err)
