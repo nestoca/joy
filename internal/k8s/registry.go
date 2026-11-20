@@ -58,6 +58,9 @@ func (registry ClusterRegistry) Auth(ctx context.Context, name, kubecontext stri
 			},
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal dockerConfig to json representation: %w", err)
+	}
 
 	if registry.Helm {
 		if err := sh.Execf(
@@ -77,7 +80,7 @@ func (registry ClusterRegistry) Auth(ctx context.Context, name, kubecontext stri
 						StringData: map[string]string{
 							"type":      "helm",
 							"url":       registryURL.Host,
-							"enableOCI": strconv.FormatBool(registryURL.Scheme == "oci:"),
+							"enableOCI": strconv.FormatBool(registryURL.Scheme == "oci"),
 							"username":  "oauth2accesstoken",
 							"password":  string(token),
 						},
