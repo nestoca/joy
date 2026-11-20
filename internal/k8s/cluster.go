@@ -247,10 +247,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 			return result
 		}
 
-		files := []string{
-			"catalog.yaml",
-			catalogRelative(filepath.Join(cluster.Env.Dir, "env.yaml")),
-		}
+		files := []string{"catalog.yaml", catalogRelative(cluster.Env.File.Path)}
 
 		var projects []string
 		for _, proj := range cluster.Cat.Projects {
@@ -310,7 +307,7 @@ func Setup(ctx context.Context, cluster ClusterDefinition) error {
 								}
 							}
 						}
-						return nil
+						return fmt.Errorf("no deployment with expected suffix found")
 					},
 					wait.WithInterval(time.Second),
 					wait.WithTimeout(time.Minute),
@@ -356,7 +353,7 @@ func DeployResources(ctx context.Context, params DeployResourcesParams) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	ensureNamespace(ctx, params.Cluster.Env.Name, "orbstack")
+	ensureNamespace(ctx, params.Cluster.Env.Name, params.Cluster.KubeContext)
 
 	sh := sh.Dir(params.Cluster.Cat.Dir)
 
