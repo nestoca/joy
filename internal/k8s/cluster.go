@@ -4,7 +4,9 @@ import (
 	"cmp"
 	"context"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"go.yaml.in/yaml/v3"
 	sigsyaml "sigs.k8s.io/yaml"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +67,10 @@ func (cmd *SetupCommand) UnmarshalJSON(data []byte) error {
 }
 
 func Setup(ctx context.Context, cluster ClusterDefinition) error {
+	if err := configureKubelet(); err != nil {
+		return fmt.Errorf("failed to configure orbstack kubelet: %w", err)
+	}
+
 	if cluster.Recreate {
 		fmt.Println("deleting orbstack cluster if present")
 		if err := sh.Execf(ctx, "orb delete k8s -f", nil); err != nil {
@@ -396,4 +403,45 @@ func asClosedChan[T any](list []T) <-chan T {
 	}
 	close(c)
 	return c
+}
+
+func configureKubelet() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	kubeletConfigPath := filepath.Join(homeDir, ".orbstack/config/kubelet.conf")
+
+	data, err := os.ReadFile(kubeletConfigPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			if err := os.MkdirAll(filepath.Dir(kubeletConfigPath), 0o755); err != nil {
+				return fmt.Errorf("failed to create kubelet conf dir: %w", err)
+			}
+			if err := os.WriteFile(kubeletConfigPath, []byte("maxPods: 255"), 0o644); err != nil {
+				return fmt.Errorf("failed to configure orbstack kubelet: %w", err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to read orbstack kubelet config: %w", err)
+	}
+
+	config := make(map[string]any)
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to umarshal kubelet conf: %w", err)
+	}
+
+	if maxPods, _ := config["maxPods"].(int); maxPods >= 255 {
+		return nil
+	}
+
+	config["maxPods"] = 255
+
+	data, err = yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal kubelet config: %w", err)
+	}
+
+	return os.WriteFile(kubeletConfigPath, data, 0o644)
 }
