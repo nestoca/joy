@@ -1,3 +1,10 @@
+## [0.105.1](https://github.com/nestoca/joy/compare/v0.105.0...v0.105.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **PLT-7100:** update orbstack kubelet config to a more reasonable maxPod size ([3956ca8](https://github.com/nestoca/joy/commit/3956ca8f8998447d8c1150751bbc3db479e95901))
+
 ## [0.105.0](https://github.com/nestoca/joy/compare/v0.104.0...v0.105.0) (2026-11-20)
 
 
