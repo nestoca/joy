@@ -94,11 +94,11 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 			if err := tpl.Execute(&buffer, params); err != nil {
 				return nil, fmt.Errorf("executing chart mapping template at %s: %v", key, err)
 			}
-			typed, err := typedMappingValue(buffer.String())
+			typedValue, err := typedMappingValue(buffer.String())
 			if err != nil {
 				return nil, fmt.Errorf("typing chart mapping result at %s: %v", key, err)
 			}
-			value = typed
+			value = typedValue
 		}
 		setInMap(values, yml.SplitIntoPathSegments(key), value)
 	}
@@ -131,16 +131,8 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 	return result, nil
 }
 
-// scalarMappingTags are the YAML tags a chart mapping result may start with to opt into a typed value.
 var scalarMappingTags = []string{"!!int", "!!float", "!!bool", "!!str"}
 
-// typedMappingValue returns the result of a chart mapping template as a value.
-//
-// Mapping templates always render text, so by default the result is a string. A result that starts
-// with a scalar YAML tag (!!int, !!float, !!bool, !!str) opts into a typed value instead, so that
-// charts expecting a number or boolean can be fed from templates, for example:
-//
-//	meta.tier: '!!int {{ .Release.Project.Spec.Tier }}'
 func typedMappingValue(rendered string) (any, error) {
 	tag, _, _ := strings.Cut(strings.TrimSpace(rendered), " ")
 	if !slices.Contains(scalarMappingTags, tag) {
