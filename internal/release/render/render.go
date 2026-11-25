@@ -131,20 +131,30 @@ func HydrateValues(release *v1alpha1.Release, chart *helm.ChartFS) (map[string]a
 	return result, nil
 }
 
-var scalarMappingTags = []string{"!!int", "!!float", "!!bool", "!!str"}
+var scalarMappingTags = []string{"!!int", "!!bool", "!!str"}
 
 func typedMappingValue(rendered string) (any, error) {
-	tag, _, _ := strings.Cut(strings.TrimSpace(rendered), " ")
-	if !slices.Contains(scalarMappingTags, tag) {
+	fields := strings.Fields(rendered)
+	if len(fields) == 0 || !slices.Contains(scalarMappingTags, fields[0]) {
 		return rendered, nil
 	}
 
-	var value any
-	if err := yaml.Unmarshal([]byte(rendered), &value); err != nil {
+	var node yaml.Node
+	if err := yaml.Unmarshal([]byte(rendered), &node); err != nil {
 		return nil, fmt.Errorf("parsing %q: %w", rendered, err)
 	}
-	if value == nil {
-		return nil, fmt.Errorf("%q has a %s tag but no value", rendered, tag)
+	if node.Kind != yaml.DocumentNode || len(node.Content) != 1 || node.Content[0].Kind != yaml.ScalarNode {
+		return nil, fmt.Errorf("%q must be a single scalar", rendered)
+	}
+
+	scalar := node.Content[0]
+	if scalar.Value == "" && scalar.Style&(yaml.SingleQuotedStyle|yaml.DoubleQuotedStyle) == 0 {
+		return nil, fmt.Errorf("%q has a %s tag but no value", rendered, fields[0])
+	}
+
+	var value any
+	if err := scalar.Decode(&value); err != nil {
+		return nil, fmt.Errorf("parsing %q: %w", rendered, err)
 	}
 	return value, nil
 }
