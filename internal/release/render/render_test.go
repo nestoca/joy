@@ -158,6 +158,40 @@ func TestRenderRelease(t *testing.T) {
 			},
 		},
 		{
+			Name: "chart level mappings opt into typed values with a yaml tag",
+			Params: RenderTestParams{
+				Release: func() *v1alpha1.Release {
+					rel := buildRelease("env", "release")
+					rel.Spec.Values = map[string]any{}
+					rel.Spec.Version = "v9.9.9"
+					return rel
+				}(),
+				Chart: helm.Chart{
+					Mappings: map[string]any{
+						"meta.tier":     "!!int {{ add 1 3 }}",
+						"meta.text":     "{{ add 1 3 }}",
+						"meta.numberId": "!!str 1234567890123",
+					},
+				},
+				SetupHelmMock: func(mock *helm.PullRendererMock) func(*testing.T) {
+					return func(t *testing.T) {
+						require.Len(t, mock.RenderCalls(), 1)
+						require.Equal(
+							t,
+							map[string]any{
+								"meta": map[string]any{
+									"tier":     4,
+									"text":     "4",
+									"numberId": "1234567890123",
+								},
+							},
+							mock.RenderCalls()[0].Opts.Values,
+						)
+					}
+				},
+			},
+		},
+		{
 			Name: "chart mappings take priority over global mappings",
 			Params: RenderTestParams{
 				Release: func() *v1alpha1.Release {
@@ -589,6 +623,37 @@ func TestSchemaUnification(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tc.ExpectedValues, result)
+		})
+	}
+}
+
+func TestTypedMappingValue(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Rendered string
+		Expected any
+		Error    string
+	}{
+		{Name: "plain text stays a string", Rendered: "4", Expected: "4"},
+		{Name: "empty stays a string", Rendered: "", Expected: ""},
+		{Name: "int tag", Rendered: "!!int 4", Expected: 4},
+		{Name: "float tag", Rendered: "!!float 1.5", Expected: 1.5},
+		{Name: "bool tag", Rendered: "!!bool true", Expected: true},
+		{Name: "str tag keeps numeric-looking text a string", Rendered: "!!str 1234567890123", Expected: "1234567890123"},
+		{Name: "surrounding whitespace is tolerated", Rendered: "  !!int 7\n", Expected: 7},
+		{Name: "unknown tag stays a string", Rendered: "!!map {a: 1}", Expected: "!!map {a: 1}"},
+		{Name: "tag without value is rejected", Rendered: "!!int", Error: "parsing"},
+		{Name: "invalid int is rejected", Rendered: "!!int abc", Error: "parsing"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actual, err := typedMappingValue(tc.Rendered)
+			if tc.Error != "" {
+				require.ErrorContains(t, err, tc.Error)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.Expected, actual)
 		})
 	}
 }
