@@ -24,9 +24,8 @@ type ProjectSpec struct {
 	// It can be any string that uniquely identifies the owners, such as email addresses or backstage group names.
 	Owners []string `yaml:"owners,omitempty" json:"owners,omitempty"`
 
-	// Tier is the service criticality tier (1-4). Injected into release values as
-	// meta.tier via catalog chart mappings.
-	Tier int `yaml:"tier,omitempty" json:"tier,omitempty"`
+	// Values is a generic property bag for user specific project values.
+	Values map[string]any `yaml:"values,omitempty" json:"values,omitempty"`
 
 	// Reviewers is the list of GitHub users who should always added a reviewer for the project.
 	Reviewers []string `yaml:"reviewers,omitempty" json:"reviewers,omitempty"`
