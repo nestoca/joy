@@ -1,3 +1,10 @@
+## [0.106.0](https://github.com/nestoca/joy/compare/v0.105.1...v0.106.0) (2026-11-27)
+
+
+### Features
+
+* **PLT-7699:** add project spec values ([e092fa7](https://github.com/nestoca/joy/commit/e092fa708d0c47358ba17440c0deec24965a869b))
+
 ## [0.105.1](https://github.com/nestoca/joy/compare/v0.105.0...v0.105.1) (2026-11-24)
 
 
